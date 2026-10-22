@@ -61,6 +61,11 @@ fun PantallaLogin(
     var mostrarPassword by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.limpiarError() }
+    LaunchedEffect(Unit) {
+        vm.navegarAlHome.collect {
+            navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(BG)) {
         Column(
@@ -146,9 +151,7 @@ fun PantallaLogin(
 
             Button(
                 onClick = {
-                    vm.login(email, password) {
-                        navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
-                    }
+                    vm.login(email, password) {}
                 },
                 enabled = !vm.cargando,
                 modifier = Modifier.fillMaxWidth().height(54.dp),

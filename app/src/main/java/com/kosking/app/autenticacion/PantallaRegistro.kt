@@ -62,6 +62,11 @@ fun PantallaRegistro(
     var errorLocal by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) { vm.limpiarError() }
+    LaunchedEffect(Unit) {
+        vm.navegarAlHome.collect {
+            navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
+        }
+    }
 
     val hayError = vm.error.isNotEmpty() || errorLocal.isNotEmpty()
 
@@ -171,9 +176,7 @@ fun PantallaRegistro(
             Button(
                 onClick = {
                     if (password != confirmarPassword) { errorLocal = "Las contraseñas no coinciden"; return@Button }
-                    vm.registrar(nombre, email, password) {
-                        navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
-                    }
+                    vm.registrar(nombre, email, password) {}
                 },
                 enabled = !vm.cargando,
                 modifier = Modifier.fillMaxWidth().height(54.dp),

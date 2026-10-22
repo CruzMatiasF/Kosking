@@ -30,7 +30,11 @@ class CrearLocalViewModel : ViewModel() {
         horario: String,
         telefono: String,
     ) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            estado.value = EstadoCrearLocal.Error("No hay sesión activa. Volvé a iniciar sesión.")
+            return
+        }
         viewModelScope.launch {
             estado.value = EstadoCrearLocal.Guardando
             try {
@@ -48,7 +52,9 @@ class CrearLocalViewModel : ViewModel() {
                     "ventasDelDia" to 0.0,
                     "creadoAt" to Timestamp.now(),
                 )
-                val ref = db.collection("tiendas").add(tienda).await()
+                // Fire-and-forget: no esperamos confirmación del servidor
+                val ref = db.collection("tiendas").document()
+                ref.set(tienda)
                 estado.value = EstadoCrearLocal.Exito(ref.id)
             } catch (e: Exception) {
                 estado.value = EstadoCrearLocal.Error(e.message ?: "Error al crear el local")

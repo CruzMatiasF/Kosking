@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
@@ -63,14 +65,28 @@ fun PantallaDetalleKiosco(
     tiendaId: String,
     navController: NavController,
 ) {
-    val nombre = "Kiosco El Cielo"
-    val distancia = "3 cuadras"
+    val vm: DetalleKioscoViewModel = viewModel(factory = DetalleKioscoViewModel.Factory(tiendaId))
+    val tiendaFirestore by vm.tienda.collectAsStateWithLifecycle()
+    val stockFirestore by vm.stock.collectAsStateWithLifecycle()
+    val ofertasFirestore by vm.ofertas.collectAsStateWithLifecycle()
+
+    // Usa datos de Firestore si están disponibles, si no muestra valores de ejemplo
+    val nombre = tiendaFirestore?.nombre ?: "Kiosco El Cielo"
+    val direccion = tiendaFirestore?.direccion ?: "San Martín 456, Palpalá"
+    val distancia = "Cerca"
     val rating = "4.8"
-    val reseñas = 120
-    val direccion = "San Martín 456, Palpalá"
+    val reseñas = 0
     val horario = "Lun–Sáb 8:00–22:00 · Dom 9:00–20:00"
     var esFavorito by remember { mutableStateOf(false) }
     var tabSeleccionado by remember { mutableIntStateOf(0) }
+
+    val stockMostrar = if (stockFirestore.isNotEmpty()) stockFirestore.map {
+        ProductoEnStock("🛒", it.nombre, "$%.0f".format(it.precio), it.cantidad)
+    } else stockEjemplo
+
+    val ofertasMostrar = if (ofertasFirestore.isNotEmpty()) ofertasFirestore.map {
+        OfertaKiosco("🏷️", it.nombreProducto, "$%.0f".format(it.precioNormal), "$%.0f".format(it.precioOferta))
+    } else ofertasEjemplo
 
     Scaffold(
         containerColor = AzulFondo,
@@ -185,8 +201,8 @@ fun PantallaDetalleKiosco(
 
                         // Stats rápidos
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            StatChip("${stockEjemplo.size}", "Productos", Azul, modifier = Modifier.weight(1f))
-                            StatChip("${ofertasEjemplo.size}", "Ofertas", Rojo, modifier = Modifier.weight(1f))
+                            StatChip("${stockMostrar.size}", "Productos", Azul, modifier = Modifier.weight(1f))
+                            StatChip("${ofertasMostrar.size}", "Ofertas", Rojo, modifier = Modifier.weight(1f))
                             StatChip(distancia, "Distancia", Verde, modifier = Modifier.weight(1f))
                         }
 
@@ -211,7 +227,7 @@ fun PantallaDetalleKiosco(
                                 onClick = { tabSeleccionado = 0 },
                                 text = {
                                     Text(
-                                        "Stock (${stockEjemplo.size})",
+                                        "Stock (${stockMostrar.size})",
                                         fontWeight = if (tabSeleccionado == 0) FontWeight.Bold else FontWeight.Normal,
                                         fontSize = 14.sp,
                                     )
@@ -224,7 +240,7 @@ fun PantallaDetalleKiosco(
                                 onClick = { tabSeleccionado = 1 },
                                 text = {
                                     Text(
-                                        "Ofertas (${ofertasEjemplo.size})",
+                                        "Ofertas (${ofertasMostrar.size})",
                                         fontWeight = if (tabSeleccionado == 1) FontWeight.Bold else FontWeight.Normal,
                                         fontSize = 14.sp,
                                     )
@@ -239,20 +255,20 @@ fun PantallaDetalleKiosco(
 
             // ── Contenido del tab ─────────────────────────────────────────────
             when (tabSeleccionado) {
-                0 -> items(stockEjemplo) { prod ->
+                0 -> items(stockMostrar) { prod ->
                     StockItem(prod) {
                         navController.navigate(Rutas.detalleProducto(prod.nombre))
                     }
                 }
                 1 -> {
-                    if (ofertasEjemplo.isEmpty()) {
+                    if (ofertasMostrar.isEmpty()) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                                 Text("No hay ofertas activas", color = Gris500)
                             }
                         }
                     } else {
-                        items(ofertasEjemplo) { oferta -> OfertaItem(oferta) }
+                        items(ofertasMostrar) { oferta -> OfertaItem(oferta) }
                     }
                 }
             }

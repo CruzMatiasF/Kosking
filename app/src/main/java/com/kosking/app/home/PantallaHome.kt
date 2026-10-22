@@ -106,9 +106,9 @@ fun PantallaHome(navController: NavController) {
                 )
                 NavigationBarItem(
                     selected = tabSeleccionado == 3,
-                    onClick = { tabSeleccionado = 3 },
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                    label = { Text("Perfil") },
+                    onClick = { navController.navigate(Rutas.PANEL_DUENO) },
+                    icon = { Icon(Icons.Default.Store, contentDescription = "Mi local") },
+                    label = { Text("Mi local") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Rojo,
                         selectedTextColor = Rojo,

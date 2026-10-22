@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -43,7 +43,7 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
 
     val activas = ofertas.count { it.activa }
 
-    // Reset éxito → cerrar diálogo
+    // Reset Ã©xito â†’ cerrar diÃ¡logo
     LaunchedEffect(estado) {
         if (estado is EstadoOferta.Exito) {
             kotlinx.coroutines.delay(1000)
@@ -66,7 +66,7 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Mis Ofertas", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Blanco)
-                            Text("$activas activas · ${ofertas.size} en total", fontSize = 12.sp, color = Blanco.copy(alpha = 0.65f))
+                            Text("$activas activas Â· ${ofertas.size} en total", fontSize = 12.sp, color = Blanco.copy(alpha = 0.65f))
                         }
                         IconButton(onClick = { mostrarDialogo = true }) {
                             Icon(Icons.Default.Add, null, tint = Blanco)
@@ -109,11 +109,11 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
                 item {
                     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("🏷️", fontSize = 48.sp)
+                            Text("ðŸ·ï¸", fontSize = 48.sp)
                             Spacer(Modifier.height(12.dp))
-                            Text("No hay ofertas todavía", fontWeight = FontWeight.SemiBold, color = AzulNavy, fontSize = 15.sp)
+                            Text("No hay ofertas todavÃ­a", fontWeight = FontWeight.SemiBold, color = AzulNavy, fontSize = 15.sp)
                             Spacer(Modifier.height(4.dp))
-                            Text("Tocá + para crear tu primera oferta", color = Gris500, fontSize = 13.sp)
+                            Text("TocÃ¡ + para crear tu primera oferta", color = Gris500, fontSize = 13.sp)
                         }
                     }
                 }
@@ -130,7 +130,7 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
         }
     }
 
-    // Diálogo para crear oferta
+    // DiÃ¡logo para crear oferta
     if (mostrarDialogo) {
         CrearOfertaDialog(
             stock = stock,
@@ -140,12 +140,12 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
         )
     }
 
-    // Confirmación eliminación
+    // ConfirmaciÃ³n eliminaciÃ³n
     ofertaEliminando?.let { oferta ->
         AlertDialog(
             onDismissRequest = { ofertaEliminando = null },
             title = { Text("Eliminar oferta") },
-            text = { Text("¿Eliminás la oferta de \"${oferta.nombreProducto}\"?") },
+            text = { Text("Â¿EliminÃ¡s la oferta de \"${oferta.nombreProducto}\"?") },
             confirmButton = {
                 TextButton(
                     onClick = { vm.eliminarOferta(oferta.id); ofertaEliminando = null },
@@ -295,9 +295,9 @@ private fun CrearOfertaDialog(
             if (exito) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🎉", fontSize = 36.sp)
+                        Text("ðŸŽ‰", fontSize = 36.sp)
                         Spacer(Modifier.height(8.dp))
-                        Text("¡Oferta creada!", fontWeight = FontWeight.Bold, color = Verde, fontSize = 15.sp)
+                        Text("Â¡Oferta creada!", fontWeight = FontWeight.Bold, color = Verde, fontSize = 15.sp)
                     }
                 }
             } else {
@@ -312,11 +312,11 @@ private fun CrearOfertaDialog(
                                 value = nombreProducto,
                                 onValueChange = { nombreProducto = it },
                                 label = { Text("Producto") },
-                                placeholder = { Text("Escribí o elegí del stock") },
+                                placeholder = { Text("EscribÃ­ o elegÃ­ del stock") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
                                 singleLine = true,
                                 modifier = Modifier.menuAnchor().fillMaxWidth(),
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, focusedLabelColor = Rojo),
+                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Rojo, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Rojo),
                             )
                             ExposedDropdownMenu(expanded = expandido, onDismissRequest = { expandido = false }) {
                                 stock.forEach { item ->
@@ -343,7 +343,7 @@ private fun CrearOfertaDialog(
                             label = { Text("Nombre del producto") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, focusedLabelColor = Rojo),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Rojo, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Rojo),
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -355,7 +355,7 @@ private fun CrearOfertaDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, focusedLabelColor = Rojo),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Rojo, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Rojo),
                         )
                         OutlinedTextField(
                             value = precioOfertaTexto,
@@ -365,7 +365,7 @@ private fun CrearOfertaDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, focusedLabelColor = Rojo),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Rojo, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Rojo),
                         )
                     }
                     if (descuento > 0) {
@@ -383,10 +383,10 @@ private fun CrearOfertaDialog(
                     OutlinedTextField(
                         value = descripcion,
                         onValueChange = { descripcion = it },
-                        label = { Text("Descripción (opcional)") },
+                        label = { Text("DescripciÃ³n (opcional)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, focusedLabelColor = Rojo),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Rojo, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Rojo, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Rojo),
                     )
                 }
             }
@@ -421,3 +421,4 @@ private fun CrearOfertaDialog(
         },
     )
 }
+

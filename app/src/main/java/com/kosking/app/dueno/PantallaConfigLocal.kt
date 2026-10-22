@@ -346,6 +346,11 @@ private fun CampoConfig(
 @Composable
 private fun fieldColors(color: Color) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = color,
+    unfocusedBorderColor = Gris500.copy(alpha = 0.4f),
     focusedLabelColor = color,
+    unfocusedLabelColor = Gris500,
     focusedLeadingIconColor = color,
+    focusedTextColor = AzulNavy,
+    unfocusedTextColor = AzulNavy,
+    cursorColor = color,
 )

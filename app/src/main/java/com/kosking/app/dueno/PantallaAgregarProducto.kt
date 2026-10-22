@@ -328,6 +328,11 @@ private fun CampoAgregar(
 @Composable
 private fun campoColors(color: Color) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = color,
+    unfocusedBorderColor = Gris500.copy(alpha = 0.4f),
     focusedLabelColor = color,
+    unfocusedLabelColor = Gris500,
     focusedLeadingIconColor = color,
+    focusedTextColor = AzulNavy,
+    unfocusedTextColor = AzulNavy,
+    cursorColor = color,
 )

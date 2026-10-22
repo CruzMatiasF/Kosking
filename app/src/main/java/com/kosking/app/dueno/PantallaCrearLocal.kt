@@ -50,7 +50,9 @@ fun PantallaCrearLocal(navController: NavController, vm: CrearLocalViewModel = v
     // Navegar al panel cuando se crea el local
     LaunchedEffect(estado) {
         if (estado is EstadoCrearLocal.Exito) {
-            paso = Paso.LISTO
+            navController.navigate(Rutas.PANEL_DUENO) {
+                popUpTo(Rutas.HOME) { inclusive = false }
+            }
         }
     }
 
@@ -391,6 +393,11 @@ private fun PantallaExito(nombre: String, onIrAlPanel: () -> Unit, modifier: Mod
 @Composable
 private fun fieldColorsCrear(color: Color) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = color,
+    unfocusedBorderColor = Gris500.copy(alpha = 0.4f),
     focusedLabelColor = color,
+    unfocusedLabelColor = Gris500,
     focusedLeadingIconColor = color,
+    focusedTextColor = AzulNavy,
+    unfocusedTextColor = AzulNavy,
+    cursorColor = color,
 )

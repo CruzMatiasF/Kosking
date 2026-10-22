@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -42,7 +42,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
     var itemEditando by remember { mutableStateOf<StockItem?>(null) }
     var itemEliminando by remember { mutableStateOf<StockItem?>(null) }
 
-    // Reset éxito
+    // Reset Ã©xito
     LaunchedEffect(estadoEdicion) {
         if (estadoEdicion is EstadoEdicion.Exito) {
             kotlinx.coroutines.delay(1500)
@@ -100,7 +100,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                     ) {
                         val filtros = listOf(
                             FiltroStock.TODOS to "Todos",
-                            FiltroStock.BAJO to "Stock bajo (≤3)",
+                            FiltroStock.BAJO to "Stock bajo (â‰¤3)",
                             FiltroStock.AGOTADO to "Agotado",
                         )
                         items(filtros) { (filtro, label) ->
@@ -133,7 +133,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                 item {
                     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📦", fontSize = 40.sp)
+                            Text("ðŸ“¦", fontSize = 40.sp)
                             Spacer(Modifier.height(8.dp))
                             Text("Sin productos", color = Gris500, fontSize = 14.sp)
                         }
@@ -151,7 +151,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         }
     }
 
-    // Diálogo de edición
+    // DiÃ¡logo de ediciÃ³n
     itemEditando?.let { item ->
         EditarStockDialog(
             item = item,
@@ -162,12 +162,12 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         )
     }
 
-    // Diálogo de confirmación de eliminación
+    // DiÃ¡logo de confirmaciÃ³n de eliminaciÃ³n
     itemEliminando?.let { item ->
         AlertDialog(
             onDismissRequest = { itemEliminando = null },
             title = { Text("Eliminar producto") },
-            text = { Text("¿Eliminás \"${item.nombre}\" del inventario?") },
+            text = { Text("Â¿EliminÃ¡s \"${item.nombre}\" del inventario?") },
             confirmButton = {
                 TextButton(
                     onClick = { vm.eliminarProducto(item.productoId); itemEliminando = null },
@@ -180,7 +180,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         )
     }
 
-    // Snackbar de error de edición
+    // Snackbar de error de ediciÃ³n
     if (estadoEdicion is EstadoEdicion.Error) {
         AlertDialog(
             onDismissRequest = { vm.estadoEdicion.value = EstadoEdicion.Idle },
@@ -228,7 +228,7 @@ private fun StockItemCard(item: StockItem, onEditar: () -> Unit, onEliminar: () 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = RoundedCornerShape(6.dp), color = stockColor.copy(alpha = 0.1f)) {
                         Text(
-                            "${item.cantidad} uds · $stockLabel",
+                            "${item.cantidad} uds Â· $stockLabel",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             fontSize = 11.sp,
                             color = stockColor,
@@ -281,7 +281,7 @@ private fun EditarStockDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Azul, focusedLabelColor = Azul),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Azul, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Azul, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Azul),
                     )
                     OutlinedTextField(
                         value = precioTexto,
@@ -290,7 +290,7 @@ private fun EditarStockDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Azul, focusedLabelColor = Azul),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Azul, unfocusedBorderColor = Gris500.copy(alpha = 0.4f), focusedLabelColor = Azul, unfocusedLabelColor = Gris500, focusedTextColor = AzulNavy, unfocusedTextColor = AzulNavy, cursorColor = Azul),
                         prefix = { Text("$") },
                     )
                 }
@@ -322,3 +322,4 @@ private fun EditarStockDialog(
         },
     )
 }
+

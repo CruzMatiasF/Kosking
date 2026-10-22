@@ -332,6 +332,9 @@ private fun DialogoRegistrarVentaEmpleado(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Azul,
                         unfocusedBorderColor = Gris200,
+                        focusedTextColor = AzulNavy,
+                        unfocusedTextColor = AzulNavy,
+                        cursorColor = Azul,
                     ),
                 )
             }

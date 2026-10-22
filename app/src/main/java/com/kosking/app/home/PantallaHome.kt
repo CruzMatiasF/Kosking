@@ -310,9 +310,9 @@ fun PantallaHome(navController: NavController) {
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120)
-                KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87)
-                KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53)
+                KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120) { navController.navigate(Rutas.detalleLocal(it)) }
+                KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87) { navController.navigate(Rutas.detalleLocal(it)) }
+                KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53) { navController.navigate(Rutas.detalleLocal(it)) }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -350,12 +350,12 @@ private fun ProductoCard(prod: ProductoPopular) {
 }
 
 @Composable
-private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñas: Int) {
+private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñas: Int, onClick: (String) -> Unit = {}) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = Blanco,
         shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().clickable { },
+        modifier = Modifier.fillMaxWidth().clickable { onClick(nombre) },
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             // Acento azul lateral

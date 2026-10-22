@@ -15,6 +15,7 @@ import com.kosking.app.autenticacion.AuthViewModel
 import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
 import com.kosking.app.busqueda.PantallaResultados
+import com.kosking.app.detalle.PantallaDetalleKiosco
 import com.kosking.app.detalle.PantallaDetalleProducto
 import com.kosking.app.home.PantallaHome
 
@@ -95,7 +96,7 @@ fun KoskingNavHost(
         }
         composable(Rutas.DETALLE_LOCAL) { backStack ->
             val tiendaId = backStack.arguments?.getString("tiendaId") ?: ""
-            // PantallaDetalleLocal(tiendaId, navController)
+            PantallaDetalleKiosco(tiendaId = tiendaId, navController = navController)
         }
         composable(Rutas.DETALLE_OFERTA) { backStack ->
             val tiendaId = backStack.arguments?.getString("tiendaId") ?: ""

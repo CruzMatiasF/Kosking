@@ -1,0 +1,351 @@
+package com.kosking.app.dueno
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.kosking.app.ui.theme.*
+
+private val BG = Brush.verticalGradient(
+    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
+)
+
+private val categorias = listOf("Kiosco", "Almacén", "Maxikiosco", "Despensa", "Minimercado", "Otro")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel = viewModel()) {
+    val tienda by vm.tienda.collectAsStateWithLifecycle()
+    val estado by vm.estado.collectAsStateWithLifecycle()
+
+    // Formulario inicializado con los datos actuales de Firestore
+    var nombre by remember(tienda?.id) { mutableStateOf(tienda?.nombre ?: "") }
+    var direccion by remember(tienda?.id) { mutableStateOf(tienda?.direccion ?: "") }
+    var horario by remember(tienda?.id) { mutableStateOf(tienda?.horario ?: "") }
+    var telefono by remember(tienda?.id) { mutableStateOf(tienda?.telefono ?: "") }
+    var categoria by remember(tienda?.id) { mutableStateOf(tienda?.categoria ?: "Kiosco") }
+    var abierto by remember(tienda?.id) { mutableStateOf(tienda?.abierto ?: true) }
+    var categoriaExpanded by remember { mutableStateOf(false) }
+
+    // Sync cuando llega la tienda de Firestore por primera vez
+    LaunchedEffect(tienda?.id) {
+        tienda?.let { t ->
+            if (nombre.isEmpty()) nombre = t.nombre
+            if (direccion.isEmpty()) direccion = t.direccion
+            if (horario.isEmpty()) horario = t.horario
+            if (telefono.isEmpty()) telefono = t.telefono
+            if (categoria == "Kiosco" && t.categoria.isNotBlank()) categoria = t.categoria
+            abierto = t.abierto
+        }
+    }
+
+    // Volver atrás al guardar con éxito
+    LaunchedEffect(estado) {
+        if (estado is EstadoConfig.Exito) {
+            kotlinx.coroutines.delay(1200)
+            navController.popBackStack()
+        }
+    }
+
+    val haycambios = tienda?.let { t ->
+        nombre != t.nombre || direccion != t.direccion || horario != t.horario ||
+            telefono != t.telefono || categoria != t.categoria || abierto != t.abierto
+    } ?: false
+
+    Scaffold(
+        containerColor = AzulFondo,
+        topBar = {
+            Box(modifier = Modifier.fillMaxWidth().background(BG).statusBarsPadding()) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).padding(bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, null, tint = Blanco)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Configuración del local", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Blanco)
+                        Text(tienda?.nombre ?: "Cargando...", fontSize = 12.sp, color = Blanco.copy(alpha = 0.65f))
+                    }
+                    // Estado de apertura rápida en el header
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (abierto) Verde.copy(alpha = 0.2f) else Gris500.copy(alpha = 0.2f),
+                        onClick = { abierto = !abierto },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Icon(
+                                if (abierto) Icons.Default.Store else Icons.Default.StoreMallDirectory,
+                                null,
+                                tint = if (abierto) Verde else Gris500,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                if (abierto) "Abierto" else "Cerrado",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (abierto) Verde else Gris500,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        bottomBar = {
+            Surface(color = Blanco, shadowElevation = 8.dp) {
+                Button(
+                    onClick = { vm.guardar(nombre, direccion, horario, telefono, categoria, abierto) },
+                    enabled = haycambios && estado !is EstadoConfig.Guardando && tienda != null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Azul,
+                        contentColor = Blanco,
+                        disabledContainerColor = Gris200,
+                        disabledContentColor = Gris500,
+                    ),
+                ) {
+                    when (estado) {
+                        is EstadoConfig.Guardando -> {
+                            CircularProgressIndicator(color = Blanco, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Guardando...", fontWeight = FontWeight.Bold)
+                        }
+                        is EstadoConfig.Exito -> {
+                            Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("¡Guardado!", fontWeight = FontWeight.Bold)
+                        }
+                        else -> {
+                            Icon(Icons.Default.Save, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Guardar cambios", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            // ── Información básica ─────────────────────────────────────────────
+            SeccionConfig("Información básica", Icons.Default.Store, Azul) {
+                CampoConfig(
+                    valor = nombre,
+                    onCambio = { nombre = it },
+                    etiqueta = "Nombre del local",
+                    icono = Icons.Default.Store,
+                    color = Azul,
+                )
+                Spacer(Modifier.height(12.dp))
+                // Selector de categoría
+                ExposedDropdownMenuBox(
+                    expanded = categoriaExpanded,
+                    onExpandedChange = { categoriaExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Categoría") },
+                        leadingIcon = { Icon(Icons.Default.Category, null, tint = Azul, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = fieldColors(Azul),
+                    )
+                    ExposedDropdownMenu(expanded = categoriaExpanded, onDismissRequest = { categoriaExpanded = false }) {
+                        categorias.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat, fontSize = 14.sp) },
+                                onClick = { categoria = cat; categoriaExpanded = false },
+                                leadingIcon = if (cat == categoria) {
+                                    { Icon(Icons.Default.Check, null, tint = Azul, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Ubicación ─────────────────────────────────────────────────────
+            SeccionConfig("Ubicación", Icons.Default.LocationOn, Verde) {
+                CampoConfig(
+                    valor = direccion,
+                    onCambio = { direccion = it },
+                    etiqueta = "Dirección",
+                    icono = Icons.Default.LocationOn,
+                    color = Verde,
+                    placeholder = "Ej: San Martín 456, Palpalá",
+                )
+            }
+
+            // ── Horarios ───────────────────────────────────────────────────────
+            SeccionConfig("Horarios", Icons.Default.Schedule, Naranja) {
+                CampoConfig(
+                    valor = horario,
+                    onCambio = { horario = it },
+                    etiqueta = "Horario de atención",
+                    icono = Icons.Default.Schedule,
+                    color = Naranja,
+                    placeholder = "Ej: Lun–Sáb 8:00–22:00 · Dom 9:00–20:00",
+                )
+                Spacer(Modifier.height(16.dp))
+                // Switch de apertura
+                Surface(shape = RoundedCornerShape(14.dp), color = if (abierto) Verde.copy(alpha = 0.08f) else Gris200) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            if (abierto) Icons.Default.LockOpen else Icons.Default.Lock,
+                            null,
+                            tint = if (abierto) Verde else Gris500,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                if (abierto) "Local abierto" else "Local cerrado",
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (abierto) Verde else Gris700,
+                                fontSize = 14.sp,
+                            )
+                            Text(
+                                if (abierto) "Los clientes pueden verte en la app" else "No aparecés en búsquedas",
+                                fontSize = 11.sp,
+                                color = Gris500,
+                            )
+                        }
+                        Switch(
+                            checked = abierto,
+                            onCheckedChange = { abierto = it },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Blanco, checkedTrackColor = Verde),
+                        )
+                    }
+                }
+            }
+
+            // ── Contacto ──────────────────────────────────────────────────────
+            SeccionConfig("Contacto", Icons.Default.Phone, Rojo) {
+                CampoConfig(
+                    valor = telefono,
+                    onCambio = { telefono = it },
+                    etiqueta = "Teléfono / WhatsApp",
+                    icono = Icons.Default.Phone,
+                    color = Rojo,
+                    placeholder = "Ej: 0388 4123456",
+                )
+            }
+
+            // ── Código de invitación ──────────────────────────────────────────
+            tienda?.codigoInvitacion?.takeIf { it.isNotBlank() }?.let { codigo ->
+                SeccionConfig("Empleados", Icons.Default.Group, Naranja) {
+                    Surface(shape = RoundedCornerShape(12.dp), color = Naranja.copy(alpha = 0.08f)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.VpnKey, null, tint = Naranja, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Código de invitación", fontSize = 11.sp, color = Gris500)
+                                Text(codigo, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = AzulNavy, letterSpacing = 3.sp)
+                                Text("Compartí este código con tus empleados", fontSize = 11.sp, color = Gris500)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Error
+    if (estado is EstadoConfig.Error) {
+        AlertDialog(
+            onDismissRequest = { vm.estado.value = EstadoConfig.Idle },
+            title = { Text("Error al guardar") },
+            text = { Text((estado as EstadoConfig.Error).mensaje) },
+            confirmButton = { TextButton(onClick = { vm.estado.value = EstadoConfig.Idle }) { Text("OK") } },
+        )
+    }
+}
+
+@Composable
+private fun SeccionConfig(titulo: String, icono: ImageVector, color: Color, content: @Composable ColumnScope.() -> Unit) {
+    Surface(shape = RoundedCornerShape(16.dp), color = Blanco, shadowElevation = 1.dp) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(32.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icono, null, tint = color, modifier = Modifier.size(16.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(titulo, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = AzulNavy)
+            }
+            Spacer(Modifier.height(14.dp))
+            content()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CampoConfig(
+    valor: String,
+    onCambio: (String) -> Unit,
+    etiqueta: String,
+    icono: ImageVector,
+    color: Color,
+    placeholder: String = "",
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onCambio,
+        label = { Text(etiqueta) },
+        placeholder = if (placeholder.isNotEmpty()) ({ Text(placeholder, color = Gris500, fontSize = 13.sp) }) else null,
+        leadingIcon = { Icon(icono, null, tint = color, modifier = Modifier.size(18.dp)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+        colors = fieldColors(color),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun fieldColors(color: Color) = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = color,
+    focusedLabelColor = color,
+    focusedLeadingIconColor = color,
+)

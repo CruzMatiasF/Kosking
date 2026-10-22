@@ -29,6 +29,9 @@ data class Tienda(
     val codigoInvitacion: String = "",
     val direccion: String = "",
     val categoria: String = "",
+    val horario: String = "",
+    val telefono: String = "",
+    val abierto: Boolean = true,
     val ventasDelDia: Double = 0.0,
     val creadoAt: Timestamp? = null
 )

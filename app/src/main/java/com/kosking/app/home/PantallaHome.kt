@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
@@ -171,6 +172,14 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         Spacer(Modifier.weight(1f))
                         IconButton(onClick = {}) {
                             Icon(Icons.Default.Notifications, contentDescription = null, tint = Blanco.copy(alpha = 0.85f))
+                        }
+                        IconButton(onClick = {
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate(Rutas.LOGIN) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }) {
+                            Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión", tint = Blanco.copy(alpha = 0.85f))
                         }
                     }
 

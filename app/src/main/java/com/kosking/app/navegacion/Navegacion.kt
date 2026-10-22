@@ -28,6 +28,7 @@ import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.home.PantallaElegirRol
 import com.kosking.app.home.PantallaHome
+import com.kosking.app.home.PantallaMas
 
 object Rutas {
     const val SPLASH = "splash"
@@ -60,6 +61,7 @@ object Rutas {
     const val REGISTRAR_VENTA = "registrar_venta"
     const val INGRESAR_CODIGO = "ingresar_codigo"
     const val ELEGIR_ROL = "elegir_rol"
+    const val MAS = "mas"
 
     // Helpers para navegar con argumentos
     fun resultados(query: String) = "resultados/$query"
@@ -146,6 +148,9 @@ fun KoskingNavHost(
         }
         composable(Rutas.ELEGIR_ROL) {
             PantallaElegirRol(navController = navController)
+        }
+        composable(Rutas.MAS) {
+            PantallaMas(navController = navController)
         }
     }
 }

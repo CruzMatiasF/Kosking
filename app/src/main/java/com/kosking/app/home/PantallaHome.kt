@@ -64,78 +64,76 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
     val rolUsuario by vm.rolUsuario.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
-    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    val user = FirebaseAuth.getInstance().currentUser
+    val uid = user?.uid ?: ""
+    val nombreUsuario = user?.displayName ?: user?.email?.substringBefore("@") ?: "Vos"
     val tieneTienda = kioscosFirestore.any { it.duenioUid == uid }
+    val tieneRolNegocio = tieneTienda || rolUsuario == RolUsuario.EMPLEADO
 
     Scaffold(
         containerColor = AzulFondo,
         bottomBar = {
             Column {
                 HorizontalDivider(color = Gris200, thickness = 1.dp)
-                NavigationBar(
-                    containerColor = Blanco,
-                    tonalElevation = 0.dp,
-                ) {
-                NavigationBarItem(
-                    selected = tabSeleccionado == 0,
-                    onClick = { tabSeleccionado = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
-                    label = { Text("Inicio") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
+                NavigationBar(containerColor = Blanco, tonalElevation = 0.dp) {
+                    val navColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Rojo, selectedTextColor = Rojo,
                         indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 1,
-                    onClick = { tabSeleccionado = 1 },
-                    icon = { Icon(Icons.Default.LocationOn, contentDescription = "Mapa") },
-                    label = { Text("Mapa") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
-                        indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 2,
-                    onClick = { tabSeleccionado = 2 },
-                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Favoritos") },
-                    label = { Text("Favoritos") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
-                        indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 3,
-                    onClick = {
-                        val destino = when {
-                            tieneTienda -> Rutas.PANEL_DUENO
-                            rolUsuario == RolUsuario.EMPLEADO -> Rutas.PANEL_EMPLEADO
-                            else -> Rutas.ELEGIR_ROL
-                        }
-                        navController.navigate(destino)
-                    },
-                    icon = { Icon(Icons.Default.Store, contentDescription = "Mi local") },
-                    label = { Text("Mi local") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
-                        indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-            }
+                        unselectedIconColor = Gris500, unselectedTextColor = Gris500,
+                    )
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 0,
+                        onClick = { tabSeleccionado = 0 },
+                        icon = { Icon(Icons.Default.Home, null) },
+                        label = { Text("Inicio") },
+                        colors = navColors,
+                    )
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 1,
+                        onClick = { tabSeleccionado = 1 },
+                        icon = { Icon(Icons.Default.LocationOn, null) },
+                        label = { Text("Mapa") },
+                        colors = navColors,
+                    )
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 2,
+                        onClick = { tabSeleccionado = 2 },
+                        icon = { Icon(Icons.Default.Favorite, null) },
+                        label = { Text("Favoritos") },
+                        colors = navColors,
+                    )
+                    // Tab dinámico: Mi local (dueño/empleado) o Carrito (cliente)
+                    if (tieneRolNegocio) {
+                        NavigationBarItem(
+                            selected = tabSeleccionado == 3,
+                            onClick = {
+                                val destino = when {
+                                    tieneTienda -> Rutas.PANEL_DUENO
+                                    else -> Rutas.PANEL_EMPLEADO
+                                }
+                                navController.navigate(destino)
+                            },
+                            icon = { Icon(Icons.Default.Store, null) },
+                            label = { Text("Mi local") },
+                            colors = navColors,
+                        )
+                    } else {
+                        NavigationBarItem(
+                            selected = tabSeleccionado == 3,
+                            onClick = { tabSeleccionado = 3 },
+                            icon = { Icon(Icons.Default.ShoppingCart, null) },
+                            label = { Text("Carrito") },
+                            colors = navColors,
+                        )
+                    }
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 4,
+                        onClick = { navController.navigate(Rutas.MAS) },
+                        icon = { Icon(Icons.Default.MoreHoriz, null) },
+                        label = { Text("Más") },
+                        colors = navColors,
+                    )
+                }
             }
         },
     ) { padding ->
@@ -154,17 +152,30 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     .padding(top = 48.dp, bottom = 28.dp, start = 20.dp, end = 20.dp),
             ) {
                 Column {
-                    // Logo + ubicación + notificaciones
+                    // Avatar + nombre + notificaciones
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🏪", fontSize = 26.sp)
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Rojo.copy(alpha = 0.85f))
+                                .clickable { navController.navigate(Rutas.MAS) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                nombreUsuario.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                                color = Blanco,
+                            )
+                        }
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text(
-                                "Kosking",
+                                "Hola, $nombreUsuario 👋",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp,
-                                color = Rojo,
-                                letterSpacing = (-0.5).sp,
+                                fontSize = 16.sp,
+                                color = Blanco,
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -174,24 +185,12 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                                     modifier = Modifier.size(12.dp),
                                 )
                                 Spacer(Modifier.width(2.dp))
-                                Text(
-                                    "Palpalá, Jujuy",
-                                    fontSize = 12.sp,
-                                    color = Blanco.copy(alpha = 0.6f),
-                                )
+                                Text("Palpalá, Jujuy", fontSize = 12.sp, color = Blanco.copy(alpha = 0.6f))
                             }
                         }
                         Spacer(Modifier.weight(1f))
                         IconButton(onClick = {}) {
-                            Icon(Icons.Default.Notifications, contentDescription = null, tint = Blanco.copy(alpha = 0.85f))
-                        }
-                        IconButton(onClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            navController.navigate(Rutas.LOGIN) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }) {
-                            Icon(Icons.Default.Logout, contentDescription = "Cerrar sesión", tint = Blanco.copy(alpha = 0.85f))
+                            Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                     }
 

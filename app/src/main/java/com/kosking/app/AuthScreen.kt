@@ -36,10 +36,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-
-val KoskingRed = Color(0xFFE63946)
 
 @Composable
 fun AuthScreen(
@@ -67,12 +66,7 @@ fun AuthScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Kosking",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = KoskingRed
-        )
+        Text("Kosking", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = KoskingRed)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -117,50 +111,20 @@ fun FormularioLogin(onLoginExitoso: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
+        CampoTexto(valor = email, onCambio = { email = it }, etiqueta = "Email", teclado = KeyboardType.Email)
+        CampoContrasena(valor = password, onCambio = { password = it }, etiqueta = "Contraseña")
 
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
-
-        if (error.isNotEmpty()) {
-            Text(
-                text = error,
-                color = Color.Red,
-                fontSize = 14.sp
-            )
-        }
+        if (error.isNotEmpty()) MensajeError(error)
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(
+        BotonPrincipal(
+            texto = "Iniciar sesión",
+            cargando = cargando,
             onClick = {
                 if (email.isBlank() || password.isBlank()) {
                     error = "Completá todos los campos"
-                    return@Button
+                    return@BotonPrincipal
                 }
                 cargando = true
                 error = ""
@@ -170,20 +134,8 @@ fun FormularioLogin(onLoginExitoso: () -> Unit) {
                         cargando = false
                         error = "Email o contraseña incorrectos"
                     }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = KoskingRed),
-            enabled = !cargando
-        ) {
-            if (cargando) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
-            } else {
-                Text("Iniciar sesión", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
-        }
+        )
 
         TextButton(onClick = { }) {
             Text("¿Olvidaste tu contraseña?", color = KoskingRed)
@@ -206,74 +158,18 @@ fun FormularioRegistro(rol: String, onRegistroExitoso: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        OutlinedTextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre completo") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
+        CampoTexto(valor = nombre, onCambio = { nombre = it }, etiqueta = "Nombre completo")
+        CampoTexto(valor = email, onCambio = { email = it }, etiqueta = "Email", teclado = KeyboardType.Email)
+        CampoContrasena(valor = password, onCambio = { password = it }, etiqueta = "Contraseña")
+        CampoContrasena(valor = confirmarPassword, onCambio = { confirmarPassword = it }, etiqueta = "Confirmar contraseña")
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
-
-        OutlinedTextField(
-            value = confirmarPassword,
-            onValueChange = { confirmarPassword = it },
-            label = { Text("Confirmar contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
-
-        if (error.isNotEmpty()) {
-            Text(
-                text = error,
-                color = Color.Red,
-                fontSize = 14.sp
-            )
-        }
+        if (error.isNotEmpty()) MensajeError(error)
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Button(
+        BotonPrincipal(
+            texto = "Crear cuenta",
+            cargando = cargando,
             onClick = {
                 when {
                     nombre.isBlank() || email.isBlank() || password.isBlank() ->
@@ -288,13 +184,13 @@ fun FormularioRegistro(rol: String, onRegistroExitoso: () -> Unit) {
                         auth.createUserWithEmailAndPassword(email.trim(), password)
                             .addOnSuccessListener { result ->
                                 val uid = result.user?.uid ?: return@addOnSuccessListener
-                                val usuario = hashMapOf(
-                                    "nombre" to nombre.trim(),
-                                    "rol" to rol,
-                                    "creadoEn" to com.google.firebase.Timestamp.now()
+                                db.collection("usuarios").document(uid).set(
+                                    hashMapOf(
+                                        "nombre" to nombre.trim(),
+                                        "rol" to rol,
+                                        "creadoEn" to Timestamp.now()
+                                    )
                                 )
-                                db.collection("usuarios").document(uid)
-                                    .set(usuario)
                                     .addOnSuccessListener { onRegistroExitoso() }
                                     .addOnFailureListener {
                                         cargando = false
@@ -307,19 +203,71 @@ fun FormularioRegistro(rol: String, onRegistroExitoso: () -> Unit) {
                             }
                     }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = KoskingRed),
-            enabled = !cargando
-        ) {
-            if (cargando) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
-            } else {
-                Text("Crear cuenta", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
+        )
+    }
+}
+
+// Componentes reutilizables
+
+@Composable
+fun CampoTexto(
+    valor: String,
+    onCambio: (String) -> Unit,
+    etiqueta: String,
+    teclado: KeyboardType = KeyboardType.Text
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onCambio,
+        label = { Text(etiqueta) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = teclado),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = KoskingRed,
+            focusedLabelColor = KoskingRed,
+            cursorColor = KoskingRed
+        )
+    )
+}
+
+@Composable
+fun CampoContrasena(valor: String, onCambio: (String) -> Unit, etiqueta: String) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onCambio,
+        label = { Text(etiqueta) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = KoskingRed,
+            focusedLabelColor = KoskingRed,
+            cursorColor = KoskingRed
+        )
+    )
+}
+
+@Composable
+fun BotonPrincipal(texto: String, cargando: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = KoskingRed),
+        enabled = !cargando
+    ) {
+        if (cargando) {
+            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+        } else {
+            Text(texto, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
+}
+
+@Composable
+fun MensajeError(mensaje: String) {
+    Text(text = mensaje, color = Color.Red, fontSize = 14.sp)
 }

@@ -24,9 +24,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -58,8 +58,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 data class ProductoCatalogo(
     val id: String = "",
     val nombre: String = "",
-    val marca: String = "",
-    val categoria: String = ""
+    val marca: String = ""
 )
 
 data class ItemStock(
@@ -105,10 +104,7 @@ fun PanelDueno(modifier: Modifier = Modifier, onCerrarSesion: () -> Unit) {
     if (tiendaId == null) {
         PantallaCrearLocal(
             modifier = modifier,
-            onLocalCreado = { id, nombre ->
-                tiendaId = id
-                nombreTienda = nombre
-            },
+            onLocalCreado = { id, nombre -> tiendaId = id; nombreTienda = nombre },
             onCerrarSesion = onCerrarSesion
         )
     } else {
@@ -135,9 +131,7 @@ fun PantallaCrearLocal(
     var cargando by remember { mutableStateOf(false) }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -145,68 +139,44 @@ fun PantallaCrearLocal(
         Spacer(modifier = Modifier.height(16.dp))
         Text("Creá tu local", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = KoskingRed)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "¿Cómo se llama tu kiosco?",
-            fontSize = 16.sp,
-            color = Color(0xFF888888),
-            textAlign = TextAlign.Center
-        )
+        Text("¿Cómo se llama tu kiosco?", fontSize = 16.sp, color = KoskingGray, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(32.dp))
 
-        OutlinedTextField(
-            value = nombreLocal,
-            onValueChange = { nombreLocal = it },
-            label = { Text("Nombre del local") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = KoskingRed,
-                focusedLabelColor = KoskingRed,
-                cursorColor = KoskingRed
-            )
-        )
+        CampoTexto(valor = nombreLocal, onCambio = { nombreLocal = it }, etiqueta = "Nombre del local")
 
         if (error.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = error, color = Color.Red, fontSize = 14.sp)
+            MensajeError(error)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        BotonPrincipal(
+            texto = "Crear local",
+            cargando = cargando,
             onClick = {
                 if (nombreLocal.isBlank()) {
                     error = "Ingresá el nombre del local"
-                    return@Button
+                    return@BotonPrincipal
                 }
                 cargando = true
-                val codigo = (100000..999999).random().toString()
-                val tienda = hashMapOf(
-                    "nombre" to nombreLocal.trim(),
-                    "duenoId" to uid,
-                    "codigoInvitacion" to codigo,
-                    "creadoEn" to Timestamp.now()
-                )
                 val ref = db.collection("tiendas").document()
-                ref.set(tienda)
+                ref.set(
+                    hashMapOf(
+                        "nombre" to nombreLocal.trim(),
+                        "duenoId" to uid,
+                        "codigoInvitacion" to (100000..999999).random().toString(),
+                        "creadoEn" to Timestamp.now()
+                    )
+                )
                     .addOnSuccessListener { onLocalCreado(ref.id, nombreLocal.trim()) }
-                    .addOnFailureListener {
-                        cargando = false
-                        error = "Error al crear el local"
-                    }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = KoskingRed),
-            enabled = !cargando
-        ) {
-            if (cargando) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
-            else Text("Crear local", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        }
+                    .addOnFailureListener { cargando = false; error = "Error al crear el local" }
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
         TextButton(onClick = { FirebaseAuth.getInstance().signOut(); onCerrarSesion() }) {
-            Text("Cerrar sesión", color = Color(0xFF888888))
+            Text("Cerrar sesión", color = KoskingGray)
         }
     }
 }
@@ -229,7 +199,7 @@ fun PantallaStock(
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     stockItems.clear()
-                    for (doc in snapshot.documents) {
+                    snapshot.documents.forEach { doc ->
                         stockItems.add(
                             ItemStock(
                                 productoId = doc.id,
@@ -269,14 +239,11 @@ fun PantallaStock(
         }
     ) { innerPadding ->
         if (stockItems.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📦", fontSize = 48.sp)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Todavía no tenés productos", fontSize = 18.sp, color = Color(0xFF888888), textAlign = TextAlign.Center)
+                    Text("Todavía no tenés productos", fontSize = 18.sp, color = KoskingGray, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Tocá el + para agregar uno", fontSize = 14.sp, color = Color(0xFFAAAAAA), textAlign = TextAlign.Center)
                 }
@@ -291,8 +258,7 @@ fun PantallaStock(
                         item = item,
                         onEliminar = {
                             db.collection("tiendas").document(tiendaId)
-                                .collection("stock").document(item.productoId)
-                                .delete()
+                                .collection("stock").document(item.productoId).delete()
                         }
                     )
                 }
@@ -304,15 +270,9 @@ fun PantallaStock(
         DialogAgregarProducto(
             onDismiss = { mostrarDialogo = false },
             onAgregar = { productoId, nombre, marca, precio, cantidad ->
-                val stockDoc = hashMapOf(
-                    "nombre" to nombre,
-                    "marca" to marca,
-                    "precio" to precio,
-                    "cantidad" to cantidad
-                )
                 db.collection("tiendas").document(tiendaId)
                     .collection("stock").document(productoId)
-                    .set(stockDoc)
+                    .set(hashMapOf("nombre" to nombre, "marca" to marca, "precio" to precio, "cantidad" to cantidad))
                 mostrarDialogo = false
             }
         )
@@ -332,17 +292,10 @@ fun ItemStockCard(item: ItemStock, onEliminar: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.nombre, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF222222))
-                if (item.marca.isNotBlank()) {
-                    Text(item.marca, fontSize = 13.sp, color = Color(0xFF888888))
-                }
+                Text(item.nombre, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = KoskingDark)
+                if (item.marca.isNotBlank()) Text(item.marca, fontSize = 13.sp, color = KoskingGray)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "$${String.format("%.2f", item.precio)}",
-                    fontSize = 14.sp,
-                    color = KoskingRed,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("$${String.format("%.2f", item.precio)}", fontSize = 14.sp, color = KoskingRed, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -352,7 +305,7 @@ fun ItemStockCard(item: ItemStock, onEliminar: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = if (item.cantidad > 5) Color(0xFF2E7D32) else Color(0xFFE65100)
                 )
-                Text("unid.", fontSize = 11.sp, color = Color(0xFF888888))
+                Text("unid.", fontSize = 11.sp, color = KoskingGray)
             }
             Spacer(modifier = Modifier.width(4.dp))
             IconButton(onClick = onEliminar) {
@@ -368,9 +321,8 @@ fun DialogAgregarProducto(
     onAgregar: (String, String, String, Double, Int) -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
-
     var busqueda by remember { mutableStateOf("") }
-    var resultados = remember { mutableStateListOf<ProductoCatalogo>() }
+    val resultados = remember { mutableStateListOf<ProductoCatalogo>() }
     var productoSeleccionado by remember { mutableStateOf<ProductoCatalogo?>(null) }
     var precio by remember { mutableStateOf("") }
     var cantidad by remember { mutableStateOf("") }
@@ -380,27 +332,23 @@ fun DialogAgregarProducto(
     var guardando by remember { mutableStateOf(false) }
 
     LaunchedEffect(busqueda) {
-        if (busqueda.length < 2) {
-            resultados.clear()
-            return@LaunchedEffect
-        }
+        if (busqueda.length < 2) { resultados.clear(); return@LaunchedEffect }
         buscando = true
-        val busquedaLower = busqueda.lowercase().trim()
+        val termino = busqueda.lowercase().trim()
         db.collection("productos")
             .orderBy("nombreBusqueda")
-            .startAt(busquedaLower)
-            .endAt(busquedaLower + "")
+            .startAt(termino)
+            .endAt(termino + "")
             .limit(5)
             .get()
             .addOnSuccessListener { snapshot ->
                 resultados.clear()
-                for (doc in snapshot.documents) {
+                snapshot.documents.forEach { doc ->
                     resultados.add(
                         ProductoCatalogo(
                             id = doc.id,
                             nombre = doc.getString("nombre") ?: "",
-                            marca = doc.getString("marca") ?: "",
-                            categoria = doc.getString("categoria") ?: ""
+                            marca = doc.getString("marca") ?: ""
                         )
                     )
                 }
@@ -415,18 +363,7 @@ fun DialogAgregarProducto(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (productoSeleccionado == null) {
-                    OutlinedTextField(
-                        value = busqueda,
-                        onValueChange = { busqueda = it; error = "" },
-                        label = { Text("Buscar producto") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = KoskingRed,
-                            focusedLabelColor = KoskingRed,
-                            cursorColor = KoskingRed
-                        )
-                    )
+                    CampoTexto(valor = busqueda, onCambio = { busqueda = it; error = "" }, etiqueta = "Buscar producto")
 
                     if (buscando) {
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -442,42 +379,23 @@ fun DialogAgregarProducto(
                             Column {
                                 resultados.forEachIndexed { index, prod ->
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { productoSeleccionado = prod }
-                                            .padding(12.dp),
+                                        modifier = Modifier.fillMaxWidth().clickable { productoSeleccionado = prod }.padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(prod.nombre, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                            if (prod.marca.isNotBlank())
-                                                Text(prod.marca, fontSize = 12.sp, color = Color(0xFF888888))
+                                            if (prod.marca.isNotBlank()) Text(prod.marca, fontSize = 12.sp, color = KoskingGray)
                                         }
                                     }
-                                    if (index < resultados.lastIndex) Divider()
+                                    if (index < resultados.lastIndex) HorizontalDivider()
                                 }
                             }
                         }
                     }
 
                     if (busqueda.length >= 2 && resultados.isEmpty() && !buscando) {
-                        Text(
-                            "No encontrado — se creará \"$busqueda\" en el catálogo",
-                            fontSize = 12.sp,
-                            color = Color(0xFF888888)
-                        )
-                        OutlinedTextField(
-                            value = marcaNueva,
-                            onValueChange = { marcaNueva = it },
-                            label = { Text("Marca (opcional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = KoskingRed,
-                                focusedLabelColor = KoskingRed,
-                                cursorColor = KoskingRed
-                            )
-                        )
+                        Text("No encontrado — se creará \"$busqueda\" en el catálogo", fontSize = 12.sp, color = KoskingGray)
+                        CampoTexto(valor = marcaNueva, onCambio = { marcaNueva = it }, etiqueta = "Marca (opcional)")
                     }
                 } else {
                     Card(
@@ -492,7 +410,7 @@ fun DialogAgregarProducto(
                             Column {
                                 Text(productoSeleccionado!!.nombre, fontWeight = FontWeight.SemiBold)
                                 if (productoSeleccionado!!.marca.isNotBlank())
-                                    Text(productoSeleccionado!!.marca, fontSize = 12.sp, color = Color(0xFF888888))
+                                    Text(productoSeleccionado!!.marca, fontSize = 12.sp, color = KoskingGray)
                             }
                             TextButton(onClick = { productoSeleccionado = null; busqueda = "" }) {
                                 Text("Cambiar", color = KoskingRed, fontSize = 12.sp)
@@ -529,9 +447,7 @@ fun DialogAgregarProducto(
                     )
                 )
 
-                if (error.isNotEmpty()) {
-                    Text(text = error, color = Color.Red, fontSize = 13.sp)
-                }
+                if (error.isNotEmpty()) MensajeError(error)
             }
         },
         confirmButton = {
@@ -545,31 +461,21 @@ fun DialogAgregarProducto(
                         cantidadNum == null || cantidadNum < 0 -> error = "Cantidad inválida"
                         productoSeleccionado != null -> {
                             guardando = true
-                            onAgregar(
-                                productoSeleccionado!!.id,
-                                productoSeleccionado!!.nombre,
-                                productoSeleccionado!!.marca,
-                                precioNum,
-                                cantidadNum
-                            )
+                            onAgregar(productoSeleccionado!!.id, productoSeleccionado!!.nombre, productoSeleccionado!!.marca, precioNum, cantidadNum)
                         }
                         busqueda.length >= 2 -> {
                             guardando = true
-                            val nuevoProd = hashMapOf(
-                                "nombre" to busqueda.trim(),
-                                "nombreBusqueda" to busqueda.trim().lowercase(),
-                                "marca" to marcaNueva.trim(),
-                                "categoria" to ""
-                            )
                             val ref = db.collection("productos").document()
-                            ref.set(nuevoProd)
-                                .addOnSuccessListener {
-                                    onAgregar(ref.id, busqueda.trim(), marcaNueva.trim(), precioNum, cantidadNum)
-                                }
-                                .addOnFailureListener {
-                                    guardando = false
-                                    error = "Error al guardar, intentá de nuevo"
-                                }
+                            ref.set(
+                                hashMapOf(
+                                    "nombre" to busqueda.trim(),
+                                    "nombreBusqueda" to busqueda.trim().lowercase(),
+                                    "marca" to marcaNueva.trim(),
+                                    "categoria" to ""
+                                )
+                            )
+                                .addOnSuccessListener { onAgregar(ref.id, busqueda.trim(), marcaNueva.trim(), precioNum, cantidadNum) }
+                                .addOnFailureListener { guardando = false; error = "Error al guardar, intentá de nuevo" }
                         }
                         else -> error = "Buscá o escribí un producto"
                     }
@@ -583,9 +489,7 @@ fun DialogAgregarProducto(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = Color(0xFF888888))
-            }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = KoskingGray) }
         }
     )
 }

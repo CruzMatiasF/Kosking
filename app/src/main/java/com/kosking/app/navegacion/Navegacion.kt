@@ -18,6 +18,7 @@ import com.kosking.app.busqueda.PantallaResultados
 import com.kosking.app.detalle.PantallaDetalleKiosco
 import com.kosking.app.detalle.PantallaDetalleProducto
 import com.kosking.app.dueno.PantallaPanelDueno
+import com.kosking.app.dueno.PantallaRegistrarVenta
 import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.home.PantallaHome
 
@@ -130,7 +131,7 @@ fun KoskingNavHost(
             PantallaPanelEmpleado(navController = navController)
         }
         composable(Rutas.REGISTRAR_VENTA) {
-            // PantallaRegistrarVenta(navController)
+            PantallaRegistrarVenta(navController = navController)
         }
         composable(Rutas.INGRESAR_CODIGO) {
             // PantallaIngresarCodigo(navController)

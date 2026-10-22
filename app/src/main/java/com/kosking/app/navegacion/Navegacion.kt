@@ -19,6 +19,7 @@ import com.kosking.app.detalle.PantallaDetalleKiosco
 import com.kosking.app.detalle.PantallaDetalleProducto
 import com.kosking.app.dueno.PantallaAgregarProducto
 import com.kosking.app.dueno.PantallaConfigLocal
+import com.kosking.app.dueno.PantallaCrearLocal
 import com.kosking.app.dueno.PantallaInventario
 import com.kosking.app.dueno.PantallaMisOfertas
 import com.kosking.app.dueno.PantallaPanelDueno
@@ -129,7 +130,7 @@ fun KoskingNavHost(
             PantallaConfigLocal(navController = navController)
         }
         composable(Rutas.CREAR_LOCAL) {
-            // PantallaCrearLocal(navController)
+            PantallaCrearLocal(navController = navController)
         }
         composable(Rutas.PANEL_EMPLEADO) {
             PantallaPanelEmpleado(navController = navController)

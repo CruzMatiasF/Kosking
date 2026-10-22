@@ -65,6 +65,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var seedHecho by remember { mutableStateOf(false) }
     var seedCargando by remember { mutableStateOf(false) }
+    var seedError by remember { mutableStateOf("") }
 
     Scaffold(
         containerColor = AzulFondo,
@@ -349,10 +350,16 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                 OutlinedButton(
                     onClick = {
                         seedCargando = true
+                        seedError = ""
                         scope.launch {
-                            SeedFirestore.poblar()
-                            seedHecho = true
-                            seedCargando = false
+                            try {
+                                SeedFirestore.poblar()
+                                seedHecho = true
+                            } catch (e: Exception) {
+                                seedError = e.message ?: "Error desconocido"
+                            } finally {
+                                seedCargando = false
+                            }
                         }
                     },
                     modifier = Modifier
@@ -367,6 +374,14 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(if (seedCargando) "Cargando datos..." else "⚙ Cargar datos de prueba en Firestore", fontSize = 13.sp)
+                }
+                if (seedError.isNotEmpty()) {
+                    Text(
+                        "Error: $seedError",
+                        color = Rojo,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
             }
 

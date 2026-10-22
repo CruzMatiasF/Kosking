@@ -178,7 +178,7 @@ fun PantallaResultados(
         // ── Resultados ────────────────────────────────────────────────────────
         when (tabSeleccionado) {
             0 -> ListaProductos(productosEjemplo) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleProducto(it)) }
-            1 -> ListaKioscos(kioscosEjemplo)
+            1 -> ListaKioscos(kioscosEjemplo) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleLocal(it)) }
         }
     }
 }
@@ -273,7 +273,7 @@ private fun ListaProductos(productos: List<ResultadoProducto>, onProductoClick: 
 // ── Lista de kioscos ──────────────────────────────────────────────────────────
 
 @Composable
-private fun ListaKioscos(kioscos: List<ResultadoKiosco>) {
+private fun ListaKioscos(kioscos: List<ResultadoKiosco>, onKioscoClick: (String) -> Unit = {}) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -283,7 +283,7 @@ private fun ListaKioscos(kioscos: List<ResultadoKiosco>) {
                 shape = RoundedCornerShape(14.dp),
                 color = Blanco,
                 shadowElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth().clickable { },
+                modifier = Modifier.fillMaxWidth().clickable { onKioscoClick(kiosco.nombre) },
             ) {
                 Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     // Acento azul lateral
@@ -330,7 +330,7 @@ private fun ListaKioscos(kioscos: List<ResultadoKiosco>) {
                                     Text(kiosco.rating, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AzulNavy)
                                 }
                             }
-                            Surface(shape = RoundedCornerShape(8.dp), color = RojoClaro) {
+                            Surface(shape = RoundedCornerShape(8.dp), color = RojoClaro, modifier = Modifier.clickable { onKioscoClick(kiosco.nombre) }) {
                                 Text(
                                     "Ver local",
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),

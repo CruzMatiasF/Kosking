@@ -22,7 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 
@@ -52,8 +56,9 @@ private val productosPopulares = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaHome(navController: NavController) {
-    // navegar a búsqueda con query vacío abre la pantalla con teclado activo
+fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) {
+    val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
+    val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -282,11 +287,15 @@ fun PantallaHome(navController: NavController) {
 
             Spacer(Modifier.height(8.dp))
 
+            val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
+                ProductoPopular(it.marca.ifBlank { "🛒" }, it.nombre, "$%.0f".format(0.0), it.marca)
+            } else productosPopulares
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(productosPopulares) { prod ->
+                items(prodMostrar) { prod ->
                     ProductoCard(prod)
                 }
             }
@@ -306,13 +315,27 @@ fun PantallaHome(navController: NavController) {
 
             Spacer(Modifier.height(8.dp))
 
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120) { navController.navigate(Rutas.detalleLocal(it)) }
-                KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87) { navController.navigate(Rutas.detalleLocal(it)) }
-                KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53) { navController.navigate(Rutas.detalleLocal(it)) }
+            val kioscosMostrar = kioscosFirestore.ifEmpty { null }
+            if (kioscosMostrar != null) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    kioscosMostrar.forEach { tienda ->
+                        KioscoItem(tienda.nombre, "📍 ${tienda.direccion}", tienda.ventasDelDia.toString(), 0) {
+                            navController.navigate(Rutas.detalleLocal(tienda.id))
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120) { navController.navigate(Rutas.detalleLocal(it)) }
+                    KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87) { navController.navigate(Rutas.detalleLocal(it)) }
+                    KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53) { navController.navigate(Rutas.detalleLocal(it)) }
+                }
             }
 
             Spacer(Modifier.height(24.dp))

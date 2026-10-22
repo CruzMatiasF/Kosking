@@ -14,8 +14,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // TODO: restaurar lógica de sesión cuando Home esté implementado
-        val pantallaInicial = Rutas.LOGIN
+        val pantallaInicial = if (FirebaseAuth.getInstance().currentUser != null) {
+            Rutas.HOME
+        } else {
+            Rutas.LOGIN
+        }
 
         setContent {
             KoskingTheme {

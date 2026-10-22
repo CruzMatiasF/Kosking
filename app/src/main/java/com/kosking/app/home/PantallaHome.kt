@@ -25,10 +25,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.kosking.app.datos.SeedFirestore
 import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
+import kotlinx.coroutines.launch
 
 // ── Datos de ejemplo ────────────────────────────────────────────────────────
 
@@ -60,6 +62,9 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
     val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var seedHecho by remember { mutableStateOf(false) }
+    var seedCargando by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = AzulFondo,
@@ -335,6 +340,33 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120) { navController.navigate(Rutas.detalleLocal(it)) }
                     KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87) { navController.navigate(Rutas.detalleLocal(it)) }
                     KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53) { navController.navigate(Rutas.detalleLocal(it)) }
+                }
+            }
+
+            // ── Botón de seed (solo en debug) ─────────────────────────────────
+            if (!seedHecho) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        seedCargando = true
+                        scope.launch {
+                            SeedFirestore.poblar()
+                            seedHecho = true
+                            seedCargando = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Gris500),
+                    enabled = !seedCargando,
+                ) {
+                    if (seedCargando) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Gris500)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(if (seedCargando) "Cargando datos..." else "⚙ Cargar datos de prueba en Firestore", fontSize = 13.sp)
                 }
             }
 

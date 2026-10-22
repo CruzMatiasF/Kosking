@@ -25,7 +25,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.Tienda
 import com.kosking.app.ui.theme.*
 
 // ── Datos de ejemplo ──────────────────────────────────────────────────────────
@@ -74,13 +77,24 @@ private val BG = Brush.verticalGradient(
 fun PantallaResultados(
     queryInicial: String,
     navController: NavController,
+    vm: BusquedaViewModel = viewModel(),
 ) {
-    // navegar al detalle pasando el id del producto
     var query by remember { mutableStateOf(queryInicial) }
     var tabSeleccionado by remember { mutableIntStateOf(0) }
     val focusRequester = remember { FocusRequester() }
+    val productosFirestore = vm.productos.value
+    val kioscosFirestore = vm.kioscos.value
+    val cargando = vm.cargando.value
 
     LaunchedEffect(Unit) { if (queryInicial.isEmpty()) focusRequester.requestFocus() }
+    LaunchedEffect(queryInicial) { if (queryInicial.isNotBlank()) vm.buscar(queryInicial) }
+
+    val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
+        ResultadoProducto("🛒", it.nombre, "$0", it.marca, "-", 0)
+    } else productosEjemplo
+    val kioscosMostrar = if (kioscosFirestore.isNotEmpty()) kioscosFirestore.map {
+        ResultadoKiosco(it.nombre, it.direccion, "⭐", 0, it.categoria)
+    } else kioscosEjemplo
 
     Column(modifier = Modifier.fillMaxSize().background(AzulFondo)) {
 
@@ -101,7 +115,7 @@ fun PantallaResultados(
                     Spacer(Modifier.width(4.dp))
                     OutlinedTextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = { query = it; vm.buscar(it) },
                         placeholder = { Text("Buscar productos o kioscos...", color = Blanco.copy(alpha = 0.45f), fontSize = 15.sp) },
                         singleLine = true,
                         modifier = Modifier.weight(1f).focusRequester(focusRequester),
@@ -148,7 +162,7 @@ fun PantallaResultados(
                         onClick = { tabSeleccionado = 0 },
                         text = {
                             Text(
-                                "Productos (${productosEjemplo.size})",
+                                "Productos (${prodMostrar.size})",
                                 fontWeight = if (tabSeleccionado == 0) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 14.sp,
                             )
@@ -161,7 +175,7 @@ fun PantallaResultados(
                         onClick = { tabSeleccionado = 1 },
                         text = {
                             Text(
-                                "Kioscos (${kioscosEjemplo.size})",
+                                "Kioscos (${kioscosMostrar.size})",
                                 fontWeight = if (tabSeleccionado == 1) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 14.sp,
                             )
@@ -176,9 +190,15 @@ fun PantallaResultados(
         Spacer(Modifier.height(12.dp))
 
         // ── Resultados ────────────────────────────────────────────────────────
-        when (tabSeleccionado) {
-            0 -> ListaProductos(productosEjemplo) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleProducto(it)) }
-            1 -> ListaKioscos(kioscosEjemplo) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleLocal(it)) }
+        if (cargando) {
+            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Rojo)
+            }
+        } else {
+            when (tabSeleccionado) {
+                0 -> ListaProductos(prodMostrar) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleProducto(it)) }
+                1 -> ListaKioscos(kioscosMostrar) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleLocal(it)) }
+            }
         }
     }
 }

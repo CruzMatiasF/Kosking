@@ -24,7 +24,9 @@ import com.kosking.app.dueno.PantallaInventario
 import com.kosking.app.dueno.PantallaMisOfertas
 import com.kosking.app.dueno.PantallaPanelDueno
 import com.kosking.app.dueno.PantallaRegistrarVenta
+import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
+import com.kosking.app.home.PantallaElegirRol
 import com.kosking.app.home.PantallaHome
 
 object Rutas {
@@ -57,6 +59,7 @@ object Rutas {
     const val PANEL_EMPLEADO = "panel_empleado"
     const val REGISTRAR_VENTA = "registrar_venta"
     const val INGRESAR_CODIGO = "ingresar_codigo"
+    const val ELEGIR_ROL = "elegir_rol"
 
     // Helpers para navegar con argumentos
     fun resultados(query: String) = "resultados/$query"
@@ -139,7 +142,10 @@ fun KoskingNavHost(
             PantallaRegistrarVenta(navController = navController)
         }
         composable(Rutas.INGRESAR_CODIGO) {
-            // PantallaIngresarCodigo(navController)
+            PantallaIngresarCodigo(navController = navController)
+        }
+        composable(Rutas.ELEGIR_ROL) {
+            PantallaElegirRol(navController = navController)
         }
     }
 }

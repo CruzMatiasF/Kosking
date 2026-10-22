@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.home.RolUsuario
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Tienda
@@ -61,9 +62,9 @@ private val productosPopulares = listOf(
 fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) {
     val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
     val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
+    val rolUsuario by vm.rolUsuario.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
     val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-    // Detecta si el usuario ya tiene un local para decidir a dónde navegar desde "Mi local"
     val tieneTienda = kioscosFirestore.any { it.duenioUid == uid }
 
     Scaffold(
@@ -117,7 +118,12 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                 NavigationBarItem(
                     selected = tabSeleccionado == 3,
                     onClick = {
-                        navController.navigate(if (tieneTienda) Rutas.PANEL_DUENO else Rutas.CREAR_LOCAL)
+                        val destino = when {
+                            tieneTienda -> Rutas.PANEL_DUENO
+                            rolUsuario == RolUsuario.EMPLEADO -> Rutas.PANEL_EMPLEADO
+                            else -> Rutas.ELEGIR_ROL
+                        }
+                        navController.navigate(destino)
                     },
                     icon = { Icon(Icons.Default.Store, contentDescription = "Mi local") },
                     label = { Text("Mi local") },

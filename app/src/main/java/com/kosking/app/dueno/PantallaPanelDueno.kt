@@ -19,7 +19,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 
@@ -62,12 +65,41 @@ private val BG = Brush.verticalGradient(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaPanelDueno(navController: NavController) {
-    val nombreLocal = "Kiosco El Cielo"
-    val ventasHoy = "$24.350"
-    val ventasSemana = "$142.800"
-    val productosActivos = 48
-    val ofertasActivas = 3
+fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = viewModel()) {
+    val tienda by vm.tienda.collectAsStateWithLifecycle()
+    val stock by vm.stock.collectAsStateWithLifecycle()
+    val ofertasFirestore by vm.ofertas.collectAsStateWithLifecycle()
+    val ventasFirestore by vm.ventas.collectAsStateWithLifecycle()
+    val ventasHoyVal by vm.ventasHoy.collectAsStateWithLifecycle()
+    val ventasSemanaVal by vm.ventasSemana.collectAsStateWithLifecycle()
+    val stockBajoVal by vm.stockBajo.collectAsStateWithLifecycle()
+
+    val nombreLocal = tienda?.nombre ?: "Mi Kiosco"
+    val ventasHoy = if (ventasHoyVal > 0) "$%.0f".format(ventasHoyVal) else "$24.350"
+    val ventasSemana = if (ventasSemanaVal > 0) "$%.0f".format(ventasSemanaVal) else "$142.800"
+    val productosActivos = if (stock.isNotEmpty()) stock.size else 48
+    val ofertasActivas = if (ofertasFirestore.isNotEmpty()) ofertasFirestore.size else 3
+    val stockBajo = if (tienda != null) stockBajoVal else 2
+
+    // Convierte ventas reales a VentaReciente para mostrar
+    val ventasMostrar: List<VentaReciente> = if (ventasFirestore.isNotEmpty()) {
+        ventasFirestore.take(5).map { venta ->
+            val primerItem = venta.items.firstOrNull()
+            VentaReciente(
+                producto = primerItem?.nombre ?: "Venta",
+                emoji = "🛍️",
+                precio = "$%.0f".format(venta.total),
+                hora = venta.fecha?.let {
+                    val mins = ((System.currentTimeMillis() - it.toDate().time) / 60000).toInt()
+                    when {
+                        mins < 60 -> "Hace $mins min"
+                        mins < 1440 -> "Hace ${mins / 60} horas"
+                        else -> "Hace ${mins / 1440} días"
+                    }
+                } ?: ""
+            )
+        }
+    } else ventasRecientes
 
     Scaffold(
         containerColor = AzulFondo,
@@ -98,8 +130,13 @@ fun PantallaPanelDueno(navController: NavController) {
                         IconButton(onClick = {}) {
                             Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
                         }
-                        IconButton(onClick = { navController.navigate(Rutas.PERFIL) }) {
-                            Icon(Icons.Default.Person, null, tint = Blanco.copy(alpha = 0.85f))
+                        IconButton(onClick = {
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate(Rutas.LOGIN) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }) {
+                            Icon(Icons.Default.Logout, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                     }
 
@@ -176,7 +213,7 @@ fun PantallaPanelDueno(navController: NavController) {
                     modifier = Modifier.weight(1f),
                 )
                 EstadoChip(
-                    valor = "2",
+                    valor = stockBajo.toString(),
                     etiqueta = "Stock bajo",
                     color = Naranja,
                     modifier = Modifier.weight(1f),
@@ -231,7 +268,7 @@ fun PantallaPanelDueno(navController: NavController) {
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ventasRecientes.forEach { venta -> VentaItem(venta) }
+                ventasMostrar.forEach { venta -> VentaItem(venta) }
             }
 
             Spacer(Modifier.height(24.dp))

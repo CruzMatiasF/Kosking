@@ -5,6 +5,7 @@ import com.google.firebase.firestore.toObject
 import com.kosking.app.modelo.Oferta
 import com.kosking.app.modelo.StockItem
 import com.kosking.app.modelo.Tienda
+import com.kosking.app.modelo.Venta
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -47,6 +48,21 @@ object KioscoRepository {
             .addSnapshotListener { snap, _ ->
                 val lista = snap?.documents?.mapNotNull { doc ->
                     doc.toObject<Oferta>()?.copy(id = doc.id)
+                } ?: emptyList()
+                trySend(lista)
+            }
+        awaitClose { sub.remove() }
+    }
+
+    // Escucha las ventas de un kiosco en tiempo real (ordenadas por fecha desc)
+    fun ventasFlow(tiendaId: String): Flow<List<Venta>> = callbackFlow {
+        val sub = db.collection("tiendas").document(tiendaId)
+            .collection("ventas")
+            .orderBy("fecha", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(20)
+            .addSnapshotListener { snap, _ ->
+                val lista = snap?.documents?.mapNotNull { doc ->
+                    doc.toObject<Venta>()?.copy(id = doc.id)
                 } ?: emptyList()
                 trySend(lista)
             }

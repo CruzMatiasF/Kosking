@@ -128,7 +128,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                 item {
                     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(“📦”, fontSize = 40.sp)
+                            Text("📦", fontSize = 40.sp)
                             Spacer(Modifier.height(8.dp))
                             Text("Sin productos", color = Gris500, fontSize = 14.sp)
                         }

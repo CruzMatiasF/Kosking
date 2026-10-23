@@ -134,7 +134,9 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
                     navController.navigate(Rutas.PERFIL)
                 }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
-            ItemMas(Icons.Default.Settings, "Configuración", Gris500) {}
+            ItemMas(Icons.Default.Settings, "Configuración", Gris500) {
+                    navController.navigate(Rutas.CONFIGURACION)
+                }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Logout, "Cerrar sesión", Rojo) {
                 mostrarConfirmLogout = true

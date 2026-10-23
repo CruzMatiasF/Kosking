@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
@@ -128,12 +127,11 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
                             Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                         IconButton(onClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            navController.navigate(Rutas.LOGIN) {
-                                popUpTo(0) { inclusive = true }
+                            navController.navigate(Rutas.HOME) {
+                                popUpTo(Rutas.PANEL_DUENO) { inclusive = true }
                             }
                         }) {
-                            Icon(Icons.Default.Logout, null, tint = Blanco.copy(alpha = 0.85f))
+                            Icon(Icons.Default.Home, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                     }
 

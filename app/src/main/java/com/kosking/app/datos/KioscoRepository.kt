@@ -69,7 +69,7 @@ object KioscoRepository {
         awaitClose { sub.remove() }
     }
 
-    // Busca kioscos por nombre
+    // Busca kioscos por nombre o dirección
     suspend fun buscarKioscos(query: String): List<Tienda> {
         val q = query.trim().lowercase()
         val snap = db.collection("tiendas").get().await()
@@ -81,5 +81,15 @@ object KioscoRepository {
                 tienda.categoria.lowercase().contains(q) ||
                 tienda.direccion.lowercase().contains(q)
             }
+    }
+
+    // Filtra kioscos por tipo de local (campo categoria)
+    suspend fun buscarKioscosPorTipo(tipo: String): List<Tienda> {
+        val snap = db.collection("tiendas")
+            .whereEqualTo("categoria", tipo)
+            .get().await()
+        return snap.documents.mapNotNull { doc ->
+            doc.toObject<Tienda>()?.copy(id = doc.id)
+        }
     }
 }

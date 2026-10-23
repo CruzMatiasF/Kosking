@@ -45,14 +45,18 @@ fun PantallaResultados(
     navController: NavController,
     vm: BusquedaViewModel = viewModel(),
 ) {
-    var query by remember { mutableStateOf(queryInicial) }
-    var tabSeleccionado by remember { mutableIntStateOf(1) } // Kioscos por defecto
+    val esTipo = vm.esFiltroTipo(queryInicial)
+    val tipoNombre = if (esTipo) vm.tipoDeQuery(queryInicial) else ""
+    var query by remember { mutableStateOf(if (esTipo) "" else queryInicial) }
+    var tabSeleccionado by remember { mutableIntStateOf(1) }
     val focusRequester = remember { FocusRequester() }
     val kioscos = vm.kioscos.value
     val cargando = vm.cargando.value
 
-    LaunchedEffect(Unit) { if (queryInicial.isEmpty()) focusRequester.requestFocus() }
-    LaunchedEffect(queryInicial) { if (queryInicial.isNotBlank()) vm.buscar(queryInicial) }
+    LaunchedEffect(Unit) {
+        if (queryInicial.isNotBlank()) vm.buscar(queryInicial)
+        else focusRequester.requestFocus()
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(AzulFondo)) {
 
@@ -70,10 +74,18 @@ fun PantallaResultados(
                         Icon(Icons.Default.ArrowBack, null, tint = Blanco)
                     }
                     Spacer(Modifier.width(4.dp))
-                    OutlinedTextField(
+                    if (esTipo) {
+                        Text(
+                            tipoNombre,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            color = Blanco,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else OutlinedTextField(
                         value = query,
                         onValueChange = { query = it; vm.buscar(it) },
-                        placeholder = { Text("Buscar kioscos...", color = Blanco.copy(alpha = 0.45f), fontSize = 15.sp) },
+                        placeholder = { Text("Buscar comercios...", color = Blanco.copy(alpha = 0.45f), fontSize = 15.sp) },
                         singleLine = true,
                         modifier = Modifier.weight(1f).focusRequester(focusRequester),
                         shape = RoundedCornerShape(12.dp),
@@ -154,7 +166,7 @@ fun PantallaResultados(
                     CircularProgressIndicator(color = Rojo)
                 }
             }
-            query.isBlank() -> {
+            !esTipo && query.isBlank() -> {
                 MensajeVacio(
                     icono = Icons.Default.Search,
                     titulo = "Buscá un kiosco",

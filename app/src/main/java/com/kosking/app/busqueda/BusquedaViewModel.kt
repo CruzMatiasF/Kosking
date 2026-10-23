@@ -24,6 +24,10 @@ class BusquedaViewModel : ViewModel() {
 
     private var jobBusqueda: Job? = null
 
+    // Devuelve true si la query es un filtro por tipo de local (ej: "tipo:Kiosco")
+    fun esFiltroTipo(query: String) = query.startsWith("tipo:")
+    fun tipoDeQuery(query: String) = query.removePrefix("tipo:")
+
     fun buscar(query: String) {
         jobBusqueda?.cancel()
         if (query.isBlank()) {
@@ -32,14 +36,22 @@ class BusquedaViewModel : ViewModel() {
             return
         }
         jobBusqueda = viewModelScope.launch {
-            delay(300) // debounce — espera que el usuario pare de escribir
+            delay(300)
             cargando.value = true
-            try {
-                productos.value = ProductoRepository.buscarProductos(query)
-            } catch (_: Exception) { }
-            try {
-                kioscos.value = KioscoRepository.buscarKioscos(query)
-            } catch (_: Exception) { }
+            if (esFiltroTipo(query)) {
+                val tipo = tipoDeQuery(query)
+                try {
+                    kioscos.value = KioscoRepository.buscarKioscosPorTipo(tipo)
+                } catch (_: Exception) { }
+                productos.value = emptyList()
+            } else {
+                try {
+                    productos.value = ProductoRepository.buscarProductos(query)
+                } catch (_: Exception) { }
+                try {
+                    kioscos.value = KioscoRepository.buscarKioscos(query)
+                } catch (_: Exception) { }
+            }
             cargando.value = false
         }
     }

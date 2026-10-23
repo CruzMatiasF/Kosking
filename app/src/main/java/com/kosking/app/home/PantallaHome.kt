@@ -26,31 +26,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.modelo.TIPOS_DE_LOCAL
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 
-// ── Datos de ejemplo ────────────────────────────────────────────────────────
-
-private data class Categoria(val icono: String, val nombre: String)
 private data class ProductoPopular(val emoji: String, val nombre: String, val precio: String, val tienda: String)
-
-private val categorias = listOf(
-    Categoria("🥤", "Bebidas"),
-    Categoria("🍞", "Alimentos"),
-    Categoria("🍪", "Snacks"),
-    Categoria("🥛", "Lácteos"),
-    Categoria("🧹", "Limpieza"),
-    Categoria("💊", "Farmacia"),
-)
-
-private val productosPopulares = listOf(
-    ProductoPopular("🥤", "Coca-Cola 500ml", "$1.000", "Kiosco El Cielo"),
-    ProductoPopular("🍪", "Oreo 124g", "$1.200", "Kiosco La Esquina"),
-    ProductoPopular("🍟", "Lays Clásicas", "$950", "Maxikiosco 24"),
-    ProductoPopular("🥛", "Leche La Serenísima", "$1.800", "Kiosco Don Juan"),
-    ProductoPopular("🧃", "Jugo Cepita 1L", "$1.100", "Kiosco El Cielo"),
-)
 
 // ── Pantalla ─────────────────────────────────────────────────────────────────
 
@@ -255,9 +236,9 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Categorías ───────────────────────────────────────────────────
+            // ── Tipos de local ────────────────────────────────────────────────
             Text(
-                "Categorías",
+                "¿Qué buscás?",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 color = AzulNavy,
@@ -269,10 +250,12 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(categorias) { cat ->
+                items(TIPOS_DE_LOCAL) { tipo ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { },
+                        modifier = Modifier.clickable {
+                            navController.navigate(Rutas.resultados("tipo:${tipo.nombre}"))
+                        },
                     ) {
                         Box(
                             modifier = Modifier
@@ -281,10 +264,10 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                                 .background(AzulClaro),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(cat.icono, fontSize = 26.sp)
+                            Text(tipo.emoji, fontSize = 26.sp)
                         }
                         Spacer(Modifier.height(6.dp))
-                        Text(cat.nombre, fontSize = 12.sp, color = AzulNavy, fontWeight = FontWeight.Medium)
+                        Text(tipo.nombre, fontSize = 12.sp, color = AzulNavy, fontWeight = FontWeight.Medium)
                     }
                 }
             }

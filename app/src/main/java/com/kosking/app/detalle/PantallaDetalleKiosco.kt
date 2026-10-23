@@ -95,12 +95,22 @@ fun PantallaDetalleKiosco(
                         onClick = { vm.toggleFavorito() },
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Rojo, contentColor = Blanco),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (esFavorito) Verde else Rojo,
+                            contentColor = Blanco,
+                        ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
                     ) {
-                        Icon(Icons.Default.Favorite, null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            null,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(6.dp))
-                        Text("Guardar", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (esFavorito) "Guardado" else "Guardar",
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             }

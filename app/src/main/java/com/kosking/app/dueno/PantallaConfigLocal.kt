@@ -27,13 +27,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
+import com.kosking.app.modelo.TIPOS_DE_LOCAL
 import com.kosking.app.ui.theme.*
 
 private val BG = Brush.verticalGradient(
     listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
 )
 
-private val categorias = listOf("Kiosco", "Almacén", "Maxikiosco", "Despensa", "Minimercado", "Otro")
+private val categorias = TIPOS_DE_LOCAL.map { it.nombre }
 private val diasOptions = listOf("Todos los días", "Lunes a Sábado", "Lunes a Viernes")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -217,11 +218,11 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
                         colors = fieldColors(Azul),
                     )
                     ExposedDropdownMenu(expanded = categoriaExpanded, onDismissRequest = { categoriaExpanded = false }) {
-                        categorias.forEach { cat ->
+                        TIPOS_DE_LOCAL.forEach { tipo ->
                             DropdownMenuItem(
-                                text = { Text(cat, fontSize = 14.sp) },
-                                onClick = { categoria = cat; categoriaExpanded = false },
-                                leadingIcon = if (cat == categoria) {
+                                text = { Text("${tipo.emoji}  ${tipo.nombre}", fontSize = 14.sp) },
+                                onClick = { categoria = tipo.nombre; categoriaExpanded = false },
+                                leadingIcon = if (tipo.nombre == categoria) {
                                     { Icon(Icons.Default.Check, null, tint = Azul, modifier = Modifier.size(16.dp)) }
                                 } else null,
                             )

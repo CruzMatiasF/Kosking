@@ -18,9 +18,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.components.SeccionCard
 import com.kosking.app.ui.components.SeccionLabel
 import com.kosking.app.ui.theme.*
@@ -28,9 +31,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
-fun PantallaConfiguracion(navController: NavController) {
+fun PantallaConfiguracion(navController: NavController, vm: ConfiguracionViewModel = viewModel()) {
     val user = FirebaseAuth.getInstance().currentUser
     val email = user?.email ?: ""
+    val rolActual by vm.rolActual.collectAsStateWithLifecycle()
+    val accionRol by vm.accionRol.collectAsStateWithLifecycle()
 
     // Notificaciones (locales, sin backend aún)
     var notifAbiertos by remember { mutableStateOf(true) }
@@ -45,12 +50,20 @@ fun PantallaConfiguracion(navController: NavController) {
 
     // Eliminar cuenta
     var mostrarEliminarCuenta by remember { mutableStateOf(false) }
+    var mostrarDesvincular by remember { mutableStateOf(false) }
 
     val snackState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var snackMsg by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(snackMsg) {
         snackMsg?.let { snackState.showSnackbar(it); snackMsg = null }
+    }
+    LaunchedEffect(accionRol) {
+        when (accionRol) {
+            is AccionRol.Exito -> { snackMsg = "Te desvinculaste del local"; vm.resetAccion() }
+            is AccionRol.Error -> { snackMsg = (accionRol as AccionRol.Error).mensaje; vm.resetAccion() }
+            else -> {}
+        }
     }
 
     Scaffold(
@@ -131,6 +144,58 @@ fun PantallaConfiguracion(navController: NavController) {
 
             Spacer(Modifier.height(12.dp))
 
+            // ── Mi rol ───────────────────────────────────────────────────────
+            SeccionLabel("Mi rol en la app")
+            SeccionCard {
+                when (val rol = rolActual) {
+                    is RolActual.Cargando -> {
+                        Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Azul, strokeWidth = 2.dp)
+                        }
+                    }
+                    is RolActual.Cliente -> {
+                        InfoItem(Icons.Default.Person, Gris500, "Rol actual", "Usuario cliente")
+                        HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 66.dp))
+                        ActionItem(
+                            icono = Icons.Default.AddBusiness,
+                            iconColor = Rojo,
+                            etiqueta = "Crear mi local",
+                            onClick = { navController.navigate(Rutas.CREAR_LOCAL) },
+                        )
+                        HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 66.dp))
+                        ActionItem(
+                            icono = Icons.Default.GroupAdd,
+                            iconColor = Azul,
+                            etiqueta = "Unirme como empleado",
+                            onClick = { navController.navigate(Rutas.INGRESAR_CODIGO) },
+                        )
+                    }
+                    is RolActual.Dueno -> {
+                        InfoItem(Icons.Default.Store, Rojo, "Rol actual", "Dueño · ${rol.tienda.nombre}")
+                        HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 66.dp))
+                        ActionItem(
+                            icono = Icons.Default.Dashboard,
+                            iconColor = Azul,
+                            etiqueta = "Ir al panel del dueño",
+                            onClick = { navController.navigate(Rutas.PANEL_DUENO) },
+                        )
+                    }
+                    is RolActual.Empleado -> {
+                        InfoItem(Icons.Default.Badge, Azul, "Rol actual", "Empleado · ${rol.tiendaNombre}")
+                        HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 66.dp))
+                        ActionItem(
+                            icono = Icons.Default.ExitToApp,
+                            iconColor = Naranja,
+                            etiqueta = "Desvincularme del local",
+                            onClick = { mostrarDesvincular = true },
+                            textColor = Naranja,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             // ── Zona peligrosa ───────────────────────────────────────────────
             SeccionLabel("Zona peligrosa")
             SeccionCard {
@@ -145,6 +210,29 @@ fun PantallaConfiguracion(navController: NavController) {
 
             Spacer(Modifier.height(32.dp))
         }
+    }
+
+    // ── Dialog desvincular empleado ──────────────────────────────────────────
+    if (mostrarDesvincular) {
+        val procesando = accionRol is AccionRol.Procesando
+        AlertDialog(
+            onDismissRequest = { if (!procesando) mostrarDesvincular = false },
+            title = { Text("Desvincularme del local", fontWeight = FontWeight.Bold) },
+            text = { Text("Vas a dejar de ser empleado de este local. Podés volver a unirte con un código de invitación cuando quieras.") },
+            confirmButton = {
+                Button(
+                    onClick = { vm.desvincularseComoEmpleado(); mostrarDesvincular = false },
+                    enabled = !procesando,
+                    colors = ButtonDefaults.buttonColors(containerColor = Naranja),
+                ) {
+                    if (procesando) CircularProgressIndicator(Modifier.size(16.dp), color = Blanco, strokeWidth = 2.dp)
+                    else Text("Sí, desvincularme")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDesvincular = false }, enabled = !procesando) { Text("Cancelar") }
+            },
+        )
     }
 
     // ── Dialog cambiar contraseña ────────────────────────────────────────────

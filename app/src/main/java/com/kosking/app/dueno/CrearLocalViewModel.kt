@@ -38,6 +38,20 @@ class CrearLocalViewModel : ViewModel() {
         viewModelScope.launch {
             estado.value = EstadoCrearLocal.Guardando
             try {
+                // Evitar locales duplicados
+                val yaEsDueno = db.collection("tiendas")
+                    .whereEqualTo("duenioUid", uid).get().await().isEmpty.not()
+                if (yaEsDueno) {
+                    estado.value = EstadoCrearLocal.Error("Ya tenés un local registrado. Administralo desde el Panel del dueño.")
+                    return@launch
+                }
+                // Evitar que un empleado cree un local sin desvincularse antes
+                val usuarioDoc = db.collection("usuarios").document(uid).get().await()
+                val empleadoEnId = usuarioDoc.getString("empleadoEnTiendaId")
+                if (!empleadoEnId.isNullOrBlank()) {
+                    estado.value = EstadoCrearLocal.Error("Sos empleado de un local. Desvinculáte primero desde Configuración.")
+                    return@launch
+                }
                 val codigo = generarCodigo()
                 val tienda = hashMapOf(
                     "nombre" to nombre.trim(),

@@ -34,6 +34,13 @@ class IngresarCodigoViewModel : ViewModel() {
         viewModelScope.launch {
             estado.value = EstadoCodigo.Buscando
             try {
+                // Evitar que un dueño se una como empleado
+                val yaEsDueno = db.collection("tiendas")
+                    .whereEqualTo("duenioUid", uid).get().await().isEmpty.not()
+                if (yaEsDueno) {
+                    estado.value = EstadoCodigo.Error("Sos dueño de un local. No podés ser empleado al mismo tiempo.")
+                    return@launch
+                }
                 val snap = db.collection("tiendas")
                     .whereEqualTo("codigoInvitacion", codigoBuscado)
                     .get().await()

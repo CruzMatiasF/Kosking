@@ -54,6 +54,12 @@ data class StockItem(
     val updatedAt: Timestamp? = null
 )
 
+data class StockItemConTienda(
+    val item: StockItem,
+    val tiendaId: String,
+    val nombreTienda: String,
+)
+
 data class Oferta(
     val id: String = "",
     val productoId: String = "",

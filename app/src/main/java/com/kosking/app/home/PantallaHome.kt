@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.modelo.StockItemConTienda
 import com.kosking.app.modelo.TIPOS_DE_LOCAL
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
@@ -33,7 +34,6 @@ import com.kosking.app.util.estaAbierto
 
 
 
-private data class ProductoPopular(val emoji: String, val nombre: String, val precio: String, val tienda: String)
 
 // ── Pantalla ─────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ private data class ProductoPopular(val emoji: String, val nombre: String, val pr
 @Composable
 fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) {
     val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
-    val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
+    val productosFirestore: List<StockItemConTienda> by vm.productosPopulares.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
     val user = FirebaseAuth.getInstance().currentUser
@@ -243,25 +243,36 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
             Spacer(Modifier.height(24.dp))
 
             // ── Productos populares ───────────────────────────────────────────
-            Spacer(Modifier.height(8.dp))
-
-            val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
-                ProductoPopular(it.marca.ifBlank { "🛒" }, it.nombre, "$%.0f".format(0.0), it.marca)
-            } else emptyList()
-
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(prodMostrar) { prod ->
-                    ProductoCard(prod)
+            if (productosFirestore.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Productos disponibles", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = AzulNavy, modifier = Modifier.weight(1f))
                 }
+                Spacer(Modifier.height(10.dp))
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(productosFirestore) { prod ->
+                        ProductoCard(prod) { navController.navigate(Rutas.detalleLocal(prod.tiendaId)) }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
             }
 
             Spacer(Modifier.height(24.dp))
 
             // ── Kioscos cercanos ──────────────────────────────────────────────
-            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Kioscos disponibles", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = AzulNavy, modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(10.dp))
 
             val kioscosFiltrados = if (categoriaSeleccionada != null)
                 kioscosFirestore.filter { it.categoria == categoriaSeleccionada }
@@ -280,12 +291,13 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     )
                 }
             } else {
+                val prodCount = productosFirestore.groupBy { it.tiendaId }.mapValues { it.value.size }
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     kioscosFiltrados.forEach { tienda ->
-                        KioscoItem(tienda.nombre, tienda.direccion, estaAbierto(tienda)) {
+                        KioscoItem(tienda.nombre, tienda.direccion, estaAbierto(tienda), prodCount[tienda.id]) {
                             navController.navigate(Rutas.detalleLocal(tienda.id))
                         }
                     }
@@ -298,12 +310,12 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 }
 
 @Composable
-private fun ProductoCard(prod: ProductoPopular) {
+private fun ProductoCard(prod: StockItemConTienda, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = Blanco,
         shadowElevation = 2.dp,
-        modifier = Modifier.width(140.dp),
+        modifier = Modifier.width(140.dp).clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Box(
@@ -311,23 +323,37 @@ private fun ProductoCard(prod: ProductoPopular) {
                     .fillMaxWidth()
                     .height(80.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Gris100),
+                    .background(AzulClaro),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(prod.emoji, fontSize = 40.sp)
+                Text("🛒", fontSize = 36.sp)
             }
             Spacer(Modifier.height(8.dp))
-            Text(prod.nombre, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = AzulNavy, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                prod.item.nombre,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AzulNavy,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (prod.item.marca.isNotBlank()) {
+                Text(prod.item.marca, fontSize = 11.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Spacer(Modifier.height(4.dp))
-            Text(prod.precio, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Rojo)
+            Text("$${"%,.0f".format(prod.item.precio)}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Rojo)
             Spacer(Modifier.height(2.dp))
-            Text(prod.tienda, fontSize = 11.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Store, null, tint = Gris500, modifier = Modifier.size(10.dp))
+                Spacer(Modifier.width(3.dp))
+                Text(prod.nombreTienda, fontSize = 11.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
 
 @Composable
-private fun KioscoItem(nombre: String, direccion: String, abierto: Boolean, onClick: () -> Unit) {
+private fun KioscoItem(nombre: String, direccion: String, abierto: Boolean, cantProductos: Int?, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = Blanco,
@@ -362,7 +388,11 @@ private fun KioscoItem(nombre: String, direccion: String, abierto: Boolean, onCl
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.LocationOn, null, tint = Gris500, modifier = Modifier.size(11.dp))
                         Spacer(Modifier.width(2.dp))
-                        Text(direccion, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(direccion, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (cantProductos != null && cantProductos > 0) {
+                        Spacer(Modifier.height(3.dp))
+                        Text("$cantProductos producto${if (cantProductos > 1) "s" else ""} en stock", fontSize = 11.sp, color = Azul)
                     }
                 }
                 Surface(

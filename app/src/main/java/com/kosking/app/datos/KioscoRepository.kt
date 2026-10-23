@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.kosking.app.modelo.Oferta
 import com.kosking.app.modelo.StockItem
+import com.kosking.app.modelo.StockItemConTienda
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.modelo.Venta
 import kotlinx.coroutines.channels.awaitClose
@@ -67,6 +68,23 @@ object KioscoRepository {
                 trySend(lista)
             }
         awaitClose { sub.remove() }
+    }
+
+    // Trae hasta `maxItems` stock items de los primeros `maxTiendas` kioscos (para Home)
+    suspend fun stockPopular(tiendas: List<Tienda>, maxTiendas: Int = 5, maxItems: Int = 10): List<StockItemConTienda> {
+        val result = mutableListOf<StockItemConTienda>()
+        for (tienda in tiendas.take(maxTiendas)) {
+            val snap = db.collection("tiendas").document(tienda.id)
+                .collection("stock")
+                .whereGreaterThan("cantidad", 0)
+                .limit(3)
+                .get().await()
+            snap.documents.mapNotNull { doc ->
+                doc.toObject<StockItem>()?.copy(productoId = doc.id)
+            }.forEach { result.add(StockItemConTienda(it, tienda.id, tienda.nombre)) }
+            if (result.size >= maxItems) break
+        }
+        return result.take(maxItems)
     }
 
     // Busca kioscos por nombre o dirección

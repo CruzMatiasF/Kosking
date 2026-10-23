@@ -3,12 +3,13 @@ package com.kosking.app.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosking.app.datos.KioscoRepository
-import com.kosking.app.datos.ProductoRepository
-import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.StockItemConTienda
 import com.kosking.app.modelo.Tienda
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -17,17 +18,14 @@ class HomeViewModel : ViewModel() {
     val kioscos: StateFlow<List<Tienda>> = KioscoRepository.kioscosFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    var productosPopulares = MutableStateFlow<List<Producto>>(emptyList())
+    var productosPopulares = MutableStateFlow<List<StockItemConTienda>>(emptyList())
         private set
 
     init {
-        cargarProductosPopulares()
-    }
-
-    private fun cargarProductosPopulares() {
         viewModelScope.launch {
+            val tiendas = kioscos.filter { it.isNotEmpty() }.first()
             try {
-                productosPopulares.value = ProductoRepository.productosPopulares()
+                productosPopulares.value = KioscoRepository.stockPopular(tiendas)
             } catch (_: Exception) { }
         }
     }

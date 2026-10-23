@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.Kosking" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Kosking.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0D1B3E</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Kosking</item>
+    </style>
+
 </resources>

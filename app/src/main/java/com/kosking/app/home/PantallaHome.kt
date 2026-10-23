@@ -148,7 +148,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                             }
                         }
                         Spacer(Modifier.weight(1f))
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = { navController.navigate(Rutas.NOTIFICACIONES) }) {
                             Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                     }

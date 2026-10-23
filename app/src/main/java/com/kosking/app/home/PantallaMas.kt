@@ -95,7 +95,9 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
                     navController.navigate(Rutas.FAVORITOS)
                 }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
-            ItemMas(Icons.Default.Notifications, "Notificaciones", Naranja) {}
+            ItemMas(Icons.Default.Notifications, "Notificaciones", Naranja) {
+                    navController.navigate(Rutas.NOTIFICACIONES)
+                }
         }
 
         Spacer(Modifier.height(12.dp))

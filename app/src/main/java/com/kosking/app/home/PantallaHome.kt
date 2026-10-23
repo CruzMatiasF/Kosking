@@ -107,7 +107,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                    .background(Brush.verticalGradient(listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A))))
+                    .background(HeaderGradient)
                     .padding(top = 48.dp, bottom = 28.dp, start = 20.dp, end = 20.dp),
             ) {
                 Column {
@@ -200,7 +200,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = Blanco,
-                            modifier = Modifier.clickable { },
+                            modifier = Modifier.clickable { navController.navigate(Rutas.OFERTAS) },
                         ) {
                             Text(
                                 "Ver promociones",
@@ -270,7 +270,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
             val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
                 ProductoPopular(it.marca.ifBlank { "🛒" }, it.nombre, "$%.0f".format(0.0), it.marca)
-            } else productosPopulares
+            } else emptyList()
 
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),

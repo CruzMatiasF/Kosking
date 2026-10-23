@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kosking.app.datos.HistorialRepository
+import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
@@ -44,6 +45,7 @@ fun PantallaResultados(
     var tabSeleccionado by remember { mutableIntStateOf(1) }
     val focusRequester = remember { FocusRequester() }
     val kioscos = vm.kioscos.value
+    val productos = vm.productos.value
     val cargando = vm.cargando.value
 
     LaunchedEffect(Unit) {
@@ -126,7 +128,7 @@ fun PantallaResultados(
                         onClick = { tabSeleccionado = 0 },
                         text = {
                             Text(
-                                "Productos",
+                                if (productos.isEmpty()) "Productos" else "Productos (${productos.size})",
                                 fontWeight = if (tabSeleccionado == 0) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 14.sp,
                             )
@@ -166,6 +168,19 @@ fun PantallaResultados(
                     subtitulo = "Escribí el nombre o categoría",
                 )
             }
+            tabSeleccionado == 0 -> {
+                if (productos.isEmpty()) {
+                    MensajeVacio(
+                        icono = Icons.Default.Inventory,
+                        titulo = "Sin resultados",
+                        subtitulo = "No encontramos productos con ese nombre",
+                    )
+                } else {
+                    ListaProductos(productos) { productoId ->
+                        navController.navigate(Rutas.detalleProducto(productoId))
+                    }
+                }
+            }
             tabSeleccionado == 1 -> {
                 if (kioscos.isEmpty()) {
                     MensajeVacio(
@@ -178,13 +193,6 @@ fun PantallaResultados(
                         navController.navigate(Rutas.detalleLocal(tiendaId))
                     }
                 }
-            }
-            else -> {
-                MensajeVacio(
-                    icono = Icons.Default.Inventory,
-                    titulo = "Próximamente",
-                    subtitulo = "La búsqueda de productos estará disponible pronto",
-                )
             }
         }
     }
@@ -292,6 +300,73 @@ private fun ListaKioscos(kioscos: List<Tienda>, onKioscoClick: (String) -> Unit)
                                 fontWeight = FontWeight.Bold,
                             )
                         }
+                    }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+private fun ListaProductos(productos: List<Producto>, onProductoClick: (String) -> Unit) {
+    LazyColumn(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(productos, key = { it.id }) { producto ->
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Blanco,
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth().clickable { onProductoClick(producto.id) },
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AzulClaro),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.Inventory, null, tint = Azul, modifier = Modifier.size(28.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(producto.nombre, fontWeight = FontWeight.Bold, color = AzulNavy, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (producto.marca.isNotBlank()) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(producto.marca, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        if (producto.categoria.isNotBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Surface(shape = RoundedCornerShape(6.dp), color = AzulClaro) {
+                                Text(
+                                    producto.categoria,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 11.sp,
+                                    color = Azul,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = RojoClaro,
+                        modifier = Modifier.clickable { onProductoClick(producto.id) },
+                    ) {
+                        Text(
+                            "Ver",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            fontSize = 13.sp,
+                            color = Rojo,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }

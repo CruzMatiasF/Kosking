@@ -11,8 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,10 +23,6 @@ import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 import com.kosking.app.util.textoHorario
 
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
-)
-
 @Composable
 fun PantallaFavoritos(navController: NavController, vm: FavoritosViewModel = viewModel()) {
     val favoritos by vm.favoritos.collectAsStateWithLifecycle()
@@ -39,7 +33,7 @@ fun PantallaFavoritos(navController: NavController, vm: FavoritosViewModel = vie
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BG)
+                    .background(HeaderGradient)
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {

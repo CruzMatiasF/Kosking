@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -57,10 +56,6 @@ private val accionesRapidas = listOf(
     AccionRapida(Icons.Default.Inventory, "Ver\ninventario", Verde, Rutas.INVENTARIO),
     AccionRapida(Icons.Default.LocalOffer, "Mis\nofertas", Rojo, Rutas.MIS_OFERTAS),
     AccionRapida(Icons.Default.Settings, "Config\nlocal", Naranja, Rutas.CONFIG_LOCAL),
-)
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
 )
 
 // ── Pantalla ──────────────────────────────────────────────────────────────────
@@ -109,7 +104,7 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BG)
+                    .background(HeaderGradient)
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {

@@ -29,7 +29,17 @@ data class Tienda(
     val codigoInvitacion: String = "",
     val direccion: String = "",
     val categoria: String = "",
+    val telefono: String = "",
     val ventasDelDia: Double = 0.0,
+    val latitud: Double = 0.0,
+    val longitud: Double = 0.0,
+    // Horario estructurado
+    val horarioApertura: String = "",
+    val horarioCierre: String = "",
+    val diasActivos: String = "Todos los días",
+    // Override manual (expira a medianoche)
+    val overrideAbierto: Boolean? = null,
+    val overrideHasta: Timestamp? = null,
     val creadoAt: Timestamp? = null
 )
 

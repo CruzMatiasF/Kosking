@@ -22,9 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
+import com.kosking.app.util.estaAbierto
 
 // ── Datos de ejemplo ────────────────────────────────────────────────────────
 
@@ -52,72 +56,81 @@ private val productosPopulares = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaHome(navController: NavController) {
-    // navegar a búsqueda con query vacío abre la pantalla con teclado activo
+fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) {
+    val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
+    val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
+    val rolUsuario by vm.rolUsuario.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
+    val user = FirebaseAuth.getInstance().currentUser
+    val uid = user?.uid ?: ""
+    val nombreUsuario = user?.displayName ?: user?.email?.substringBefore("@") ?: "Vos"
+    val tieneTienda = kioscosFirestore.any { it.duenioUid == uid }
+    val tieneRolNegocio = tieneTienda || rolUsuario == RolUsuario.EMPLEADO
 
     Scaffold(
         containerColor = AzulFondo,
         bottomBar = {
             Column {
                 HorizontalDivider(color = Gris200, thickness = 1.dp)
-                NavigationBar(
-                    containerColor = Blanco,
-                    tonalElevation = 0.dp,
-                ) {
-                NavigationBarItem(
-                    selected = tabSeleccionado == 0,
-                    onClick = { tabSeleccionado = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
-                    label = { Text("Inicio") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
+                NavigationBar(containerColor = Blanco, tonalElevation = 0.dp) {
+                    val navColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Rojo, selectedTextColor = Rojo,
                         indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 1,
-                    onClick = { tabSeleccionado = 1 },
-                    icon = { Icon(Icons.Default.LocationOn, contentDescription = "Mapa") },
-                    label = { Text("Mapa") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
-                        indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 2,
-                    onClick = { tabSeleccionado = 2 },
-                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Favoritos") },
-                    label = { Text("Favoritos") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
-                        indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 3,
-                    onClick = { tabSeleccionado = 3 },
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                    label = { Text("Perfil") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo,
-                        selectedTextColor = Rojo,
-                        indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500,
-                        unselectedTextColor = Gris500,
-                    ),
-                )
-            }
+                        unselectedIconColor = Gris500, unselectedTextColor = Gris500,
+                    )
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 0,
+                        onClick = { tabSeleccionado = 0 },
+                        icon = { Icon(Icons.Default.Home, null) },
+                        label = { Text("Inicio") },
+                        colors = navColors,
+                    )
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 1,
+                        onClick = { navController.navigate(Rutas.MAPA) },
+                        icon = { Icon(Icons.Default.LocationOn, null) },
+                        label = { Text("Mapa") },
+                        colors = navColors,
+                    )
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 2,
+                        onClick = { navController.navigate(Rutas.FAVORITOS) },
+                        icon = { Icon(Icons.Default.Favorite, null) },
+                        label = { Text("Favoritos") },
+                        colors = navColors,
+                    )
+                    // Tab dinámico: Mi local (dueño/empleado) o Carrito (cliente)
+                    if (tieneRolNegocio) {
+                        NavigationBarItem(
+                            selected = tabSeleccionado == 3,
+                            onClick = {
+                                val destino = when {
+                                    tieneTienda -> Rutas.PANEL_DUENO
+                                    else -> Rutas.PANEL_EMPLEADO
+                                }
+                                navController.navigate(destino)
+                            },
+                            icon = { Icon(Icons.Default.Store, null) },
+                            label = { Text("Mi local") },
+                            colors = navColors,
+                        )
+                    } else {
+                        NavigationBarItem(
+                            selected = tabSeleccionado == 3,
+                            onClick = { tabSeleccionado = 3 },
+                            icon = { Icon(Icons.Default.ShoppingCart, null) },
+                            label = { Text("Carrito") },
+                            colors = navColors,
+                        )
+                    }
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 4,
+                        onClick = { navController.navigate(Rutas.MAS) },
+                        icon = { Icon(Icons.Default.MoreHoriz, null) },
+                        label = { Text("Más") },
+                        colors = navColors,
+                    )
+                }
             }
         },
     ) { padding ->
@@ -136,17 +149,30 @@ fun PantallaHome(navController: NavController) {
                     .padding(top = 48.dp, bottom = 28.dp, start = 20.dp, end = 20.dp),
             ) {
                 Column {
-                    // Logo + ubicación + notificaciones
+                    // Avatar + nombre + notificaciones
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🏪", fontSize = 26.sp)
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Rojo.copy(alpha = 0.85f))
+                                .clickable { navController.navigate(Rutas.MAS) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                nombreUsuario.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                                color = Blanco,
+                            )
+                        }
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text(
-                                "Kosking",
+                                "Hola, $nombreUsuario 👋",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp,
-                                color = Rojo,
-                                letterSpacing = (-0.5).sp,
+                                fontSize = 16.sp,
+                                color = Blanco,
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -156,16 +182,12 @@ fun PantallaHome(navController: NavController) {
                                     modifier = Modifier.size(12.dp),
                                 )
                                 Spacer(Modifier.width(2.dp))
-                                Text(
-                                    "Palpalá, Jujuy",
-                                    fontSize = 12.sp,
-                                    color = Blanco.copy(alpha = 0.6f),
-                                )
+                                Text("Palpalá, Jujuy", fontSize = 12.sp, color = Blanco.copy(alpha = 0.6f))
                             }
                         }
                         Spacer(Modifier.weight(1f))
                         IconButton(onClick = {}) {
-                            Icon(Icons.Default.Notifications, contentDescription = null, tint = Blanco.copy(alpha = 0.85f))
+                            Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                     }
 
@@ -282,11 +304,15 @@ fun PantallaHome(navController: NavController) {
 
             Spacer(Modifier.height(8.dp))
 
+            val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
+                ProductoPopular(it.marca.ifBlank { "🛒" }, it.nombre, "$%.0f".format(0.0), it.marca)
+            } else productosPopulares
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(productosPopulares) { prod ->
+                items(prodMostrar) { prod ->
                     ProductoCard(prod)
                 }
             }
@@ -306,13 +332,24 @@ fun PantallaHome(navController: NavController) {
 
             Spacer(Modifier.height(8.dp))
 
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120) { navController.navigate(Rutas.detalleLocal(it)) }
-                KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87) { navController.navigate(Rutas.detalleLocal(it)) }
-                KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53) { navController.navigate(Rutas.detalleLocal(it)) }
+            if (kioscosFirestore.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("No hay kioscos registrados aún", color = Gris500, fontSize = 14.sp)
+                }
+            } else {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    kioscosFirestore.forEach { tienda ->
+                        KioscoItem(tienda.nombre, tienda.direccion, estaAbierto(tienda)) {
+                            navController.navigate(Rutas.detalleLocal(tienda.id))
+                        }
+                    }
+                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -350,15 +387,14 @@ private fun ProductoCard(prod: ProductoPopular) {
 }
 
 @Composable
-private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñas: Int, onClick: (String) -> Unit = {}) {
+private fun KioscoItem(nombre: String, direccion: String, abierto: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = Blanco,
         shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().clickable { onClick(nombre) },
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Acento azul lateral
             Box(
                 modifier = Modifier
                     .width(4.dp)
@@ -377,7 +413,7 @@ private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñ
                         .background(AzulClaro),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("🏪", fontSize = 24.sp)
+                    Icon(Icons.Default.Store, null, tint = Azul, modifier = Modifier.size(26.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -386,25 +422,20 @@ private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñ
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.LocationOn, null, tint = Gris500, modifier = Modifier.size(11.dp))
                         Spacer(Modifier.width(2.dp))
-                        Text(distancia.removePrefix("📍 "), fontSize = 12.sp, color = Gris500)
+                        Text(direccion, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = AzulClaro,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.Star, null, tint = Azul, modifier = Modifier.size(13.dp))
-                            Spacer(Modifier.width(3.dp))
-                            Text(rating, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AzulNavy)
-                        }
-                    }
-                    Spacer(Modifier.height(3.dp))
-                    Text("$reseñas reseñas", fontSize = 10.sp, color = Gris500)
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (abierto) Verde.copy(alpha = 0.12f) else Gris200,
+                ) {
+                    Text(
+                        if (abierto) "Abierto" else "Cerrado",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp,
+                        color = if (abierto) Verde else Gris500,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }

@@ -16,8 +16,20 @@ import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
 import com.kosking.app.busqueda.PantallaResultados
 import com.kosking.app.detalle.PantallaDetalleKiosco
+import com.kosking.app.mapa.PantallaMapa
 import com.kosking.app.detalle.PantallaDetalleProducto
+import com.kosking.app.dueno.PantallaAgregarProducto
+import com.kosking.app.dueno.PantallaConfigLocal
+import com.kosking.app.dueno.PantallaCrearLocal
+import com.kosking.app.dueno.PantallaInventario
+import com.kosking.app.dueno.PantallaMisOfertas
+import com.kosking.app.dueno.PantallaPanelDueno
+import com.kosking.app.dueno.PantallaRegistrarVenta
+import com.kosking.app.empleado.PantallaIngresarCodigo
+import com.kosking.app.empleado.PantallaPanelEmpleado
+import com.kosking.app.home.PantallaElegirRol
 import com.kosking.app.home.PantallaHome
+import com.kosking.app.home.PantallaMas
 
 object Rutas {
     const val SPLASH = "splash"
@@ -49,6 +61,8 @@ object Rutas {
     const val PANEL_EMPLEADO = "panel_empleado"
     const val REGISTRAR_VENTA = "registrar_venta"
     const val INGRESAR_CODIGO = "ingresar_codigo"
+    const val ELEGIR_ROL = "elegir_rol"
+    const val MAS = "mas"
 
     // Helpers para navegar con argumentos
     fun resultados(query: String) = "resultados/$query"
@@ -78,10 +92,10 @@ fun KoskingNavHost(
             PantallaRegistro(navController = navController, vm = authViewModel)
         }
         composable(Rutas.MAPA) {
-            // PantallaMapa(navController)
+            PantallaMapa(navController = navController)
         }
         composable(Rutas.FAVORITOS) {
-            // PantallaFavoritos(navController)
+            // PantallaFavoritos — próximamente
         }
         composable(Rutas.PERFIL) {
             // PantallaPerfil(navController)
@@ -104,34 +118,40 @@ fun KoskingNavHost(
             // PantallaDetalleOferta(tiendaId, ofertaId, navController)
         }
         composable(Rutas.PANEL_DUENO) {
-            // PanelDueno(navController)
+            PantallaPanelDueno(navController = navController)
         }
         composable(Rutas.INVENTARIO) {
-            // PantallaInventario(navController)
+            PantallaInventario(navController = navController)
         }
         composable(Rutas.AGREGAR_PRODUCTO) {
-            // PantallaAgregarProducto(navController)
+            PantallaAgregarProducto(navController = navController)
         }
         composable(Rutas.MIS_OFERTAS) {
-            // PantallaMisOfertas(navController)
+            PantallaMisOfertas(navController = navController)
         }
         composable(Rutas.CREAR_OFERTA) {
             // PantallaCrearOferta(navController)
         }
         composable(Rutas.CONFIG_LOCAL) {
-            // PantallaConfigLocal(navController)
+            PantallaConfigLocal(navController = navController)
         }
         composable(Rutas.CREAR_LOCAL) {
-            // PantallaCrearLocal(navController)
+            PantallaCrearLocal(navController = navController)
         }
         composable(Rutas.PANEL_EMPLEADO) {
-            // PanelEmpleado(navController)
+            PantallaPanelEmpleado(navController = navController)
         }
         composable(Rutas.REGISTRAR_VENTA) {
-            // PantallaRegistrarVenta(navController)
+            PantallaRegistrarVenta(navController = navController)
         }
         composable(Rutas.INGRESAR_CODIGO) {
-            // PantallaIngresarCodigo(navController)
+            PantallaIngresarCodigo(navController = navController)
+        }
+        composable(Rutas.ELEGIR_ROL) {
+            PantallaElegirRol(navController = navController)
+        }
+        composable(Rutas.MAS) {
+            PantallaMas(navController = navController)
         }
     }
 }

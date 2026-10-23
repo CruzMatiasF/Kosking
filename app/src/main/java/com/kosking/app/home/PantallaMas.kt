@@ -23,21 +23,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.configuracion.ConfiguracionViewModel
+import com.kosking.app.configuracion.RolActual
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.components.SeccionCard
 import com.kosking.app.ui.components.SeccionLabel
 import com.kosking.app.ui.theme.*
 
 @Composable
-fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
-    val kioscos by vm.kioscos.collectAsStateWithLifecycle()
-    val rolUsuario by vm.rolUsuario.collectAsStateWithLifecycle()
+fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = viewModel()) {
+    val rolActual by vmRol.rolActual.collectAsStateWithLifecycle()
     val user = FirebaseAuth.getInstance().currentUser
-    val uid = user?.uid ?: ""
     val nombre = user?.displayName ?: user?.email?.substringBefore("@") ?: "Usuario"
     val email = user?.email ?: ""
-    val tieneTienda = kioscos.any { it.duenioUid == uid }
-    val tieneRolNegocio = tieneTienda || rolUsuario == RolUsuario.EMPLEADO
+    val tieneTienda = rolActual is RolActual.Dueno
+    val tieneRolNegocio = rolActual is RolActual.Dueno || rolActual is RolActual.Empleado
 
     var mostrarConfirmLogout by remember { mutableStateOf(false) }
 
@@ -103,7 +103,7 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
         // Sección Mi negocio
         SeccionLabel("Mi negocio")
         SeccionCard {
-            if (tieneTienda) {
+            if (rolActual is RolActual.Dueno) {
                 ItemMas(Icons.Default.Store, "Panel del dueño", Azul) {
                     navController.navigate(Rutas.PANEL_DUENO)
                 }
@@ -111,7 +111,7 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
                 ItemMas(Icons.Default.Settings, "Configuración del local", Gris500) {
                     navController.navigate(Rutas.CONFIG_LOCAL)
                 }
-            } else if (rolUsuario == RolUsuario.EMPLEADO) {
+            } else if (rolActual is RolActual.Empleado) {
                 ItemMas(Icons.Default.Badge, "Panel del empleado", Azul) {
                     navController.navigate(Rutas.PANEL_EMPLEADO)
                 }

@@ -31,6 +31,8 @@ import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 
+
+
 private data class ProductoPopular(val emoji: String, val nombre: String, val precio: String, val tienda: String)
 
 // ── Pantalla ─────────────────────────────────────────────────────────────────
@@ -40,13 +42,9 @@ private data class ProductoPopular(val emoji: String, val nombre: String, val pr
 fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) {
     val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
     val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
-    val rolUsuario by vm.rolUsuario.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
     val user = FirebaseAuth.getInstance().currentUser
-    val uid = user?.uid ?: ""
     val nombreUsuario = user?.displayName ?: user?.email?.substringBefore("@") ?: "Vos"
-    val tieneTienda = kioscosFirestore.any { it.duenioUid == uid }
-    val tieneRolNegocio = tieneTienda || rolUsuario == RolUsuario.EMPLEADO
 
     Scaffold(
         containerColor = AzulFondo,
@@ -80,30 +78,13 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         label = { Text("Favoritos") },
                         colors = navColors,
                     )
-                    // Tab dinámico: Mi local (dueño/empleado) o Carrito (cliente)
-                    if (tieneRolNegocio) {
-                        NavigationBarItem(
-                            selected = tabSeleccionado == 3,
-                            onClick = {
-                                val destino = when {
-                                    tieneTienda -> Rutas.PANEL_DUENO
-                                    else -> Rutas.PANEL_EMPLEADO
-                                }
-                                navController.navigate(destino)
-                            },
-                            icon = { Icon(Icons.Default.Store, null) },
-                            label = { Text("Mi local") },
-                            colors = navColors,
-                        )
-                    } else {
-                        NavigationBarItem(
-                            selected = tabSeleccionado == 3,
-                            onClick = { navController.navigate(Rutas.OFERTAS) },
-                            icon = { Icon(Icons.Default.LocalOffer, null) },
-                            label = { Text("Ofertas") },
-                            colors = navColors,
-                        )
-                    }
+                    NavigationBarItem(
+                        selected = tabSeleccionado == 3,
+                        onClick = { navController.navigate(Rutas.OFERTAS) },
+                        icon = { Icon(Icons.Default.LocalOffer, null) },
+                        label = { Text("Ofertas") },
+                        colors = navColors,
+                    )
                     NavigationBarItem(
                         selected = tabSeleccionado == 4,
                         onClick = { navController.navigate(Rutas.MAS) },

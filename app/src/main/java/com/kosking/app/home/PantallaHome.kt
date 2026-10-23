@@ -156,7 +156,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                                 .size(42.dp)
                                 .clip(CircleShape)
                                 .background(Rojo.copy(alpha = 0.85f))
-                                .clickable { navController.navigate(Rutas.MAS) },
+                                .clickable { navController.navigate(Rutas.PERFIL) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(

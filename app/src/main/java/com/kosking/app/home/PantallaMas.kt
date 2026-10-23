@@ -130,7 +130,9 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
         // Sección Cuenta
         SeccionLabel("Cuenta")
         SeccionCard {
-            ItemMas(Icons.Default.Person, "Mi perfil", Gris500) {}
+            ItemMas(Icons.Default.Person, "Mi perfil", Gris500) {
+                    navController.navigate(Rutas.PERFIL)
+                }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Settings, "Configuración", Gris500) {}
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))

@@ -28,6 +28,7 @@ import com.kosking.app.dueno.PantallaRegistrarVenta
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.favoritos.PantallaFavoritos
+import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.home.PantallaElegirRol
 import com.kosking.app.home.PantallaHome
 import com.kosking.app.home.PantallaMas
@@ -99,7 +100,7 @@ fun KoskingNavHost(
             PantallaFavoritos(navController = navController)
         }
         composable(Rutas.PERFIL) {
-            // PantallaPerfil(navController)
+            PantallaPerfil(navController = navController)
         }
         composable(Rutas.RESULTADOS) { backStack ->
             val query = backStack.arguments?.getString("query") ?: ""

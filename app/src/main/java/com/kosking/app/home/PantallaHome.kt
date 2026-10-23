@@ -66,7 +66,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     )
                     NavigationBarItem(
                         selected = tabSeleccionado == 1,
-                        onClick = { navController.navigate(Rutas.MAPA) },
+                        onClick = { navController.navigate(Rutas.MAPA_SIMPLE) },
                         icon = { Icon(Icons.Default.LocationOn, null) },
                         label = { Text("Mapa") },
                         colors = navColors,

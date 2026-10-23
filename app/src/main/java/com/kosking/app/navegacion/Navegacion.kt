@@ -44,7 +44,9 @@ object Rutas {
     const val REGISTRO = "registro"
 
     // Menú inferior
-    const val MAPA = "mapa"
+    const val MAPA = "mapa?lat={lat}&lng={lng}"
+    const val MAPA_SIMPLE = "mapa"
+    fun mapa(lat: Double, lng: Double) = "mapa?lat=$lat&lng=$lng"
     const val FAVORITOS = "favoritos"
     const val OFERTAS = "ofertas"
     const val PERFIL = "perfil"
@@ -101,7 +103,18 @@ fun KoskingNavHost(
         composable(Rutas.REGISTRO) {
             PantallaRegistro(navController = navController, vm = authViewModel)
         }
-        composable(Rutas.MAPA) {
+        composable(
+            route = Rutas.MAPA,
+            arguments = listOf(
+                androidx.navigation.navArgument("lat") { type = androidx.navigation.NavType.FloatType; defaultValue = 0f },
+                androidx.navigation.navArgument("lng") { type = androidx.navigation.NavType.FloatType; defaultValue = 0f },
+            ),
+        ) { backStack ->
+            val lat = backStack.arguments?.getFloat("lat")?.toDouble() ?: 0.0
+            val lng = backStack.arguments?.getFloat("lng")?.toDouble() ?: 0.0
+            PantallaMapa(navController = navController, focusLat = lat, focusLng = lng)
+        }
+        composable(Rutas.MAPA_SIMPLE) {
             PantallaMapa(navController = navController)
         }
         composable(Rutas.FAVORITOS) {

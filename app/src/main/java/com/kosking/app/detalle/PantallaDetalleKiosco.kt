@@ -82,7 +82,13 @@ fun PantallaDetalleKiosco(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedButton(
-                        onClick = { navController.navigate(Rutas.MAPA) },
+                        onClick = {
+                            val t = tiendaFirestore
+                            if (t != null && (t.latitud != 0.0 || t.longitud != 0.0))
+                                navController.navigate(Rutas.mapa(t.latitud, t.longitud))
+                            else
+                                navController.navigate(Rutas.MAPA_SIMPLE)
+                        },
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Azul),

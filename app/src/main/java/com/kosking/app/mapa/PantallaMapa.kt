@@ -60,11 +60,19 @@ private fun KioscoMarker(abierto: Boolean) {
 
 @SuppressLint("MissingPermission")
 @Composable
-fun PantallaMapa(navController: NavController, vm: HomeViewModel = viewModel()) {
+fun PantallaMapa(
+    navController: NavController,
+    vm: HomeViewModel = viewModel(),
+    focusLat: Double = 0.0,
+    focusLng: Double = 0.0,
+) {
+    val hasFocus = focusLat != 0.0 || focusLng != 0.0
     val kioscos by vm.kioscos.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val initialPos = if (hasFocus) LatLng(focusLat, focusLng) else PALPALA
+    val initialZoom = if (hasFocus) 17f else 14f
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(PALPALA, 14f)
+        position = CameraPosition.fromLatLngZoom(initialPos, initialZoom)
     }
     var seleccionado by remember { mutableStateOf<Tienda?>(null) }
     var ubicacionHabilitada by remember { mutableStateOf(false) }
@@ -75,7 +83,7 @@ fun PantallaMapa(navController: NavController, vm: HomeViewModel = viewModel()) 
         val concedido = permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         ubicacionHabilitada = concedido
-        if (concedido) {
+        if (concedido && !hasFocus) {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             fusedClient.lastLocation.addOnSuccessListener { loc ->
                 if (loc != null) {

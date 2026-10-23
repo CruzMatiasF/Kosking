@@ -29,6 +29,7 @@ import com.kosking.app.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaInventario(navController: NavController, vm: InventarioViewModel = viewModel()) {
+    val tienda by vm.tienda.collectAsStateWithLifecycle()
     val stock by vm.stockFiltrado.collectAsStateWithLifecycle()
     val stockTotal by vm.stock.collectAsStateWithLifecycle()
     val filtroActual by vm.filtro.collectAsStateWithLifecycle()
@@ -36,6 +37,11 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
     var query by remember { mutableStateOf("") }
     var itemEditando by remember { mutableStateOf<StockItem?>(null) }
     var itemEliminando by remember { mutableStateOf<StockItem?>(null) }
+    var yaEspero by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(3000)
+        yaEspero = true
+    }
 
     // Reset Ã©xito
     LaunchedEffect(estadoEdicion) {
@@ -127,10 +133,14 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
             if (stock.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📦", fontSize = 40.sp)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Sin productos", color = Gris500, fontSize = 14.sp)
+                        if (tienda == null || !yaEspero) {
+                            CircularProgressIndicator(color = Rojo)
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("📦", fontSize = 40.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Sin productos", color = Gris500, fontSize = 14.sp)
+                            }
                         }
                     }
                 }

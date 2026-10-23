@@ -43,6 +43,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
     val productosFirestore by vm.productosPopulares.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
+    var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
     val user = FirebaseAuth.getInstance().currentUser
     val nombreUsuario = user?.displayName ?: user?.email?.substringBefore("@") ?: "Vos"
 
@@ -111,51 +112,38 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     .padding(top = 48.dp, bottom = 28.dp, start = 20.dp, end = 20.dp),
             ) {
                 Column {
-                    // Avatar + nombre + notificaciones
+                    // Logo + notificaciones + avatar
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Kosking",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                            color = Blanco,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { navController.navigate(Rutas.NOTIFICACIONES) }) {
+                            Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
+                        }
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(Rojo.copy(alpha = 0.85f))
-                                .clickable { navController.navigate(Rutas.PERFIL) },
+                                .clickable { navController.navigate(Rutas.MAS) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 nombreUsuario.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp,
+                                fontSize = 15.sp,
                                 color = Blanco,
                             )
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                "Hola, $nombreUsuario 👋",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 16.sp,
-                                color = Blanco,
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = Blanco.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(12.dp),
-                                )
-                                Spacer(Modifier.width(2.dp))
-                                Text("Palpalá, Jujuy", fontSize = 12.sp, color = Blanco.copy(alpha = 0.6f))
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { navController.navigate(Rutas.NOTIFICACIONES) }) {
-                            Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
                         }
                     }
 
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(14.dp))
 
-                    // Barra de búsqueda — navega a resultados al tocar
+                    // Barra de búsqueda
                     Surface(
                         shape = RoundedCornerShape(14.dp),
                         color = Blanco,
@@ -165,7 +153,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         },
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(Icons.Default.Search, contentDescription = null, tint = Rojo)
@@ -218,37 +206,36 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
             Spacer(Modifier.height(24.dp))
 
             // ── Tipos de local ────────────────────────────────────────────────
-            Text(
-                "¿Qué buscás?",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = AzulNavy,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(4.dp))
 
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(TIPOS_DE_LOCAL) { tipo ->
+                    val seleccionado = categoriaSeleccionada == tipo.nombre
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable {
-                            navController.navigate(Rutas.resultados("tipo:${tipo.nombre}"))
+                            categoriaSeleccionada = if (seleccionado) null else tipo.nombre
                         },
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(CircleShape)
-                                .background(AzulClaro),
+                                .background(if (seleccionado) Rojo else AzulClaro),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(tipo.emoji, fontSize = 26.sp)
                         }
                         Spacer(Modifier.height(6.dp))
-                        Text(tipo.nombre, fontSize = 12.sp, color = AzulNavy, fontWeight = FontWeight.Medium)
+                        Text(
+                            tipo.nombre,
+                            fontSize = 12.sp,
+                            color = if (seleccionado) Rojo else AzulNavy,
+                            fontWeight = if (seleccionado) FontWeight.Bold else FontWeight.Medium,
+                        )
                     }
                 }
             }
@@ -256,16 +243,6 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
             Spacer(Modifier.height(24.dp))
 
             // ── Productos populares ───────────────────────────────────────────
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Productos populares", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AzulNavy, modifier = Modifier.weight(1f))
-                TextButton(onClick = {}) {
-                    Text("Ver todos", color = Rojo, fontSize = 13.sp)
-                }
-            }
-
             Spacer(Modifier.height(8.dp))
 
             val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
@@ -284,31 +261,30 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
             Spacer(Modifier.height(24.dp))
 
             // ── Kioscos cercanos ──────────────────────────────────────────────
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Kioscos cercanos", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AzulNavy, modifier = Modifier.weight(1f))
-                TextButton(onClick = { tabSeleccionado = 1 }) {
-                    Text("Ver mapa", color = Rojo, fontSize = 13.sp)
-                }
-            }
-
             Spacer(Modifier.height(8.dp))
 
-            if (kioscosFirestore.isEmpty()) {
+            val kioscosFiltrados = if (categoriaSeleccionada != null)
+                kioscosFirestore.filter { it.categoria == categoriaSeleccionada }
+            else kioscosFirestore
+
+            if (kioscosFiltrados.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(32.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("No hay kioscos registrados aún", color = Gris500, fontSize = 14.sp)
+                    Text(
+                        if (categoriaSeleccionada != null) "No hay locales de tipo \"$categoriaSeleccionada\""
+                        else "No hay kioscos registrados aún",
+                        color = Gris500,
+                        fontSize = 14.sp,
+                    )
                 }
             } else {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    kioscosFirestore.forEach { tienda ->
+                    kioscosFiltrados.forEach { tienda ->
                         KioscoItem(tienda.nombre, tienda.direccion, estaAbierto(tienda)) {
                             navController.navigate(Rutas.detalleLocal(tienda.id))
                         }

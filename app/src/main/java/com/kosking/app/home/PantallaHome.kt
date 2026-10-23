@@ -44,6 +44,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     val productosFirestore: List<StockItemConTienda> by vm.productosPopulares.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+    var cantKioscosVer by remember { mutableIntStateOf(4) }
     val user = FirebaseAuth.getInstance().currentUser
     val nombreUsuario = user?.displayName ?: user?.email?.substringBefore("@") ?: "Vos"
 
@@ -218,6 +219,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable {
                             categoriaSeleccionada = if (seleccionado) null else tipo.nombre
+                            cantKioscosVer = 4
                         },
                     ) {
                         Box(
@@ -292,14 +294,28 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                 }
             } else {
                 val prodCount = productosFirestore.groupBy { it.tiendaId }.mapValues { it.value.size }
+                val kioscosVer = kioscosFiltrados.take(cantKioscosVer)
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    kioscosFiltrados.forEach { tienda ->
+                    kioscosVer.forEach { tienda ->
                         KioscoItem(tienda.nombre, tienda.direccion, estaAbierto(tienda), prodCount[tienda.id]) {
                             navController.navigate(Rutas.detalleLocal(tienda.id))
                         }
+                    }
+                }
+                if (cantKioscosVer < kioscosFiltrados.size) {
+                    val restantes = kioscosFiltrados.size - cantKioscosVer
+                    TextButton(
+                        onClick = { cantKioscosVer += 4 },
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    ) {
+                        Text(
+                            "Ver $restantes kiosco${if (restantes > 1) "s" else ""} más",
+                            color = Azul,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
                 }
             }

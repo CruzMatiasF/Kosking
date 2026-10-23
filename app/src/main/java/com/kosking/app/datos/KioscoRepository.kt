@@ -1,6 +1,5 @@
 package com.kosking.app.datos
 
-import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.kosking.app.modelo.Oferta
@@ -74,10 +73,6 @@ object KioscoRepository {
     suspend fun buscarKioscos(query: String): List<Tienda> {
         val q = query.trim().lowercase()
         val snap = db.collection("tiendas").get().await()
-        Log.d("Busqueda", "Total tiendas en Firestore: ${snap.size()}")
-        snap.documents.forEach { doc ->
-            Log.d("Busqueda", "  doc ${doc.id}: nombre=${doc.getString("nombre")} nombreBusqueda=${doc.getString("nombreBusqueda")}")
-        }
         return snap.documents.mapNotNull { doc ->
                 doc.toObject<Tienda>()?.copy(id = doc.id)
             }.filter { tienda ->

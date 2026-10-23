@@ -34,8 +34,9 @@ import com.kosking.app.ui.theme.*
 fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = viewModel()) {
     val rolActual by vmRol.rolActual.collectAsStateWithLifecycle()
     val user = FirebaseAuth.getInstance().currentUser
-    val nombre = user?.displayName ?: user?.email?.substringBefore("@") ?: "Usuario"
-    val email = user?.email ?: ""
+    val estaLogueado = user != null
+    val nombre = user?.displayName ?: user?.email?.substringBefore("@") ?: "Invitado"
+    val email = user?.email ?: "Sin sesión iniciada"
     val tieneTienda = rolActual is RolActual.Dueno
     val tieneRolNegocio = rolActual is RolActual.Dueno || rolActual is RolActual.Empleado
 
@@ -84,20 +85,42 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
 
         Spacer(Modifier.height(16.dp))
 
+        // Botones login/registro si no hay sesión
+        if (!estaLogueado) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Button(
+                    onClick = { navController.navigate(Rutas.LOGIN) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Rojo),
+                ) { Text("Iniciar sesión", fontWeight = FontWeight.SemiBold) }
+                OutlinedButton(
+                    onClick = { navController.navigate(Rutas.REGISTRO) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Registrarse", fontWeight = FontWeight.SemiBold) }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
         // Sección Mi actividad
         SeccionLabel("Mi actividad")
         SeccionCard {
             ItemMas(Icons.Default.History, "Historial de búsquedas", Azul) {
-                    navController.navigate(Rutas.HISTORIAL)
-                }
+                navController.navigate(Rutas.HISTORIAL)
+            }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Favorite, "Favoritos", Rojo) {
-                    navController.navigate(Rutas.FAVORITOS)
-                }
+                if (estaLogueado) navController.navigate(Rutas.FAVORITOS)
+                else navController.navigate(Rutas.LOGIN)
+            }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Notifications, "Notificaciones", Naranja) {
-                    navController.navigate(Rutas.NOTIFICACIONES)
-                }
+                navController.navigate(Rutas.NOTIFICACIONES)
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -105,7 +128,11 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
         // Sección Mi negocio
         SeccionLabel("Mi negocio")
         SeccionCard {
-            if (rolActual is RolActual.Dueno) {
+            if (!estaLogueado) {
+                ItemMas(Icons.Default.AddBusiness, "Iniciá sesión para gestionar tu negocio", Gris500) {
+                    navController.navigate(Rutas.LOGIN)
+                }
+            } else if (rolActual is RolActual.Dueno) {
                 ItemMas(Icons.Default.Store, "Panel del dueño", Azul) {
                     navController.navigate(Rutas.PANEL_DUENO)
                 }
@@ -134,15 +161,18 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
         SeccionLabel("Cuenta")
         SeccionCard {
             ItemMas(Icons.Default.Person, "Mi perfil", Gris500) {
-                    navController.navigate(Rutas.PERFIL)
-                }
+                if (estaLogueado) navController.navigate(Rutas.PERFIL)
+                else navController.navigate(Rutas.LOGIN)
+            }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Settings, "Configuración", Gris500) {
-                    navController.navigate(Rutas.CONFIGURACION)
+                navController.navigate(Rutas.CONFIGURACION)
+            }
+            if (estaLogueado) {
+                HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
+                ItemMas(Icons.Default.Logout, "Cerrar sesión", Rojo) {
+                    mostrarConfirmLogout = true
                 }
-            HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
-            ItemMas(Icons.Default.Logout, "Cerrar sesión", Rojo) {
-                mostrarConfirmLogout = true
             }
         }
 
@@ -158,7 +188,7 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
                 Button(
                     onClick = {
                         FirebaseAuth.getInstance().signOut()
-                        navController.navigate(Rutas.LOGIN) { popUpTo(0) { inclusive = true } }
+                        navController.navigate(Rutas.MAPA_SIMPLE) { popUpTo(0) { inclusive = true } }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Rojo),
                 ) { Text("Sí, cerrar sesión") }

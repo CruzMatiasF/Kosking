@@ -32,11 +32,7 @@ class MainActivity : ComponentActivity() {
         guardarTokenFCM()
         enableEdgeToEdge()
 
-        val pantallaInicial = if (FirebaseAuth.getInstance().currentUser != null) {
-            Rutas.HOME
-        } else {
-            Rutas.LOGIN
-        }
+        val pantallaInicial = Rutas.MAPA_SIMPLE
 
         setContent {
             KoskingTheme {

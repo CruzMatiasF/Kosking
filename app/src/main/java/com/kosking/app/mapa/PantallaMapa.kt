@@ -10,8 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -127,15 +128,27 @@ fun PantallaMapa(
             }
         }
 
-        // ── Botón volver ──────────────────────────────────────────────────────
-        FloatingActionButton(
-            onClick = { navController.popBackStack() },
+        // ── Botones top-left: Home + Búsqueda ────────────────────────────────
+        Row(
             modifier = Modifier.padding(top = 48.dp, start = 16.dp).align(Alignment.TopStart),
-            containerColor = Blanco,
-            contentColor = AzulNavy,
-            elevation = FloatingActionButtonDefaults.elevation(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Icon(Icons.Default.ArrowBack, null)
+            FloatingActionButton(
+                onClick = { navController.navigate(Rutas.HOME) },
+                containerColor = Blanco,
+                contentColor = AzulNavy,
+                elevation = FloatingActionButtonDefaults.elevation(4.dp),
+            ) {
+                Icon(Icons.Default.Home, null)
+            }
+            FloatingActionButton(
+                onClick = { navController.navigate(Rutas.resultados("")) },
+                containerColor = Blanco,
+                contentColor = AzulNavy,
+                elevation = FloatingActionButtonDefaults.elevation(4.dp),
+            ) {
+                Icon(Icons.Default.Search, null)
+            }
         }
 
         // ── Botón mi ubicación ────────────────────────────────────────────────

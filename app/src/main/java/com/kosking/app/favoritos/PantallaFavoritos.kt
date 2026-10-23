@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
@@ -25,6 +26,10 @@ import com.kosking.app.util.textoHorario
 
 @Composable
 fun PantallaFavoritos(navController: NavController, vm: FavoritosViewModel = viewModel()) {
+    if (FirebaseAuth.getInstance().currentUser == null) {
+        LaunchedEffect(Unit) { navController.navigate(Rutas.LOGIN) { popUpTo(Rutas.MAPA_SIMPLE) } }
+        return
+    }
     val favoritos by vm.favoritos.collectAsStateWithLifecycle()
 
     Scaffold(

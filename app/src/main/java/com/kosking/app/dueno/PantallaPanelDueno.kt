@@ -550,4 +550,3 @@ private fun SinLocalPantalla(navController: NavController, onVolver: () -> Unit)
         }
     }
 }
-}

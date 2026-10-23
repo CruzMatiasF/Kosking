@@ -9,10 +9,12 @@ import com.kosking.app.modelo.Tienda
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class EstadoAgregar {
     object Idle : EstadoAgregar()
@@ -35,6 +37,7 @@ class AgregarProductoViewModel : ViewModel() {
     fun agregar(nombre: String, marca: String, precio: Double, cantidad: Int, categoria: String) {
         viewModelScope.launch {
             val id = tienda.value?.id
+                ?: withTimeoutOrNull(5000) { tienda.first { it != null } }?.id
             if (id == null) {
                 estado.value = EstadoAgregar.Error("No se encontró tu local. Asegurate de haber creado un local primero.")
                 return@launch

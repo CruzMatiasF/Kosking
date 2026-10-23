@@ -1,5 +1,6 @@
 package com.kosking.app.empleado
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -25,13 +26,22 @@ class IngresarCodigoViewModel : ViewModel() {
     val estado = MutableStateFlow<EstadoCodigo>(EstadoCodigo.Idle)
 
     fun unirseConCodigo(codigo: String) {
-        if (uid.isBlank()) return
+        if (uid.isBlank()) {
+            estado.value = EstadoCodigo.Error("No hay sesión activa. Volvé a iniciar sesión.")
+            return
+        }
+        val codigoBuscado = codigo.trim().uppercase()
+        Log.d("IngresarCodigo", "Buscando codigo='$codigoBuscado' uid='$uid'")
+
         viewModelScope.launch {
             estado.value = EstadoCodigo.Buscando
             try {
                 val snap = db.collection("tiendas")
-                    .whereEqualTo("codigoInvitacion", codigo.trim().uppercase())
+                    .whereEqualTo("codigoInvitacion", codigoBuscado)
                     .get().await()
+
+                Log.d("IngresarCodigo", "Query result: isEmpty=${snap.isEmpty}, size=${snap.size()}")
+                snap.documents.forEach { Log.d("IngresarCodigo", "  doc ${it.id}: ${it.data}") }
 
                 if (snap.isEmpty) {
                     estado.value = EstadoCodigo.CodigoInvalido
@@ -41,6 +51,8 @@ class IngresarCodigoViewModel : ViewModel() {
                 val doc = snap.documents.first()
                 val tienda = doc.toObject(Tienda::class.java)?.copy(id = doc.id)
                     ?: run { estado.value = EstadoCodigo.CodigoInvalido; return@launch }
+
+                Log.d("IngresarCodigo", "Tienda encontrada: ${tienda.nombre}")
 
                 // Guarda el vínculo en el documento del empleado
                 db.collection("usuarios").document(uid)
@@ -55,7 +67,8 @@ class IngresarCodigoViewModel : ViewModel() {
 
                 estado.value = EstadoCodigo.Exito(tienda)
             } catch (e: Exception) {
-                estado.value = EstadoCodigo.Error(e.message ?: "Error al buscar el código")
+                Log.e("IngresarCodigo", "Error: ${e.javaClass.simpleName} - ${e.message}")
+                estado.value = EstadoCodigo.Error("${e.javaClass.simpleName}: ${e.message}")
             }
         }
     }

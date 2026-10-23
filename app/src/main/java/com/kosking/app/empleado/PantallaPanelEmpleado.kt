@@ -85,12 +85,11 @@ fun PantallaPanelEmpleado(navController: NavController, vm: PanelEmpleadoViewMod
                                 color = Blanco.copy(alpha = 0.65f),
                             )
                         }
-                        // Logout
+                        // Volver al home
                         IconButton(onClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            navController.navigate(Rutas.LOGIN) { popUpTo(0) }
+                            navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = false } }
                         }) {
-                            Icon(Icons.Default.Logout, null, tint = Blanco.copy(alpha = 0.7f))
+                            Icon(Icons.Default.ArrowBack, null, tint = Blanco.copy(alpha = 0.7f))
                         }
                         Surface(shape = RoundedCornerShape(8.dp), color = Verde.copy(alpha = 0.2f)) {
                             Text(

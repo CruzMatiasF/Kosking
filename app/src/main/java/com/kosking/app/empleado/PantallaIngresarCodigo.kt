@@ -35,7 +35,7 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
 
     val exito = estado as? EstadoCodigo.Exito
 
-    // Si ya se uniÃ³, navegar al panel de empleado
+    // Si ya se unió, navegar al panel de empleado
     LaunchedEffect(exito) {
         if (exito != null) {
             kotlinx.coroutines.delay(2000)
@@ -58,7 +58,7 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Unirme a un local", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Blanco)
-                        Text("IngresÃ¡ el cÃ³digo que te dio el dueÃ±o", fontSize = 12.sp, color = Blanco.copy(alpha = 0.65f))
+                        Text("Ingresá el código que te dio el dueño", fontSize = 12.sp, color = Blanco.copy(alpha = 0.65f))
                     }
                 }
             }
@@ -71,30 +71,34 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
         ) {
             Spacer(Modifier.weight(0.3f))
 
-            // IlustraciÃ³n
-            Text("ðŸ”‘", fontSize = 64.sp)
+            Icon(
+                Icons.Default.VpnKey,
+                contentDescription = null,
+                tint = Azul,
+                modifier = Modifier.size(64.dp),
+            )
             Text(
-                "CÃ³digo de invitaciÃ³n",
+                "Código de invitación",
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 22.sp,
                 color = AzulNavy,
                 textAlign = TextAlign.Center,
             )
             Text(
-                "El dueÃ±o del local te compartiÃ³ un cÃ³digo de 6 caracteres para que puedas unirte.",
+                "El dueño del local te compartió un código de 6 caracteres para que puedas unirte.",
                 fontSize = 14.sp,
                 color = Gris700,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp,
             )
 
-            // Campo del cÃ³digo
+            // Campo del código
             Surface(shape = RoundedCornerShape(16.dp), color = Blanco, shadowElevation = 2.dp) {
                 Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     OutlinedTextField(
                         value = codigo,
                         onValueChange = { if (it.length <= 6) codigo = it.uppercase().filter { c -> c.isLetterOrDigit() } },
-                        label = { Text("CÃ³digo del local") },
+                        label = { Text("Código del local") },
                         placeholder = { Text("Ej: AB3X7K", color = Gris500) },
                         leadingIcon = { Icon(Icons.Default.VpnKey, null, tint = Azul) },
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
@@ -108,16 +112,16 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Azul,
-                        unfocusedBorderColor = Gris500.copy(alpha = 0.4f),
-                        focusedLabelColor = Azul,
-                        unfocusedLabelColor = Gris500,
-                        focusedTextColor = AzulNavy,
-                        unfocusedTextColor = AzulNavy,
-                        cursorColor = Azul,
+                            unfocusedBorderColor = Gris500.copy(alpha = 0.4f),
+                            focusedLabelColor = Azul,
+                            unfocusedLabelColor = Gris500,
+                            focusedTextColor = AzulNavy,
+                            unfocusedTextColor = AzulNavy,
+                            cursorColor = Azul,
                         ),
                         isError = estado is EstadoCodigo.CodigoInvalido,
                         supportingText = when (estado) {
-                            is EstadoCodigo.CodigoInvalido -> ({ Text("CÃ³digo no encontrado. VerificÃ¡ con el dueÃ±o.", color = Rojo) })
+                            is EstadoCodigo.CodigoInvalido -> ({ Text("Código no encontrado. Verificá con el dueño.", color = Rojo) })
                             else -> null
                         },
                     )
@@ -126,7 +130,7 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
                 }
             }
 
-            // Estado de Ã©xito: muestra el local encontrado
+            // Estado de éxito: muestra el local encontrado
             if (exito != null) {
                 Surface(shape = RoundedCornerShape(14.dp), color = Verde.copy(alpha = 0.08f)) {
                     Row(
@@ -134,9 +138,9 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("ðŸª", fontSize = 32.sp)
+                        Icon(Icons.Default.Store, null, tint = Verde, modifier = Modifier.size(32.dp))
                         Column {
-                            Text("Â¡CÃ³digo vÃ¡lido!", fontWeight = FontWeight.Bold, color = Verde, fontSize = 14.sp)
+                            Text("¡Código válido!", fontWeight = FontWeight.Bold, color = Verde, fontSize = 14.sp)
                             Text(exito.tienda.nombre, fontWeight = FontWeight.SemiBold, color = AzulNavy, fontSize = 16.sp)
                             Text(exito.tienda.direccion, fontSize = 12.sp, color = Gris500)
                         }
@@ -189,4 +193,3 @@ fun PantallaIngresarCodigo(navController: NavController, vm: IngresarCodigoViewM
         )
     }
 }
-

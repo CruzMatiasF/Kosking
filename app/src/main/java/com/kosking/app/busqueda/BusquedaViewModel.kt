@@ -36,8 +36,14 @@ class BusquedaViewModel : ViewModel() {
             cargando.value = true
             try {
                 productos.value = ProductoRepository.buscarProductos(query)
+            } catch (e: Exception) {
+                android.util.Log.e("Busqueda", "ERROR productos: ${e.javaClass.simpleName}: ${e.message}")
+            }
+            try {
                 kioscos.value = KioscoRepository.buscarKioscos(query)
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                android.util.Log.e("Busqueda", "ERROR kioscos: ${e.javaClass.simpleName}: ${e.message}")
+            }
             cargando.value = false
         }
     }

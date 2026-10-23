@@ -22,56 +22,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Tienda
+import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
-
-// ── Datos de ejemplo ──────────────────────────────────────────────────────────
-
-private data class ResultadoProducto(
-    val emoji: String,
-    val nombre: String,
-    val precio: String,
-    val tienda: String,
-    val distancia: String,
-    val stock: Int,
-)
-
-private data class ResultadoKiosco(
-    val nombre: String,
-    val distancia: String,
-    val rating: String,
-    val productos: Int,
-    val categoria: String,
-)
-
-private val productosEjemplo = listOf(
-    ResultadoProducto("🥤", "Coca-Cola 500ml", "$1.000", "Kiosco El Cielo", "3 cuadras", 12),
-    ResultadoProducto("🥤", "Coca-Cola 1.5L", "$1.800", "Kiosco La Esquina", "5 cuadras", 6),
-    ResultadoProducto("🥤", "Coca-Cola Zero 500ml", "$1.050", "Maxikiosco 24", "7 cuadras", 20),
-    ResultadoProducto("🍪", "Oreo Original 124g", "$1.200", "Kiosco El Cielo", "3 cuadras", 8),
-    ResultadoProducto("🍟", "Lays Clásicas 150g", "$950", "Kiosco Don Juan", "4 cuadras", 15),
-    ResultadoProducto("🧃", "Jugo Cepita Naranja 1L", "$1.100", "Kiosco La Esquina", "5 cuadras", 4),
-)
-
-private val kioscosEjemplo = listOf(
-    ResultadoKiosco("Kiosco El Cielo", "3 cuadras", "4.8", 245, "Kiosco"),
-    ResultadoKiosco("Kiosco La Esquina", "5 cuadras", "4.6", 180, "Kiosco"),
-    ResultadoKiosco("Maxikiosco 24", "7 cuadras", "4.4", 310, "Maxikiosco"),
-    ResultadoKiosco("Kiosco Don Juan", "4 cuadras", "4.2", 120, "Kiosco"),
-)
 
 private val BG = Brush.verticalGradient(
     listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
     endY = 320f,
 )
-
-// ── Pantalla ──────────────────────────────────────────────────────────────────
 
 @Composable
 fun PantallaResultados(
@@ -80,21 +44,13 @@ fun PantallaResultados(
     vm: BusquedaViewModel = viewModel(),
 ) {
     var query by remember { mutableStateOf(queryInicial) }
-    var tabSeleccionado by remember { mutableIntStateOf(0) }
+    var tabSeleccionado by remember { mutableIntStateOf(1) } // Kioscos por defecto
     val focusRequester = remember { FocusRequester() }
-    val productosFirestore = vm.productos.value
-    val kioscosFirestore = vm.kioscos.value
+    val kioscos = vm.kioscos.value
     val cargando = vm.cargando.value
 
     LaunchedEffect(Unit) { if (queryInicial.isEmpty()) focusRequester.requestFocus() }
     LaunchedEffect(queryInicial) { if (queryInicial.isNotBlank()) vm.buscar(queryInicial) }
-
-    val prodMostrar = if (productosFirestore.isNotEmpty()) productosFirestore.map {
-        ResultadoProducto("🛒", it.nombre, "$0", it.marca, "-", 0)
-    } else productosEjemplo
-    val kioscosMostrar = if (kioscosFirestore.isNotEmpty()) kioscosFirestore.map {
-        ResultadoKiosco(it.nombre, it.direccion, "⭐", 0, it.categoria)
-    } else kioscosEjemplo
 
     Column(modifier = Modifier.fillMaxSize().background(AzulFondo)) {
 
@@ -107,7 +63,6 @@ fun PantallaResultados(
                 .padding(top = 48.dp, bottom = 0.dp, start = 16.dp, end = 16.dp),
         ) {
             Column {
-                // Barra de búsqueda activa
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, null, tint = Blanco)
@@ -116,15 +71,15 @@ fun PantallaResultados(
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it; vm.buscar(it) },
-                        placeholder = { Text("Buscar productos o kioscos...", color = Blanco.copy(alpha = 0.45f), fontSize = 15.sp) },
+                        placeholder = { Text("Buscar kioscos...", color = Blanco.copy(alpha = 0.45f), fontSize = 15.sp) },
                         singleLine = true,
                         modifier = Modifier.weight(1f).focusRequester(focusRequester),
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { /* filtrar */ }),
+                        keyboardActions = KeyboardActions(onSearch = { vm.buscar(query) }),
                         trailingIcon = {
                             if (query.isNotEmpty()) {
-                                IconButton(onClick = { query = "" }) {
+                                IconButton(onClick = { query = ""; vm.buscar("") }) {
                                     Icon(Icons.Default.Close, null, tint = Blanco.copy(alpha = 0.6f))
                                 }
                             }
@@ -143,7 +98,6 @@ fun PantallaResultados(
 
                 Spacer(Modifier.height(12.dp))
 
-                // Tabs Productos | Kioscos
                 TabRow(
                     selectedTabIndex = tabSeleccionado,
                     containerColor = Color.Transparent,
@@ -162,7 +116,7 @@ fun PantallaResultados(
                         onClick = { tabSeleccionado = 0 },
                         text = {
                             Text(
-                                "Productos (${prodMostrar.size})",
+                                "Productos",
                                 fontWeight = if (tabSeleccionado == 0) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 14.sp,
                             )
@@ -175,7 +129,7 @@ fun PantallaResultados(
                         onClick = { tabSeleccionado = 1 },
                         text = {
                             Text(
-                                "Kioscos (${kioscosMostrar.size})",
+                                "Kioscos (${kioscos.size})",
                                 fontWeight = if (tabSeleccionado == 1) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 14.sp,
                             )
@@ -189,124 +143,68 @@ fun PantallaResultados(
 
         Spacer(Modifier.height(12.dp))
 
-        // ── Resultados ────────────────────────────────────────────────────────
-        if (cargando) {
-            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Rojo)
+        when {
+            cargando -> {
+                Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Rojo)
+                }
             }
-        } else {
-            when (tabSeleccionado) {
-                0 -> ListaProductos(prodMostrar) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleProducto(it)) }
-                1 -> ListaKioscos(kioscosMostrar) { navController.navigate(com.kosking.app.navegacion.Rutas.detalleLocal(it)) }
+            query.isBlank() -> {
+                MensajeVacio(
+                    icono = Icons.Default.Search,
+                    titulo = "Buscá un kiosco",
+                    subtitulo = "Escribí el nombre o categoría",
+                )
             }
-        }
-    }
-}
-
-// ── Lista de productos ────────────────────────────────────────────────────────
-
-@Composable
-private fun ListaProductos(productos: List<ResultadoProducto>, onProductoClick: (String) -> Unit = {}) {
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        items(productos) { prod ->
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = Blanco,
-                shadowElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth().clickable { onProductoClick(prod.nombre) },
-            ) {
-                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                    // Acento rojo lateral
-                    Box(
-                        modifier = Modifier
-                            .width(4.dp)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp))
-                            .background(Rojo),
+            tabSeleccionado == 1 -> {
+                if (kioscos.isEmpty()) {
+                    MensajeVacio(
+                        icono = Icons.Default.StoreMallDirectory,
+                        titulo = "Sin resultados",
+                        subtitulo = "No hay kioscos con ese nombre",
                     )
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // Imagen del producto
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(AzulFondo),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(prod.emoji, fontSize = 32.sp)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(prod.nombre, fontWeight = FontWeight.SemiBold, color = AzulNavy, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Spacer(Modifier.height(4.dp))
-                            Text(prod.tienda, fontSize = 12.sp, color = Gris500)
-                            Spacer(Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.LocationOn, null, tint = Azul, modifier = Modifier.size(11.dp))
-                                Spacer(Modifier.width(2.dp))
-                                Text(prod.distancia, fontSize = 11.sp, color = Azul)
-                                Spacer(Modifier.width(10.dp))
-                                // Badge stock
-                                val stockColor = if (prod.stock > 5) Verde else Naranja
-                                Surface(shape = RoundedCornerShape(4.dp), color = stockColor.copy(alpha = 0.12f)) {
-                                    Text(
-                                        "Stock: ${prod.stock}",
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        fontSize = 10.sp,
-                                        color = stockColor,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(prod.precio, fontWeight = FontWeight.ExtraBold, color = Rojo, fontSize = 16.sp)
-                            Spacer(Modifier.height(6.dp))
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = AzulClaro,
-                                modifier = Modifier.clickable { },
-                            ) {
-                                Icon(
-                                    Icons.Default.Favorite,
-                                    null,
-                                    tint = Azul,
-                                    modifier = Modifier.padding(6.dp).size(18.dp),
-                                )
-                            }
-                        }
+                } else {
+                    ListaKioscos(kioscos) { tiendaId ->
+                        navController.navigate(Rutas.detalleLocal(tiendaId))
                     }
                 }
             }
+            else -> {
+                MensajeVacio(
+                    icono = Icons.Default.Inventory,
+                    titulo = "Próximamente",
+                    subtitulo = "La búsqueda de productos estará disponible pronto",
+                )
+            }
         }
-        item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
-// ── Lista de kioscos ──────────────────────────────────────────────────────────
+@Composable
+private fun MensajeVacio(icono: androidx.compose.ui.graphics.vector.ImageVector, titulo: String, subtitulo: String) {
+    Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(icono, null, tint = Gris500, modifier = Modifier.size(48.dp))
+            Text(titulo, fontWeight = FontWeight.Bold, color = AzulNavy, fontSize = 16.sp, textAlign = TextAlign.Center)
+            Text(subtitulo, color = Gris500, fontSize = 13.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
 
 @Composable
-private fun ListaKioscos(kioscos: List<ResultadoKiosco>, onKioscoClick: (String) -> Unit = {}) {
+private fun ListaKioscos(kioscos: List<Tienda>, onKioscoClick: (String) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        items(kioscos) { kiosco ->
+        items(kioscos, key = { it.id }) { kiosco ->
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = Blanco,
                 shadowElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth().clickable { onKioscoClick(kiosco.nombre) },
+                modifier = Modifier.fillMaxWidth().clickable { onKioscoClick(kiosco.id) },
             ) {
                 Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                    // Acento azul lateral
                     Box(
                         modifier = Modifier
                             .width(4.dp)
@@ -325,40 +223,64 @@ private fun ListaKioscos(kioscos: List<ResultadoKiosco>, onKioscoClick: (String)
                                 .background(AzulClaro),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("🏪", fontSize = 28.sp)
+                            Icon(Icons.Default.Store, null, tint = Azul, modifier = Modifier.size(28.dp))
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(kiosco.nombre, fontWeight = FontWeight.Bold, color = AzulNavy, fontSize = 15.sp)
+                            Text(kiosco.nombre, fontWeight = FontWeight.Bold, color = AzulNavy, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Spacer(Modifier.height(3.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.LocationOn, null, tint = Gris500, modifier = Modifier.size(11.dp))
                                 Spacer(Modifier.width(2.dp))
-                                Text("A ${kiosco.distancia}", fontSize = 12.sp, color = Gris500)
+                                Text(kiosco.direccion, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             Spacer(Modifier.height(3.dp))
-                            Text("${kiosco.productos} productos", fontSize = 12.sp, color = Azul, fontWeight = FontWeight.Medium)
-                        }
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Surface(shape = RoundedCornerShape(8.dp), color = AzulClaro) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(Icons.Default.Star, null, tint = Azul, modifier = Modifier.size(13.dp))
-                                    Spacer(Modifier.width(3.dp))
-                                    Text(kiosco.rating, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AzulNavy)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Surface(shape = RoundedCornerShape(6.dp), color = AzulClaro) {
+                                    Text(
+                                        kiosco.categoria,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        fontSize = 11.sp,
+                                        color = Azul,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                                if (kiosco.abierto) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Verde.copy(alpha = 0.12f)) {
+                                        Text(
+                                            "Abierto",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            fontSize = 11.sp,
+                                            color = Verde,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                } else {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = Gris200) {
+                                        Text(
+                                            "Cerrado",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            fontSize = 11.sp,
+                                            color = Gris500,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
                                 }
                             }
-                            Surface(shape = RoundedCornerShape(8.dp), color = RojoClaro, modifier = Modifier.clickable { onKioscoClick(kiosco.nombre) }) {
-                                Text(
-                                    "Ver local",
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    fontSize = 12.sp,
-                                    color = Rojo,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = RojoClaro,
+                            modifier = Modifier.clickable { onKioscoClick(kiosco.id) },
+                        ) {
+                            Text(
+                                "Ver",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                fontSize = 13.sp,
+                                color = Rojo,
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }

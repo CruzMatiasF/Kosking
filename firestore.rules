@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Tiendas: cualquier usuario autenticado puede leer,
+    // solo el dueño puede escribir
+    match /tiendas/{tiendaId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.duenioUid;
+
+      // Subcolecciones de la tienda (stock, ofertas)
+      match /{subcoleccion}/{docId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null
+          && get(/databases/$(database)/documents/tiendas/$(tiendaId)).data.duenioUid == request.auth.uid;
+      }
+    }
+
+    // Usuarios: solo el propio usuario lee/escribe su documento
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // Favoritos: solo el propio usuario
+      match /favoritos/{tiendaId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}

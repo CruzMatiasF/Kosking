@@ -94,7 +94,9 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
                     navController.navigate(Rutas.HISTORIAL)
                 }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
-            ItemMas(Icons.Default.Favorite, "Favoritos", Rojo) {}
+            ItemMas(Icons.Default.Favorite, "Favoritos", Rojo) {
+                    navController.navigate(Rutas.FAVORITOS)
+                }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Notifications, "Notificaciones", Naranja) {}
         }

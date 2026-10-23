@@ -91,6 +91,7 @@ fun PantallaDetalleKiosco(
                         },
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Azul),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Azul),
                     ) {
                         Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(18.dp))

@@ -226,6 +226,8 @@ fun PantallaMapa(
                             onClick = { seleccionado = null },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Gris500),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Gris500),
                         ) {
                             Text("Cerrar")
                         }

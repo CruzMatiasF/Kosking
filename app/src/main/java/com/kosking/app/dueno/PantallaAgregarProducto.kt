@@ -110,6 +110,7 @@ fun PantallaAgregarProducto(navController: NavController, vm: AgregarProductoVie
                         onClick = { navController.popBackStack() },
                         modifier = Modifier.fillMaxWidth().height(44.dp),
                         shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Gris500),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Gris700),
                     ) {
                         Text("Volver al panel", fontSize = 14.sp)

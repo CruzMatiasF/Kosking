@@ -292,6 +292,8 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
                                     onClick = { vm.limpiarOverride() },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Gris500),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Gris500),
                                 ) {
                                     Text("Volver al horario", fontSize = 12.sp)
                                 }
@@ -544,6 +546,8 @@ private fun SinLocalPantalla(navController: NavController, onVolver: () -> Unit)
                 onClick = onVolver,
                 modifier = Modifier.fillMaxWidth().height(44.dp),
                 shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Azul),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Azul),
             ) {
                 Text("Volver", fontSize = 14.sp)
             }

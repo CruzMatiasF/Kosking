@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -24,10 +23,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kosking.app.ui.theme.*
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
-)
 
 private val categoriasProducto = listOf(
     "Bebidas", "Alimentos", "Snacks", "Lácteos", "Limpieza",
@@ -65,7 +60,7 @@ fun PantallaAgregarProducto(navController: NavController, vm: AgregarProductoVie
     Scaffold(
         containerColor = AzulFondo,
         topBar = {
-            Box(modifier = Modifier.fillMaxWidth().background(BG).statusBarsPadding()) {
+            Box(modifier = Modifier.fillMaxWidth().background(HeaderGradient).statusBarsPadding()) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).padding(bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,

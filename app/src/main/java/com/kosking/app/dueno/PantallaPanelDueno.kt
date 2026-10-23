@@ -70,12 +70,33 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
     val ventasSemanaVal by vm.ventasSemana.collectAsStateWithLifecycle()
     val stockBajoVal by vm.stockBajo.collectAsStateWithLifecycle()
 
-    val nombreLocal = tienda?.nombre ?: "Mi Kiosco"
-    val ventasHoy = if (ventasHoyVal > 0) "$%.0f".format(ventasHoyVal) else "$24.350"
-    val ventasSemana = if (ventasSemanaVal > 0) "$%.0f".format(ventasSemanaVal) else "$142.800"
+    // Esperar hasta 3 segundos antes de concluir que el usuario no tiene local
+    var yaEspero by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(3000)
+        yaEspero = true
+    }
+
+    if (tienda == null) {
+        if (!yaEspero) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Rojo)
+            }
+            return
+        }
+        SinLocalPantalla(
+            navController = navController,
+            onVolver = { navController.popBackStack() },
+        )
+        return
+    }
+
+    val nombreLocal = tienda?.nombre ?: ""
+    val ventasHoy = if (ventasHoyVal > 0) "$%.0f".format(ventasHoyVal) else "$0"
+    val ventasSemana = if (ventasSemanaVal > 0) "$%.0f".format(ventasSemanaVal) else "$0"
     val productosActivos = stock.size
-    val ofertasActivas = if (ofertasFirestore.isNotEmpty()) ofertasFirestore.size else 3
-    val stockBajo = if (tienda != null) stockBajoVal else 2
+    val ofertasActivas = ofertasFirestore.size
+    val stockBajo = stockBajoVal
 
     // Convierte ventas reales a VentaReciente para mostrar
     val ventasMostrar: List<VentaReciente> = if (ventasFirestore.isNotEmpty()) {
@@ -478,4 +499,55 @@ private fun VentaItem(venta: VentaReciente) {
             Text(venta.precio, fontWeight = FontWeight.ExtraBold, color = Verde, fontSize = 15.sp)
         }
     }
+}
+
+@Composable
+private fun SinLocalPantalla(navController: NavController, onVolver: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AzulFondo),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp),
+        ) {
+            Text("🏪", fontSize = 64.sp)
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "Todavía no tenés un local",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
+                color = AzulNavy,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Creá tu local para empezar a gestionar tu stock, ofertas y ventas.",
+                fontSize = 14.sp,
+                color = Gris500,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = { navController.navigate(Rutas.CREAR_LOCAL) },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Rojo, contentColor = Blanco),
+            ) {
+                Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Crear mi local", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onVolver,
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("Volver", fontSize = 14.sp)
+            }
+        }
+    }
+}
 }

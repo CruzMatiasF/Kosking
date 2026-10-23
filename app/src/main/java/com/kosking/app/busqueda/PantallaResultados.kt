@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.kosking.app.datos.HistorialRepository
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
@@ -77,7 +78,10 @@ fun PantallaResultados(
                         modifier = Modifier.weight(1f).focusRequester(focusRequester),
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { vm.buscar(query) }),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            vm.buscar(query)
+                            if (query.isNotBlank()) HistorialRepository.guardar(query)
+                        }),
                         trailingIcon = {
                             if (query.isNotEmpty()) {
                                 IconButton(onClick = { query = ""; vm.buscar("") }) {

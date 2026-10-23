@@ -29,6 +29,7 @@ import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.favoritos.PantallaFavoritos
 import com.kosking.app.configuracion.PantallaConfiguracion
+import com.kosking.app.historial.PantallaHistorial
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.home.PantallaElegirRol
 import com.kosking.app.home.PantallaHome
@@ -45,6 +46,7 @@ object Rutas {
     const val FAVORITOS = "favoritos"
     const val PERFIL = "perfil"
     const val CONFIGURACION = "configuracion"
+    const val HISTORIAL = "historial"
 
     // Cliente
     const val RESULTADOS = "resultados/{query}"
@@ -106,6 +108,9 @@ fun KoskingNavHost(
         }
         composable(Rutas.CONFIGURACION) {
             PantallaConfiguracion(navController = navController)
+        }
+        composable(Rutas.HISTORIAL) {
+            PantallaHistorial(navController = navController)
         }
         composable(Rutas.RESULTADOS) { backStack ->
             val query = backStack.arguments?.getString("query") ?: ""

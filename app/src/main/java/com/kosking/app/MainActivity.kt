@@ -9,11 +9,13 @@ import com.kosking.app.navegacion.KoskingNavHost
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.KoskingTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.datos.HistorialRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        HistorialRepository.init(this)
         enableEdgeToEdge()
 
         val pantallaInicial = if (FirebaseAuth.getInstance().currentUser != null) {

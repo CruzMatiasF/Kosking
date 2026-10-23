@@ -90,7 +90,9 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
         // Sección Mi actividad
         SeccionLabel("Mi actividad")
         SeccionCard {
-            ItemMas(Icons.Default.History, "Historial de búsquedas", Azul) {}
+            ItemMas(Icons.Default.History, "Historial de búsquedas", Azul) {
+                    navController.navigate(Rutas.HISTORIAL)
+                }
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
             ItemMas(Icons.Default.Favorite, "Favoritos", Rojo) {}
             HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))

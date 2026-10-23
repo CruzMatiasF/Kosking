@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -14,21 +13,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.ui.components.SeccionCard
+import com.kosking.app.ui.components.SeccionLabel
 import com.kosking.app.ui.theme.*
 import kotlinx.coroutines.launch
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A))
-)
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun PantallaConfiguracion(navController: NavController) {
@@ -70,7 +67,7 @@ fun PantallaConfiguracion(navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BG)
+                    .background(HeaderGradient)
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 20.dp),
             ) {
@@ -256,29 +253,6 @@ fun PantallaConfiguracion(navController: NavController) {
 // ── Componentes internos ──────────────────────────────────────────────────────
 
 @Composable
-private fun SeccionLabel(texto: String) {
-    Text(
-        texto,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        color = Gris500,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-    )
-}
-
-@Composable
-private fun SeccionCard(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Blanco,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-    ) {
-        Column(content = content)
-    }
-}
-
-@Composable
 private fun SwitchItem(
     icono: ImageVector,
     iconColor: Color,
@@ -370,9 +344,3 @@ private fun ActionItem(
     }
 }
 
-private suspend fun com.google.android.gms.tasks.Task<Void>.await() {
-    kotlinx.coroutines.suspendCancellableCoroutine<Unit> { cont ->
-        addOnSuccessListener { cont.resume(Unit) {} }
-        addOnFailureListener { e -> cont.cancel(e) }
-    }
-}

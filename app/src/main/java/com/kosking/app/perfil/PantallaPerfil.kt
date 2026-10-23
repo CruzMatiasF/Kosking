@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,10 +20,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.userProfileChangeRequest
 import com.kosking.app.ui.theme.*
 import kotlinx.coroutines.launch
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A))
-)
 
 @Composable
 fun PantallaPerfil(navController: NavController) {
@@ -57,7 +52,7 @@ fun PantallaPerfil(navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BG)
+                    .background(HeaderGradient)
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 20.dp),
             ) {
@@ -79,7 +74,7 @@ fun PantallaPerfil(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BG)
+                    .background(HeaderGradient)
                     .padding(bottom = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

@@ -6,7 +6,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.datos.KioscoRepository
 import com.kosking.app.datos.ProductoRepository
-import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Tienda
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,9 +27,6 @@ class HomeViewModel : ViewModel() {
     val rolUsuario = MutableStateFlow(RolUsuario.CARGANDO)
 
     var productosPopulares = MutableStateFlow<List<Producto>>(emptyList())
-        private set
-
-    var cargando = androidx.compose.runtime.mutableStateOf(false)
         private set
 
     init {
@@ -60,11 +56,9 @@ class HomeViewModel : ViewModel() {
 
     private fun cargarProductosPopulares() {
         viewModelScope.launch {
-            cargando.value = true
             try {
                 productosPopulares.value = ProductoRepository.productosPopulares()
             } catch (_: Exception) { }
-            cargando.value = false
         }
     }
 }

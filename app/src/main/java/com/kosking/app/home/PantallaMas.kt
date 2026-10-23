@@ -14,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -25,11 +24,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.navegacion.Rutas
+import com.kosking.app.ui.components.SeccionCard
+import com.kosking.app.ui.components.SeccionLabel
 import com.kosking.app.ui.theme.*
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A))
-)
 
 @Composable
 fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
@@ -54,7 +51,7 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BG)
+                .background(HeaderGradient)
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 24.dp),
         ) {
@@ -168,29 +165,6 @@ fun PantallaMas(navController: NavController, vm: HomeViewModel = viewModel()) {
                 TextButton(onClick = { mostrarConfirmLogout = false }) { Text("Cancelar") }
             },
         )
-    }
-}
-
-@Composable
-private fun SeccionLabel(texto: String) {
-    Text(
-        texto,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        color = Gris500,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-    )
-}
-
-@Composable
-private fun SeccionCard(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Blanco,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-    ) {
-        Column(content = content)
     }
 }
 

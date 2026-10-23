@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -33,11 +31,6 @@ import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
-    endY = 320f,
-)
 
 @Composable
 fun PantallaResultados(
@@ -65,7 +58,7 @@ fun PantallaResultados(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                .background(BG)
+                .background(HeaderGradient)
                 .padding(top = 48.dp, bottom = 0.dp, start = 16.dp, end = 16.dp),
         ) {
             Column {

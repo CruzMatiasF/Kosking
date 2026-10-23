@@ -1,6 +1,12 @@
 package com.kosking.app.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+
+// Gradiente azul marino compartido — header de todas las pantallas secundarias
+val HeaderGradient = Brush.verticalGradient(
+    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A))
+)
 
 // Primarios
 val Rojo = Color(0xFFE63946)

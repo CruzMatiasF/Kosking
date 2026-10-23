@@ -1,8 +1,7 @@
 package com.kosking.app.ui.components
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -91,5 +90,30 @@ fun MensajeError(texto: String) {
             color = Rojo,
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+// ── Componentes de sección compartidos (Más, Configuración, etc.) ─────────────
+
+@Composable
+fun SeccionLabel(texto: String) {
+    Text(
+        texto,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        color = Gris500,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+    )
+}
+
+@Composable
+fun SeccionCard(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Blanco,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+    ) {
+        Column(content = content)
     }
 }

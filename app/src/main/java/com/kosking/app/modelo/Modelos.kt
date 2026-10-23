@@ -40,6 +40,7 @@ data class Tienda(
     // Override manual (expira a medianoche)
     val overrideAbierto: Boolean? = null,
     val overrideHasta: Timestamp? = null,
+    val fotoUrl: String = "",
     val creadoAt: Timestamp? = null
 )
 

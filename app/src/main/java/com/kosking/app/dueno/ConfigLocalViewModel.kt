@@ -1,9 +1,11 @@
 package com.kosking.app.dueno
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.kosking.app.datos.KioscoRepository
 import com.kosking.app.modelo.Tienda
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +33,21 @@ class ConfigLocalViewModel : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val estado = MutableStateFlow<EstadoConfig>(EstadoConfig.Idle)
+    val subiendoFoto = MutableStateFlow(false)
+
+    fun subirFoto(uri: Uri) {
+        val id = tienda.value?.id ?: return
+        viewModelScope.launch {
+            subiendoFoto.value = true
+            try {
+                val ref = FirebaseStorage.getInstance().reference.child("kioscos/$id/foto.jpg")
+                ref.putFile(uri).await()
+                val url = ref.downloadUrl.await().toString()
+                db.collection("tiendas").document(id).update("fotoUrl", url).await()
+            } catch (_: Exception) { }
+            subiendoFoto.value = false
+        }
+    }
 
     fun guardar(
         nombre: String,

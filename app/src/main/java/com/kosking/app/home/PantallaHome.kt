@@ -109,7 +109,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                     .background(HeaderGradient)
-                    .padding(top = 48.dp, bottom = 28.dp, start = 20.dp, end = 20.dp),
+                    .padding(top = 48.dp, bottom = 20.dp, start = 20.dp, end = 20.dp),
             ) {
                 Column {
                     // Logo + notificaciones + avatar
@@ -145,23 +145,23 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
                     // Barra de búsqueda
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = Blanco,
-                        shadowElevation = 4.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        color = Blanco.copy(alpha = 0.95f),
+                        shadowElevation = 2.dp,
                         modifier = Modifier.fillMaxWidth().clickable {
                             navController.navigate(Rutas.resultados(""))
                         },
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = Rojo)
-                            Spacer(Modifier.width(10.dp))
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Rojo, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
-                                "Buscar productos, marcas o kioscos...",
+                                "Buscar productos o kioscos...",
                                 color = Gris500,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                             )
                         }
                     }

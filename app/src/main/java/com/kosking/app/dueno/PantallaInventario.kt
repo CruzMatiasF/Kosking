@@ -100,7 +100,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                     ) {
                         val filtros = listOf(
                             FiltroStock.TODOS to "Todos",
-                            FiltroStock.BAJO to "Stock bajo (<=3)",
+                            FiltroStock.BAJO to "Stock bajo (<=5)",
                             FiltroStock.AGOTADO to "Agotado",
                         )
                         items(filtros) { (filtro, label) ->
@@ -198,12 +198,14 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
 private fun StockItemCard(item: StockItem, onEditar: () -> Unit, onEliminar: () -> Unit) {
     val stockColor = when {
         item.cantidad == 0 -> Rojo
-        item.cantidad <= 3 -> Naranja
+        item.cantidad <= 2 -> Naranja
+        item.cantidad <= 5 -> Naranja
         else -> Verde
     }
     val stockLabel = when {
         item.cantidad == 0 -> "Agotado"
-        item.cantidad <= 3 -> "Stock bajo"
+        item.cantidad <= 2 -> "Ultimas unidades"
+        item.cantidad <= 5 -> "Stock bajo"
         else -> "En stock"
     }
 

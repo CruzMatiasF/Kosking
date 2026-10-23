@@ -53,7 +53,7 @@ class InventarioViewModel : ViewModel() {
             .filter { item ->
                 when (f) {
                     FiltroStock.TODOS -> true
-                    FiltroStock.BAJO -> item.cantidad <= 3
+                    FiltroStock.BAJO -> item.cantidad in 1..5
                     FiltroStock.AGOTADO -> item.cantidad == 0
                 }
             }

@@ -259,6 +259,16 @@ fun PantallaDetalleKiosco(
                                 stock = item.cantidad,
                             ) { navController.navigate(Rutas.detalleProducto(item.productoId)) }
                         }
+                        if (stockFirestore.any { it.cantidad in 1..2 }) {
+                            item {
+                                Text(
+                                    "* Ultimas unidades sujetas a disponibilidad al momento de la visita.",
+                                    fontSize = 11.sp,
+                                    color = Gris500,
+                                    modifier = androidx.compose.ui.Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
                     }
                 }
                 1 -> {
@@ -344,8 +354,12 @@ private fun StockItem(nombre: String, precio: String, stock: Int, onClick: () ->
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Text(precio, fontWeight = FontWeight.ExtraBold, color = Rojo, fontSize = 15.sp)
-                val stockColor = if (stock > 5) Verde else Naranja
-                Text("Stock: $stock", fontSize = 11.sp, color = stockColor, fontWeight = FontWeight.Medium)
+                when {
+                    stock == 0 -> Text("Agotado", fontSize = 11.sp, color = Rojo, fontWeight = FontWeight.Bold)
+                    stock <= 2 -> Text("Ultimas $stock uds*", fontSize = 11.sp, color = Naranja, fontWeight = FontWeight.Bold)
+                    stock <= 5 -> Text("Pocas unidades", fontSize = 11.sp, color = Naranja, fontWeight = FontWeight.Medium)
+                    else -> Text("Disponible", fontSize = 11.sp, color = Verde, fontWeight = FontWeight.Medium)
+                }
             }
         }
     }

@@ -46,7 +46,7 @@ fun PantallaCrearLocal(navController: NavController, vm: CrearLocalViewModel = v
     LaunchedEffect(estado) {
         if (estado is EstadoCrearLocal.Exito) {
             navController.navigate(Rutas.PANEL_DUENO) {
-                popUpTo(Rutas.HOME) { inclusive = false }
+                popUpTo(Rutas.MAPA_SIMPLE) { inclusive = false }
             }
         }
     }

@@ -59,7 +59,7 @@ fun PantallaRegistro(
     LaunchedEffect(Unit) { vm.limpiarError() }
     LaunchedEffect(Unit) {
         vm.navegarAlHome.collect {
-            navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
+            navController.navigate(Rutas.MAPA_SIMPLE) { popUpTo(0) { inclusive = true } }
         }
     }
 

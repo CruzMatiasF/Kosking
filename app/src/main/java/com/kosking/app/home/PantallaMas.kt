@@ -136,10 +136,6 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
                 ItemMas(Icons.Default.Store, "Panel del dueño", Azul) {
                     navController.navigate(Rutas.PANEL_DUENO)
                 }
-                HorizontalDivider(color = Gris200, thickness = 0.5.dp, modifier = Modifier.padding(start = 56.dp))
-                ItemMas(Icons.Default.Settings, "Configuración del local", Gris500) {
-                    navController.navigate(Rutas.CONFIG_LOCAL)
-                }
             } else if (rolActual is RolActual.Empleado) {
                 ItemMas(Icons.Default.Badge, "Panel del empleado", Azul) {
                     navController.navigate(Rutas.PANEL_EMPLEADO)

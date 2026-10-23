@@ -55,7 +55,7 @@ fun PantallaLogin(
     LaunchedEffect(Unit) { vm.limpiarError() }
     LaunchedEffect(Unit) {
         vm.navegarAlHome.collect {
-            navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
+            navController.navigate(Rutas.MAPA_SIMPLE) { popUpTo(0) { inclusive = true } }
         }
     }
 
@@ -177,7 +177,7 @@ fun PantallaLogin(
             // "Continuar sin cuenta" — visible pero discreto
             TextButton(
                 onClick = {
-                    navController.navigate(Rutas.HOME) { popUpTo(0) { inclusive = true } }
+                    navController.navigate(Rutas.MAPA_SIMPLE) { popUpTo(0) { inclusive = true } }
                 },
                 enabled = !vm.cargando,
             ) {

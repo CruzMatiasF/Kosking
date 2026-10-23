@@ -95,7 +95,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                     ) {
                         val filtros = listOf(
                             FiltroStock.TODOS to "Todos",
-                            FiltroStock.BAJO to "Stock bajo (â‰¤3)",
+                            FiltroStock.BAJO to "Stock bajo (≤3)",
                             FiltroStock.AGOTADO to "Agotado",
                         )
                         items(filtros) { (filtro, label) ->
@@ -128,7 +128,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                 item {
                     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("ðŸ“¦", fontSize = 40.sp)
+                            Text(“📦”, fontSize = 40.sp)
                             Spacer(Modifier.height(8.dp))
                             Text("Sin productos", color = Gris500, fontSize = 14.sp)
                         }
@@ -162,7 +162,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         AlertDialog(
             onDismissRequest = { itemEliminando = null },
             title = { Text("Eliminar producto") },
-            text = { Text("Â¿EliminÃ¡s \"${item.nombre}\" del inventario?") },
+            text = { Text("¿Eliminás \"${item.nombre}\" del inventario?") },
             confirmButton = {
                 TextButton(
                     onClick = { vm.eliminarProducto(item.productoId); itemEliminando = null },
@@ -223,7 +223,7 @@ private fun StockItemCard(item: StockItem, onEditar: () -> Unit, onEliminar: () 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = RoundedCornerShape(6.dp), color = stockColor.copy(alpha = 0.1f)) {
                         Text(
-                            "${item.cantidad} uds Â· $stockLabel",
+                            "${item.cantidad} uds · $stockLabel",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             fontSize = 11.sp,
                             color = stockColor,

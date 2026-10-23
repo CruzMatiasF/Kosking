@@ -27,6 +27,7 @@ import com.kosking.app.dueno.PantallaPanelDueno
 import com.kosking.app.dueno.PantallaRegistrarVenta
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
+import com.kosking.app.favoritos.PantallaFavoritos
 import com.kosking.app.home.PantallaElegirRol
 import com.kosking.app.home.PantallaHome
 import com.kosking.app.home.PantallaMas
@@ -95,7 +96,7 @@ fun KoskingNavHost(
             PantallaMapa(navController = navController)
         }
         composable(Rutas.FAVORITOS) {
-            // PantallaFavoritos — próximamente
+            PantallaFavoritos(navController = navController)
         }
         composable(Rutas.PERFIL) {
             // PantallaPerfil(navController)

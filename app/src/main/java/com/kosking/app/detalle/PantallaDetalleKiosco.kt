@@ -45,7 +45,7 @@ fun PantallaDetalleKiosco(
     val direccion = tiendaFirestore?.direccion ?: ""
     val horario = tiendaFirestore?.let { textoHorario(it) } ?: ""
     val abierto = tiendaFirestore?.let { estaAbierto(it) } ?: false
-    var esFavorito by remember { mutableStateOf(false) }
+    val esFavorito by vm.esFavorito.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -59,7 +59,7 @@ fun PantallaDetalleKiosco(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { esFavorito = !esFavorito }) {
+                    IconButton(onClick = { vm.toggleFavorito() }) {
                         Icon(
                             if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             null,
@@ -90,7 +90,7 @@ fun PantallaDetalleKiosco(
                         Text("Ver en mapa", fontWeight = FontWeight.SemiBold)
                     }
                     Button(
-                        onClick = { esFavorito = true },
+                        onClick = { vm.toggleFavorito() },
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Rojo, contentColor = Blanco),

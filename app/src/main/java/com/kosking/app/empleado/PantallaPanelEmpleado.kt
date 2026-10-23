@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -33,10 +32,6 @@ import com.kosking.app.ui.theme.*
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
-
-private val BG = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
-)
 
 private val fmt = NumberFormat.getNumberInstance(Locale("es", "AR"))
 private fun formatPrecio(v: Double) = "$${fmt.format(v.toLong())}"
@@ -66,7 +61,7 @@ fun PantallaPanelEmpleado(navController: NavController, vm: PanelEmpleadoViewMod
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BG)
+                    .background(HeaderGradient)
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
@@ -368,7 +363,7 @@ private fun DialogoRegistrarVentaEmpleado(
 
                 // Resumen carrito
                 if (carrito.isNotEmpty()) {
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Gris200)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("${carrito.values.sumOf { it.cantidad }} productos", fontSize = 12.sp, color = Gris500)

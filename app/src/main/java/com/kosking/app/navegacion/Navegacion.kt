@@ -16,6 +16,7 @@ import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
 import com.kosking.app.busqueda.PantallaResultados
 import com.kosking.app.detalle.PantallaDetalleKiosco
+import com.kosking.app.mapa.PantallaMapa
 import com.kosking.app.detalle.PantallaDetalleProducto
 import com.kosking.app.dueno.PantallaAgregarProducto
 import com.kosking.app.dueno.PantallaConfigLocal
@@ -91,10 +92,10 @@ fun KoskingNavHost(
             PantallaRegistro(navController = navController, vm = authViewModel)
         }
         composable(Rutas.MAPA) {
-            // PantallaMapa(navController)
+            PantallaMapa(navController = navController)
         }
         composable(Rutas.FAVORITOS) {
-            // PantallaFavoritos(navController)
+            // PantallaFavoritos — próximamente
         }
         composable(Rutas.PERFIL) {
             // PantallaPerfil(navController)

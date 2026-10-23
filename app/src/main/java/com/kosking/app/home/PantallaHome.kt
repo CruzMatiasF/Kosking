@@ -26,10 +26,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.kosking.app.home.RolUsuario
-import com.google.firebase.firestore.FirebaseFirestore
-import com.kosking.app.modelo.Producto
-import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 
@@ -90,14 +86,14 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     )
                     NavigationBarItem(
                         selected = tabSeleccionado == 1,
-                        onClick = { tabSeleccionado = 1 },
+                        onClick = { navController.navigate(Rutas.MAPA) },
                         icon = { Icon(Icons.Default.LocationOn, null) },
                         label = { Text("Mapa") },
                         colors = navColors,
                     )
                     NavigationBarItem(
                         selected = tabSeleccionado == 2,
-                        onClick = { tabSeleccionado = 2 },
+                        onClick = { navController.navigate(Rutas.FAVORITOS) },
                         icon = { Icon(Icons.Default.Favorite, null) },
                         label = { Text("Favoritos") },
                         colors = navColors,
@@ -335,26 +331,23 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
             Spacer(Modifier.height(8.dp))
 
-            val kioscosMostrar = kioscosFirestore.ifEmpty { null }
-            if (kioscosMostrar != null) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+            if (kioscosFirestore.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    kioscosMostrar.forEach { tienda ->
-                        KioscoItem(tienda.nombre, "📍 ${tienda.direccion}", tienda.ventasDelDia.toString(), 0) {
-                            navController.navigate(Rutas.detalleLocal(tienda.id))
-                        }
-                    }
+                    Text("No hay kioscos registrados aún", color = Gris500, fontSize = 14.sp)
                 }
             } else {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    KioscoItem("Kiosco El Cielo", "📍 A 3 cuadras", "4.8", 120) { navController.navigate(Rutas.detalleLocal(it)) }
-                    KioscoItem("Kiosco La Esquina", "📍 A 5 cuadras", "4.6", 87) { navController.navigate(Rutas.detalleLocal(it)) }
-                    KioscoItem("Maxikiosco 24", "📍 A 7 cuadras", "4.4", 53) { navController.navigate(Rutas.detalleLocal(it)) }
+                    kioscosFirestore.forEach { tienda ->
+                        KioscoItem(tienda.nombre, tienda.direccion, tienda.abierto) {
+                            navController.navigate(Rutas.detalleLocal(tienda.id))
+                        }
+                    }
                 }
             }
 
@@ -393,15 +386,14 @@ private fun ProductoCard(prod: ProductoPopular) {
 }
 
 @Composable
-private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñas: Int, onClick: (String) -> Unit = {}) {
+private fun KioscoItem(nombre: String, direccion: String, abierto: Boolean, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = Blanco,
         shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().clickable { onClick(nombre) },
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Acento azul lateral
             Box(
                 modifier = Modifier
                     .width(4.dp)
@@ -420,7 +412,7 @@ private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñ
                         .background(AzulClaro),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("🏪", fontSize = 24.sp)
+                    Icon(Icons.Default.Store, null, tint = Azul, modifier = Modifier.size(26.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -429,25 +421,20 @@ private fun KioscoItem(nombre: String, distancia: String, rating: String, reseñ
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.LocationOn, null, tint = Gris500, modifier = Modifier.size(11.dp))
                         Spacer(Modifier.width(2.dp))
-                        Text(distancia.removePrefix("📍 "), fontSize = 12.sp, color = Gris500)
+                        Text(direccion, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = AzulClaro,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Default.Star, null, tint = Azul, modifier = Modifier.size(13.dp))
-                            Spacer(Modifier.width(3.dp))
-                            Text(rating, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AzulNavy)
-                        }
-                    }
-                    Spacer(Modifier.height(3.dp))
-                    Text("$reseñas reseñas", fontSize = 10.sp, color = Gris500)
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (abierto) Verde.copy(alpha = 0.12f) else Gris200,
+                ) {
+                    Text(
+                        if (abierto) "Abierto" else "Cerrado",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp,
+                        color = if (abierto) Verde else Gris500,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }

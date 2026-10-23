@@ -74,7 +74,7 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
     val nombreLocal = tienda?.nombre ?: "Mi Kiosco"
     val ventasHoy = if (ventasHoyVal > 0) "$%.0f".format(ventasHoyVal) else "$24.350"
     val ventasSemana = if (ventasSemanaVal > 0) "$%.0f".format(ventasSemanaVal) else "$142.800"
-    val productosActivos = if (stock.isNotEmpty()) stock.size else 48
+    val productosActivos = stock.size
     val ofertasActivas = if (ofertasFirestore.isNotEmpty()) ofertasFirestore.size else 3
     val stockBajo = if (tienda != null) stockBajoVal else 2
 

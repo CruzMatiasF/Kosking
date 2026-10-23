@@ -33,8 +33,12 @@ class AgregarProductoViewModel : ViewModel() {
     val estado = MutableStateFlow<EstadoAgregar>(EstadoAgregar.Idle)
 
     fun agregar(nombre: String, marca: String, precio: Double, cantidad: Int, categoria: String) {
-        val id = tienda.value?.id ?: return
         viewModelScope.launch {
+            val id = tienda.value?.id
+            if (id == null) {
+                estado.value = EstadoAgregar.Error("No se encontró tu local. Asegurate de haber creado un local primero.")
+                return@launch
+            }
             estado.value = EstadoAgregar.Guardando
             try {
                 val productoId = nombre.trim().lowercase().replace(" ", "_") +

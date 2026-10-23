@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.google.android.gms.location.LocationServices
 import com.kosking.app.ui.theme.*
 
@@ -56,15 +53,9 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
     var categoriaExpanded by remember { mutableStateOf(false) }
     var diasExpanded by remember { mutableStateOf(false) }
 
-    val subiendoFoto by vm.subiendoFoto.collectAsStateWithLifecycle()
-
     val context = LocalContext.current
     var obteniendoUbicacion by remember { mutableStateOf(false) }
     val ubicacionGuardada = tienda?.let { it.latitud != 0.0 || it.longitud != 0.0 } ?: false
-
-    val fotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { vm.subirFoto(it) }
-    }
 
     @SuppressLint("MissingPermission")
     val ubicacionLauncher = rememberLauncherForActivityResult(
@@ -200,62 +191,6 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // ── Foto del local ────────────────────────────────────────────────
-            SeccionConfig("Foto del local", Icons.Default.PhotoCamera, Rojo) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Vista previa
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(AzulFondo)
-                            .border(1.dp, Gris200, RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        val fotoUrl = tienda?.fotoUrl ?: ""
-                        if (fotoUrl.isNotBlank()) {
-                            AsyncImage(
-                                model = fotoUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
-                            )
-                        } else {
-                            Text("🏪", fontSize = 36.sp)
-                        }
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            if (tienda?.fotoUrl?.isNotBlank() == true) "Foto actual" else "Sin foto",
-                            fontSize = 13.sp,
-                            color = AzulNavy,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text("Subí una foto de tu local para que los clientes lo reconozcan.", fontSize = 11.sp, color = Gris500)
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { fotoLauncher.launch("image/*") },
-                            enabled = !subiendoFoto,
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Rojo),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp),
-                        ) {
-                            if (subiendoFoto) {
-                                CircularProgressIndicator(color = Rojo, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                                Spacer(Modifier.width(6.dp))
-                                Text("Subiendo...", fontSize = 12.sp)
-                            } else {
-                                Icon(Icons.Default.Upload, null, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(if (tienda?.fotoUrl?.isNotBlank() == true) "Cambiar foto" else "Subir foto", fontSize = 12.sp)
-                            }
-                        }
-                    }
-                }
-            }
-
             // ── Información básica ─────────────────────────────────────────────
             SeccionConfig("Información básica", Icons.Default.Store, Azul) {
                 CampoConfig(

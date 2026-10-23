@@ -43,7 +43,6 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         yaEspero = true
     }
 
-    // Reset Ã©xito
     LaunchedEffect(estadoEdicion) {
         if (estadoEdicion is EstadoEdicion.Exito) {
             kotlinx.coroutines.delay(1500)
@@ -101,7 +100,7 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                     ) {
                         val filtros = listOf(
                             FiltroStock.TODOS to "Todos",
-                            FiltroStock.BAJO to "Stock bajo (≤3)",
+                            FiltroStock.BAJO to "Stock bajo (<=3)",
                             FiltroStock.AGOTADO to "Agotado",
                         )
                         items(filtros) { (filtro, label) ->
@@ -137,9 +136,9 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
                             CircularProgressIndicator(color = Rojo)
                         } else {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("📦", fontSize = 40.sp)
+                                Icon(Icons.Default.Store, null, tint = Gris500, modifier = Modifier.size(48.dp))
                                 Spacer(Modifier.height(8.dp))
-                                Text("Sin productos", color = Gris500, fontSize = 14.sp)
+                                Text("Sin productos en stock", color = Gris500, fontSize = 14.sp)
                             }
                         }
                     }
@@ -156,7 +155,6 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         }
     }
 
-    // DiÃ¡logo de ediciÃ³n
     itemEditando?.let { item ->
         EditarStockDialog(
             item = item,
@@ -167,7 +165,6 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         )
     }
 
-    // DiÃ¡logo de confirmaciÃ³n de eliminaciÃ³n
     itemEliminando?.let { item ->
         AlertDialog(
             onDismissRequest = { itemEliminando = null },
@@ -185,7 +182,6 @@ fun PantallaInventario(navController: NavController, vm: InventarioViewModel = v
         )
     }
 
-    // Snackbar de error de ediciÃ³n
     if (estadoEdicion is EstadoEdicion.Error) {
         AlertDialog(
             onDismissRequest = { vm.estadoEdicion.value = EstadoEdicion.Idle },
@@ -233,7 +229,7 @@ private fun StockItemCard(item: StockItem, onEditar: () -> Unit, onEliminar: () 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = RoundedCornerShape(6.dp), color = stockColor.copy(alpha = 0.1f)) {
                         Text(
-                            "${item.cantidad} uds · $stockLabel",
+                            "${item.cantidad} uds - $stockLabel",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             fontSize = 11.sp,
                             color = stockColor,

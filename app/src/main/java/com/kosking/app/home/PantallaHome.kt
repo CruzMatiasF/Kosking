@@ -55,9 +55,11 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                 HorizontalDivider(color = Gris200, thickness = 1.dp)
                 NavigationBar(containerColor = Blanco, tonalElevation = 0.dp) {
                     val navColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Rojo, selectedTextColor = Rojo,
+                        selectedIconColor = Rojo,
+                        selectedTextColor = Rojo,
                         indicatorColor = RojoClaro,
-                        unselectedIconColor = Gris500, unselectedTextColor = Gris500,
+                        unselectedIconColor = AzulNavy.copy(alpha = 0.45f),
+                        unselectedTextColor = AzulNavy.copy(alpha = 0.45f),
                     )
                     NavigationBarItem(
                         selected = tabSeleccionado == 0,

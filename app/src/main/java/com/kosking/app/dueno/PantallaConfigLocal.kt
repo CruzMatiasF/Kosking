@@ -1,5 +1,9 @@
 package com.kosking.app.dueno
 
+import android.Manifest
+import android.annotation.SuppressLint
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,12 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.gms.location.LocationServices
 import com.kosking.app.ui.theme.*
 
 private val BG = Brush.verticalGradient(
@@ -45,6 +51,27 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
     var categoria by remember(tienda?.id) { mutableStateOf(tienda?.categoria ?: "Kiosco") }
     var categoriaExpanded by remember { mutableStateOf(false) }
     var diasExpanded by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    var obteniendoUbicacion by remember { mutableStateOf(false) }
+    val ubicacionGuardada = tienda?.let { it.latitud != 0.0 || it.longitud != 0.0 } ?: false
+
+    @SuppressLint("MissingPermission")
+    val ubicacionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val concedido = permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (concedido) {
+            obteniendoUbicacion = true
+            LocationServices.getFusedLocationProviderClient(context).lastLocation
+                .addOnSuccessListener { loc ->
+                    obteniendoUbicacion = false
+                    if (loc != null) vm.guardarUbicacion(loc.latitude, loc.longitude)
+                }
+                .addOnFailureListener { obteniendoUbicacion = false }
+        }
+    }
 
     // Sync cuando llega la tienda de Firestore por primera vez
     LaunchedEffect(tienda?.id) {
@@ -212,6 +239,38 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
                     color = Verde,
                     placeholder = "Ej: San Martín 456, Palpalá",
                 )
+                Spacer(Modifier.height(12.dp))
+                // Botón para guardar coordenadas GPS
+                OutlinedButton(
+                    onClick = {
+                        ubicacionLauncher.launch(arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ))
+                    },
+                    enabled = !obteniendoUbicacion,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Verde),
+                ) {
+                    if (obteniendoUbicacion) {
+                        CircularProgressIndicator(color = Verde, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Obteniendo ubicación...")
+                    } else {
+                        Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (ubicacionGuardada) "Actualizar ubicación en el mapa" else "Usar mi ubicación actual")
+                    }
+                }
+                if (ubicacionGuardada) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CheckCircle, null, tint = Verde, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Ubicación guardada · visible en el mapa", fontSize = 11.sp, color = Verde)
+                    }
+                }
             }
 
             // ── Horarios ───────────────────────────────────────────────────────

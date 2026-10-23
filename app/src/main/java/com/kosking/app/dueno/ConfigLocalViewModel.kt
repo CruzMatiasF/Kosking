@@ -65,6 +65,17 @@ class ConfigLocalViewModel : ViewModel() {
         }
     }
 
+    fun guardarUbicacion(latitud: Double, longitud: Double) {
+        val id = tienda.value?.id ?: return
+        viewModelScope.launch {
+            try {
+                db.collection("tiendas").document(id).update(
+                    mapOf("latitud" to latitud, "longitud" to longitud)
+                ).await()
+            } catch (_: Exception) { }
+        }
+    }
+
     fun setOverride(abierto: Boolean) {
         val id = tienda.value?.id ?: return
         viewModelScope.launch {

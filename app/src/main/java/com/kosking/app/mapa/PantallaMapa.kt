@@ -4,7 +4,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -36,6 +39,24 @@ import com.kosking.app.util.textoHorario
 
 // Centro de Palpalá, Jujuy (fallback si no hay permisos)
 private val PALPALA = LatLng(-24.2597, -65.1219)
+
+@Composable
+private fun KioscoMarker(abierto: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .background(if (abierto) Verde else Gris500, CircleShape)
+            .border(3.dp, Blanco, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Default.Store,
+            contentDescription = null,
+            tint = Blanco,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -85,15 +106,16 @@ fun PantallaMapa(navController: NavController, vm: HomeViewModel = viewModel()) 
             properties = MapProperties(isMyLocationEnabled = ubicacionHabilitada),
         ) {
             kioscos.filter { it.latitud != 0.0 || it.longitud != 0.0 }.forEach { tienda ->
-                Marker(
+                val abiertoAhora = estaAbierto(tienda)
+                MarkerComposable(
+                    keys = arrayOf(tienda.id, abiertoAhora),
                     state = MarkerState(position = LatLng(tienda.latitud, tienda.longitud)),
                     title = tienda.nombre,
                     snippet = tienda.direccion,
-                    onClick = {
-                        seleccionado = tienda
-                        false
-                    },
-                )
+                    onClick = { seleccionado = tienda; false },
+                ) {
+                    KioscoMarker(abierto = abiertoAhora)
+                }
             }
         }
 

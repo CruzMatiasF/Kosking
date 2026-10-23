@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
+import com.kosking.app.util.estaAbierto
 
 private val BG = Brush.verticalGradient(
     listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A)),
@@ -245,7 +246,7 @@ private fun ListaKioscos(kioscos: List<Tienda>, onKioscoClick: (String) -> Unit)
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                 }
-                                if (kiosco.abierto) {
+                                if (estaAbierto(kiosco)) {
                                     Surface(shape = RoundedCornerShape(6.dp), color = Verde.copy(alpha = 0.12f)) {
                                         Text(
                                             "Abierto",

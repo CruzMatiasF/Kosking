@@ -27,6 +27,7 @@ private val BG = Brush.verticalGradient(
 )
 
 private val categorias = listOf("Kiosco", "Almacén", "Maxikiosco", "Despensa", "Minimercado", "Otro")
+private val diasOptions = listOf("Todos los días", "Lunes a Sábado", "Lunes a Viernes")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,21 +38,24 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
     // Formulario inicializado con los datos actuales de Firestore
     var nombre by remember(tienda?.id) { mutableStateOf(tienda?.nombre ?: "") }
     var direccion by remember(tienda?.id) { mutableStateOf(tienda?.direccion ?: "") }
-    var horario by remember(tienda?.id) { mutableStateOf(tienda?.horario ?: "") }
+    var horarioApertura by remember(tienda?.id) { mutableStateOf(tienda?.horarioApertura ?: "") }
+    var horarioCierre by remember(tienda?.id) { mutableStateOf(tienda?.horarioCierre ?: "") }
+    var diasActivos by remember(tienda?.id) { mutableStateOf(tienda?.diasActivos ?: "Todos los días") }
     var telefono by remember(tienda?.id) { mutableStateOf(tienda?.telefono ?: "") }
     var categoria by remember(tienda?.id) { mutableStateOf(tienda?.categoria ?: "Kiosco") }
-    var abierto by remember(tienda?.id) { mutableStateOf(tienda?.abierto ?: true) }
     var categoriaExpanded by remember { mutableStateOf(false) }
+    var diasExpanded by remember { mutableStateOf(false) }
 
     // Sync cuando llega la tienda de Firestore por primera vez
     LaunchedEffect(tienda?.id) {
         tienda?.let { t ->
             if (nombre.isEmpty()) nombre = t.nombre
             if (direccion.isEmpty()) direccion = t.direccion
-            if (horario.isEmpty()) horario = t.horario
+            if (horarioApertura.isEmpty()) horarioApertura = t.horarioApertura
+            if (horarioCierre.isEmpty()) horarioCierre = t.horarioCierre
+            if (diasActivos == "Todos los días" && t.diasActivos.isNotBlank()) diasActivos = t.diasActivos
             if (telefono.isEmpty()) telefono = t.telefono
             if (categoria == "Kiosco" && t.categoria.isNotBlank()) categoria = t.categoria
-            abierto = t.abierto
         }
     }
 
@@ -64,8 +68,9 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
     }
 
     val haycambios = tienda?.let { t ->
-        nombre != t.nombre || direccion != t.direccion || horario != t.horario ||
-            telefono != t.telefono || categoria != t.categoria || abierto != t.abierto
+        nombre != t.nombre || direccion != t.direccion ||
+            horarioApertura != t.horarioApertura || horarioCierre != t.horarioCierre ||
+            diasActivos != t.diasActivos || telefono != t.telefono || categoria != t.categoria
     } ?: false
 
     Scaffold(
@@ -83,11 +88,11 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
                         Text("Configuración del local", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Blanco)
                         Text(tienda?.nombre ?: "Cargando...", fontSize = 12.sp, color = Blanco.copy(alpha = 0.65f))
                     }
-                    // Estado de apertura rápida en el header
+                    // Estado calculado (solo lectura — el override se maneja desde el Panel)
+                    val estadoCalculado = tienda?.let { com.kosking.app.util.estaAbierto(it) } ?: false
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = if (abierto) Verde.copy(alpha = 0.2f) else Gris500.copy(alpha = 0.2f),
-                        onClick = { abierto = !abierto },
+                        color = if (estadoCalculado) Verde.copy(alpha = 0.2f) else Gris500.copy(alpha = 0.2f),
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -95,16 +100,16 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
                             Icon(
-                                if (abierto) Icons.Default.Store else Icons.Default.StoreMallDirectory,
+                                Icons.Default.Schedule,
                                 null,
-                                tint = if (abierto) Verde else Gris500,
+                                tint = if (estadoCalculado) Verde else Gris500,
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                if (abierto) "Abierto" else "Cerrado",
+                                if (estadoCalculado) "Abierto" else "Cerrado",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (abierto) Verde else Gris500,
+                                color = if (estadoCalculado) Verde else Gris500,
                             )
                         }
                     }
@@ -114,7 +119,7 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
         bottomBar = {
             Surface(color = Blanco, shadowElevation = 8.dp) {
                 Button(
-                    onClick = { vm.guardar(nombre, direccion, horario, telefono, categoria, abierto) },
+                    onClick = { vm.guardar(nombre, direccion, horarioApertura, horarioCierre, diasActivos, telefono, categoria) },
                     enabled = haycambios && estado !is EstadoConfig.Guardando && tienda != null,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -211,48 +216,61 @@ fun PantallaConfigLocal(navController: NavController, vm: ConfigLocalViewModel =
 
             // ── Horarios ───────────────────────────────────────────────────────
             SeccionConfig("Horarios", Icons.Default.Schedule, Naranja) {
-                CampoConfig(
-                    valor = horario,
-                    onCambio = { horario = it },
-                    etiqueta = "Horario de atención",
-                    icono = Icons.Default.Schedule,
-                    color = Naranja,
-                    placeholder = "Ej: Lun–Sáb 8:00–22:00 · Dom 9:00–20:00",
-                )
-                Spacer(Modifier.height(16.dp))
-                // Switch de apertura
-                Surface(shape = RoundedCornerShape(14.dp), color = if (abierto) Verde.copy(alpha = 0.08f) else Gris200) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            if (abierto) Icons.Default.LockOpen else Icons.Default.Lock,
-                            null,
-                            tint = if (abierto) Verde else Gris500,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                if (abierto) "Local abierto" else "Local cerrado",
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (abierto) Verde else Gris700,
-                                fontSize = 14.sp,
-                            )
-                            Text(
-                                if (abierto) "Los clientes pueden verte en la app" else "No aparecés en búsquedas",
-                                fontSize = 11.sp,
-                                color = Gris500,
+                // Días activos
+                ExposedDropdownMenuBox(
+                    expanded = diasExpanded,
+                    onExpandedChange = { diasExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = diasActivos,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Días de atención") },
+                        leadingIcon = { Icon(Icons.Default.DateRange, null, tint = Naranja, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = diasExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = fieldColors(Naranja),
+                    )
+                    ExposedDropdownMenu(expanded = diasExpanded, onDismissRequest = { diasExpanded = false }) {
+                        diasOptions.forEach { opcion ->
+                            DropdownMenuItem(
+                                text = { Text(opcion, fontSize = 14.sp) },
+                                onClick = { diasActivos = opcion; diasExpanded = false },
+                                leadingIcon = if (opcion == diasActivos) {
+                                    { Icon(Icons.Default.Check, null, tint = Naranja, modifier = Modifier.size(16.dp)) }
+                                } else null,
                             )
                         }
-                        Switch(
-                            checked = abierto,
-                            onCheckedChange = { abierto = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Blanco, checkedTrackColor = Verde),
-                        )
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                // Hora apertura y cierre
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CampoConfig(
+                        valor = horarioApertura,
+                        onCambio = { horarioApertura = it },
+                        etiqueta = "Apertura",
+                        icono = Icons.Default.LockOpen,
+                        color = Verde,
+                        placeholder = "08:00",
+                        modifier = Modifier.weight(1f),
+                    )
+                    CampoConfig(
+                        valor = horarioCierre,
+                        onCambio = { horarioCierre = it },
+                        etiqueta = "Cierre",
+                        icono = Icons.Default.Lock,
+                        color = Rojo,
+                        placeholder = "22:00",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Podés cerrar antes o quedarte más tiempo desde el Panel del dueño.",
+                    fontSize = 11.sp,
+                    color = Gris500,
+                )
             }
 
             // ── Contacto ──────────────────────────────────────────────────────
@@ -329,6 +347,7 @@ private fun CampoConfig(
     icono: ImageVector,
     color: Color,
     placeholder: String = "",
+    modifier: Modifier = Modifier.fillMaxWidth(),
 ) {
     OutlinedTextField(
         value = valor,
@@ -337,7 +356,7 @@ private fun CampoConfig(
         placeholder = if (placeholder.isNotEmpty()) ({ Text(placeholder, color = Gris500, fontSize = 13.sp) }) else null,
         leadingIcon = { Icon(icono, null, tint = color, modifier = Modifier.size(18.dp)) },
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = fieldColors(color),
     )
 }

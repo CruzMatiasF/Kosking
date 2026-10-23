@@ -25,6 +25,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
+import com.kosking.app.util.estaAbierto
+import com.kosking.app.util.textoHorario
 
 // ── Pantalla ──────────────────────────────────────────────────────────────────
 
@@ -41,8 +43,8 @@ fun PantallaDetalleKiosco(
 
     val nombre = tiendaFirestore?.nombre ?: ""
     val direccion = tiendaFirestore?.direccion ?: ""
-    val horario = tiendaFirestore?.horario ?: ""
-    val abierto = tiendaFirestore?.abierto ?: false
+    val horario = tiendaFirestore?.let { textoHorario(it) } ?: ""
+    val abierto = tiendaFirestore?.let { estaAbierto(it) } ?: false
     var esFavorito by remember { mutableStateOf(false) }
     var tabSeleccionado by remember { mutableIntStateOf(0) }
 

@@ -25,6 +25,8 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
+import com.kosking.app.util.estaAbierto
+import com.kosking.app.util.textoHorario
 
 // ── Datos de ejemplo ──────────────────────────────────────────────────────────
 
@@ -153,12 +155,16 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
                             color = Blanco,
                         )
                         Spacer(Modifier.width(8.dp))
-                        Surface(shape = RoundedCornerShape(6.dp), color = Verde.copy(alpha = 0.2f)) {
+                        val abiertoAhora = tienda?.let { estaAbierto(it) } ?: false
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (abiertoAhora) Verde.copy(alpha = 0.2f) else Gris500.copy(alpha = 0.2f),
+                        ) {
                             Text(
-                                "Abierto",
+                                if (abiertoAhora) "Abierto" else "Cerrado",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 fontSize = 11.sp,
-                                color = Verde,
+                                color = if (abiertoAhora) Verde else Blanco.copy(alpha = 0.6f),
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -220,7 +226,86 @@ fun PantallaPanelDueno(navController: NavController, vm: PanelDuenoViewModel = v
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
+
+            // ── Estado del local (override) ───────────────────────────────────
+            tienda?.let { t ->
+                val abiertoAhora = estaAbierto(t)
+                val tieneOverride = t.overrideAbierto != null &&
+                    (t.overrideHasta?.toDate()?.time ?: 0L) > System.currentTimeMillis()
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Blanco,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (abiertoAhora) Verde.copy(alpha = 0.12f) else Gris200),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    if (abiertoAhora) Icons.Default.LockOpen else Icons.Default.Lock,
+                                    null,
+                                    tint = if (abiertoAhora) Verde else Gris500,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    if (abiertoAhora) "Local abierto" else "Local cerrado",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = AzulNavy,
+                                )
+                                Text(
+                                    textoHorario(t),
+                                    fontSize = 11.sp,
+                                    color = Gris500,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (tieneOverride) {
+                                OutlinedButton(
+                                    onClick = { vm.limpiarOverride() },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                ) {
+                                    Text("Volver al horario", fontSize = 12.sp)
+                                }
+                            } else if (abiertoAhora) {
+                                Button(
+                                    onClick = { vm.setOverride(false) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Gris500),
+                                ) {
+                                    Text("Cerrar antes", fontSize = 12.sp, color = Blanco)
+                                }
+                            } else {
+                                Button(
+                                    onClick = { vm.setOverride(true) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Verde),
+                                ) {
+                                    Text("Quedarme más", fontSize = 12.sp, color = Blanco)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             // ── Acciones rápidas ──────────────────────────────────────────────
             Text(

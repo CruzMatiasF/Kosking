@@ -35,10 +35,11 @@ class ConfigLocalViewModel : ViewModel() {
     fun guardar(
         nombre: String,
         direccion: String,
-        horario: String,
+        horarioApertura: String,
+        horarioCierre: String,
+        diasActivos: String,
         telefono: String,
         categoria: String,
-        abierto: Boolean,
     ) {
         val id = tienda.value?.id ?: return
         viewModelScope.launch {
@@ -50,16 +51,52 @@ class ConfigLocalViewModel : ViewModel() {
                         "nombre" to nombre.trim(),
                         "nombreBusqueda" to nombreBusqueda,
                         "direccion" to direccion.trim(),
-                        "horario" to horario.trim(),
+                        "horarioApertura" to horarioApertura.trim(),
+                        "horarioCierre" to horarioCierre.trim(),
+                        "diasActivos" to diasActivos,
                         "telefono" to telefono.trim(),
                         "categoria" to categoria.trim(),
-                        "abierto" to abierto,
                     )
                 ).await()
                 estado.value = EstadoConfig.Exito
             } catch (e: Exception) {
                 estado.value = EstadoConfig.Error(e.message ?: "Error al guardar")
             }
+        }
+    }
+
+    fun setOverride(abierto: Boolean) {
+        val id = tienda.value?.id ?: return
+        viewModelScope.launch {
+            try {
+                val medianoche = java.util.Calendar.getInstance().apply {
+                    add(java.util.Calendar.DAY_OF_YEAR, 1)
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }.time
+                db.collection("tiendas").document(id).update(
+                    mapOf(
+                        "overrideAbierto" to abierto,
+                        "overrideHasta" to com.google.firebase.Timestamp(medianoche),
+                    )
+                ).await()
+            } catch (_: Exception) { }
+        }
+    }
+
+    fun limpiarOverride() {
+        val id = tienda.value?.id ?: return
+        viewModelScope.launch {
+            try {
+                db.collection("tiendas").document(id).update(
+                    mapOf(
+                        "overrideAbierto" to null,
+                        "overrideHasta" to null,
+                    )
+                ).await()
+            } catch (_: Exception) { }
         }
     }
 }

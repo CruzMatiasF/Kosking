@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
+import com.kosking.app.util.estaAbierto
 
 // ── Datos de ejemplo ────────────────────────────────────────────────────────
 
@@ -344,7 +345,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     kioscosFirestore.forEach { tienda ->
-                        KioscoItem(tienda.nombre, tienda.direccion, tienda.abierto) {
+                        KioscoItem(tienda.nombre, tienda.direccion, estaAbierto(tienda)) {
                             navController.navigate(Rutas.detalleLocal(tienda.id))
                         }
                     }

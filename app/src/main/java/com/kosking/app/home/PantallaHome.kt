@@ -98,9 +98,9 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     } else {
                         NavigationBarItem(
                             selected = tabSeleccionado == 3,
-                            onClick = { tabSeleccionado = 3 },
-                            icon = { Icon(Icons.Default.ShoppingCart, null) },
-                            label = { Text("Carrito") },
+                            onClick = { navController.navigate(Rutas.OFERTAS) },
+                            icon = { Icon(Icons.Default.LocalOffer, null) },
+                            label = { Text("Ofertas") },
                             colors = navColors,
                         )
                     }

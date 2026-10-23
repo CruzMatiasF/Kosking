@@ -28,6 +28,7 @@ import com.kosking.app.dueno.PantallaRegistrarVenta
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.favoritos.PantallaFavoritos
+import com.kosking.app.ofertas.PantallaOfertas
 import com.kosking.app.configuracion.PantallaConfiguracion
 import com.kosking.app.historial.PantallaHistorial
 import com.kosking.app.perfil.PantallaPerfil
@@ -44,6 +45,7 @@ object Rutas {
     // Menú inferior
     const val MAPA = "mapa"
     const val FAVORITOS = "favoritos"
+    const val OFERTAS = "ofertas"
     const val PERFIL = "perfil"
     const val CONFIGURACION = "configuracion"
     const val HISTORIAL = "historial"
@@ -102,6 +104,9 @@ fun KoskingNavHost(
         }
         composable(Rutas.FAVORITOS) {
             PantallaFavoritos(navController = navController)
+        }
+        composable(Rutas.OFERTAS) {
+            PantallaOfertas(navController = navController)
         }
         composable(Rutas.PERFIL) {
             PantallaPerfil(navController = navController)

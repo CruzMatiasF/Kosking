@@ -117,8 +117,7 @@ object KioscoRepository {
                 doc.toObject<StockItem>()?.copy(productoId = doc.id)
             }.filter { item ->
                 item.nombre.lowercase().contains(q) ||
-                item.marca.lowercase().contains(q) ||
-                item.categoria.lowercase().contains(q)
+                item.marca.lowercase().contains(q)
             }.forEach { result.add(StockItemConTienda(it, tienda.id, tienda.nombre)) }
             if (result.size >= 20) break
         }

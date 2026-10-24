@@ -119,8 +119,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                         .background(HeaderGradient)
-                        .statusBarsPadding()
-                        .padding(top = 2.dp, bottom = 10.dp, start = 12.dp, end = 8.dp),
+                        .padding(top = 4.dp, bottom = 10.dp, start = 12.dp, end = 8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Logo placeholder — reemplazar con Image() cuando haya logo

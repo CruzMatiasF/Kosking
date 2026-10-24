@@ -294,69 +294,47 @@ fun PantallaMapa(
             }
         }
 
-        // ── Panel inferior: resumen cuando no hay seleccionado ────────────────
-        if (seleccionado == null) {
-            Surface(
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                color = Blanco,
-                shadowElevation = 8.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                        .navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.Store, null, tint = Azul, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (categoriaFiltro != null)
-                            "${conUbicacion.size} ${categoriaFiltro}s en el mapa"
-                        else
-                            "${conUbicacion.size} kioscos en el mapa",
-                        fontWeight = FontWeight.SemiBold,
-                        color = AzulNavy,
-                        fontSize = 14.sp,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (categoriaFiltro != null) {
-                        TextButton(
-                            onClick = { categoriaFiltro = null },
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                        ) {
-                            Text("Ver todos", color = Azul, fontSize = 12.sp)
-                        }
-                    }
-                    // Botones de acción a la derecha
-                    IconButton(
-                        onClick = {
-                            navController.navigate(Rutas.HOME) {
-                                popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
-                            }
-                        },
-                    ) {
-                        Icon(Icons.Default.Home, null, tint = AzulNavy)
-                    }
-                    if (ubicacionHabilitada) {
-                        IconButton(
-                            onClick = {
-                                val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-                                fusedClient.lastLocation.addOnSuccessListener { loc ->
-                                    if (loc != null) {
-                                        cameraPositionState.move(
-                                            CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15f)
-                                        )
-                                    }
-                                }
-                            },
-                        ) {
-                            Icon(Icons.Default.MyLocation, null, tint = Azul)
-                        }
-                    }
+        // ── FAB Home (abajo izquierda) ────────────────────────────────────────
+        val bottomPad = if (seleccionado != null) 230.dp else 24.dp
+        SmallFloatingActionButton(
+            onClick = {
+                navController.navigate(Rutas.HOME) {
+                    popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
                 }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = bottomPad)
+                .navigationBarsPadding(),
+            containerColor = Blanco,
+            contentColor = AzulNavy,
+            elevation = FloatingActionButtonDefaults.elevation(4.dp),
+        ) {
+            Icon(Icons.Default.Home, null)
+        }
+
+        // ── FAB Ubicación (abajo derecha) ─────────────────────────────────────
+        if (ubicacionHabilitada) {
+            SmallFloatingActionButton(
+                onClick = {
+                    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                    fusedClient.lastLocation.addOnSuccessListener { loc ->
+                        if (loc != null) {
+                            cameraPositionState.move(
+                                CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15f)
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = bottomPad)
+                    .navigationBarsPadding(),
+                containerColor = Blanco,
+                contentColor = Azul,
+                elevation = FloatingActionButtonDefaults.elevation(4.dp),
+            ) {
+                Icon(Icons.Default.MyLocation, null)
             }
         }
     }

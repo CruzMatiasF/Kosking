@@ -152,27 +152,20 @@ fun PantallaMapa(
                     .padding(horizontal = 12.dp),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate(Rutas.resultados("")) }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = {
-                        navController.navigate(Rutas.HOME) {
-                            popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
-                        }
-                    }) {
-                        Icon(Icons.Default.ArrowBack, null, tint = AzulNavy)
-                    }
+                    Icon(Icons.Default.Search, null, tint = Rojo, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
                     Text(
-                        "Buscar kioscos...",
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { navController.navigate(Rutas.resultados("")) },
+                        "Buscar kioscos o productos...",
                         color = Gris500,
                         fontSize = 15.sp,
+                        modifier = Modifier.weight(1f),
                     )
-                    IconButton(onClick = { navController.navigate(Rutas.resultados("")) }) {
-                        Icon(Icons.Default.Search, null, tint = Rojo)
-                    }
                 }
             }
 
@@ -223,9 +216,27 @@ fun PantallaMapa(
             }
         }
 
-        // ── Botón mi ubicación ────────────────────────────────────────────────
+        // ── Botón Home (abajo izquierda) ─────────────────────────────────────
+        val fabBottomPadding = if (seleccionado != null) 220.dp else 72.dp
+        SmallFloatingActionButton(
+            onClick = {
+                navController.navigate(Rutas.HOME) {
+                    popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
+                }
+            },
+            modifier = Modifier
+                .padding(bottom = fabBottomPadding, start = 16.dp)
+                .align(Alignment.BottomStart),
+            containerColor = Blanco,
+            contentColor = AzulNavy,
+            elevation = FloatingActionButtonDefaults.elevation(4.dp),
+        ) {
+            Icon(Icons.Default.Home, null)
+        }
+
+        // ── Botón mi ubicación (abajo derecha) ───────────────────────────────
         if (ubicacionHabilitada) {
-            FloatingActionButton(
+            SmallFloatingActionButton(
                 onClick = {
                     val fusedClient = LocationServices.getFusedLocationProviderClient(context)
                     fusedClient.lastLocation.addOnSuccessListener { loc ->
@@ -235,7 +246,7 @@ fun PantallaMapa(
                     }
                 },
                 modifier = Modifier
-                    .padding(bottom = if (seleccionado != null) 220.dp else 32.dp, end = 16.dp)
+                    .padding(bottom = fabBottomPadding, end = 16.dp)
                     .align(Alignment.BottomEnd),
                 containerColor = Blanco,
                 contentColor = Azul,

@@ -119,56 +119,56 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                         .background(HeaderGradient)
-                        .padding(top = 48.dp, bottom = 20.dp, start = 20.dp, end = 20.dp),
+                        .padding(top = 48.dp, bottom = 14.dp, start = 12.dp, end = 8.dp),
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "Kosking",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 22.sp,
-                                color = Blanco,
-                                modifier = Modifier.weight(1f),
-                            )
-                            IconButton(onClick = { navController.navigate(Rutas.NOTIFICACIONES) }) {
-                                Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Rojo.copy(alpha = 0.85f))
-                                    .clickable { mostrarPerfil = true },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    nombreUsuario.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 15.sp,
-                                    color = Blanco,
-                                )
-                            }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Logo placeholder — reemplazar con Image() cuando haya logo
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Blanco.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("K", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Blanco)
                         }
-
-                        Spacer(Modifier.height(14.dp))
-
+                        Spacer(Modifier.width(8.dp))
                         Surface(
                             shape = RoundedCornerShape(24.dp),
                             color = Blanco.copy(alpha = 0.95f),
                             shadowElevation = 2.dp,
-                            modifier = Modifier.fillMaxWidth().clickable {
+                            modifier = Modifier.weight(1f).clickable {
                                 navController.navigate(Rutas.resultados(""))
                             },
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(Icons.Default.Search, contentDescription = null, tint = Rojo, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
+                                Icon(Icons.Default.Search, contentDescription = null, tint = Rojo, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
                                 Text("Buscar productos o kioscos...", color = Gris500, fontSize = 13.sp)
                             }
                         }
+                        IconButton(onClick = { navController.navigate(Rutas.NOTIFICACIONES) }) {
+                            Icon(Icons.Default.Notifications, null, tint = Blanco.copy(alpha = 0.85f))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Rojo.copy(alpha = 0.85f))
+                                .clickable { mostrarPerfil = true },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                nombreUsuario.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = Blanco,
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
                     }
                 }
 

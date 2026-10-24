@@ -20,6 +20,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
+import com.kosking.app.ui.components.KoskingBottomBar
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 import com.kosking.app.util.textoHorario
@@ -34,6 +35,7 @@ fun PantallaFavoritos(navController: NavController, vm: FavoritosViewModel = vie
 
     Scaffold(
         containerColor = AzulFondo,
+        bottomBar = { KoskingBottomBar(navController, 2) },
         topBar = {
             Box(
                 modifier = Modifier
@@ -43,10 +45,6 @@ fun PantallaFavoritos(navController: NavController, vm: FavoritosViewModel = vie
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, null, tint = Blanco)
-                    }
-                    Spacer(Modifier.width(4.dp))
                     Column {
                         Text(
                             "Favoritos",

@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 
 @Composable
@@ -90,6 +94,59 @@ fun MensajeError(texto: String) {
             color = Rojo,
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+// ── Barra de navegación inferior compartida ───────────────────────────────────
+
+@Composable
+fun KoskingBottomBar(navController: NavController, tabSeleccionado: Int) {
+    Column {
+        HorizontalDivider(color = Gris200, thickness = 1.dp)
+        NavigationBar(containerColor = AzulNavy, tonalElevation = 0.dp) {
+            val navColors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Blanco,
+                selectedTextColor = Blanco,
+                indicatorColor = Rojo.copy(alpha = 0.35f),
+                unselectedIconColor = Blanco.copy(alpha = 0.5f),
+                unselectedTextColor = Blanco.copy(alpha = 0.5f),
+            )
+            NavigationBarItem(
+                selected = tabSeleccionado == 0,
+                onClick = { navController.navigate(Rutas.HOME) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.Home, null) },
+                label = { Text("Inicio") },
+                colors = navColors,
+            )
+            NavigationBarItem(
+                selected = tabSeleccionado == 1,
+                onClick = { navController.navigate(Rutas.MAPA_SIMPLE) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.LocationOn, null) },
+                label = { Text("Mapa") },
+                colors = navColors,
+            )
+            NavigationBarItem(
+                selected = tabSeleccionado == 2,
+                onClick = { navController.navigate(Rutas.FAVORITOS) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.Favorite, null) },
+                label = { Text("Favoritos") },
+                colors = navColors,
+            )
+            NavigationBarItem(
+                selected = tabSeleccionado == 3,
+                onClick = { navController.navigate(Rutas.OFERTAS) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.LocalOffer, null) },
+                label = { Text("Ofertas") },
+                colors = navColors,
+            )
+            NavigationBarItem(
+                selected = tabSeleccionado == 4,
+                onClick = { navController.navigate(Rutas.MAS) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.MoreHoriz, null) },
+                label = { Text("Más") },
+                colors = navColors,
+            )
+        }
     }
 }
 

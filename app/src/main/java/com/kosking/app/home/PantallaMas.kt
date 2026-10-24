@@ -26,6 +26,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.configuracion.ConfiguracionViewModel
 import com.kosking.app.configuracion.RolActual
 import com.kosking.app.navegacion.Rutas
+import com.kosking.app.ui.components.KoskingBottomBar
 import com.kosking.app.ui.components.SeccionCard
 import com.kosking.app.ui.components.SeccionLabel
 import com.kosking.app.ui.theme.*
@@ -42,10 +43,15 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
 
     var mostrarConfirmLogout by remember { mutableStateOf(false) }
 
+    Scaffold(
+        containerColor = AzulFondo,
+        bottomBar = { KoskingBottomBar(navController, 4) },
+    ) { innerPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AzulFondo)
+            .padding(innerPadding)
             .verticalScroll(rememberScrollState()),
     ) {
         // Header con perfil
@@ -76,9 +82,6 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
                 Column(modifier = Modifier.weight(1f)) {
                     Text(nombre, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Blanco)
                     Text(email, fontSize = 12.sp, color = Blanco.copy(alpha = 0.6f))
-                }
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.Close, null, tint = Blanco.copy(alpha = 0.7f))
                 }
             }
         }
@@ -193,6 +196,7 @@ fun PantallaMas(navController: NavController, vmRol: ConfiguracionViewModel = vi
                 TextButton(onClick = { mostrarConfirmLogout = false }) { Text("Cancelar") }
             },
         )
+    }
     }
 }
 

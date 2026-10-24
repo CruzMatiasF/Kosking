@@ -37,6 +37,7 @@ import com.kosking.app.home.HomeViewModel
 import com.kosking.app.modelo.TIPOS_DE_LOCAL
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
+import com.kosking.app.ui.components.KoskingBottomBar
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 import com.kosking.app.util.textoHorario
@@ -109,7 +110,10 @@ fun PantallaMapa(
     else kioscos
     val conUbicacion = kioscosFiltrados.filter { it.latitud != 0.0 || it.longitud != 0.0 }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        bottomBar = { KoskingBottomBar(navController, 1) },
+    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding())) {
 
         // ── Mapa ──────────────────────────────────────────────────────────────
         GoogleMap(
@@ -227,7 +231,7 @@ fun PantallaMapa(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
             ) {
-                Column(modifier = Modifier.padding(20.dp).navigationBarsPadding()) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -294,26 +298,8 @@ fun PantallaMapa(
             }
         }
 
-        // ── FAB Home (abajo izquierda) ────────────────────────────────────────
+        // ── FAB Ubicación (centro-abajo) ──────────────────────────────────────
         val bottomPad = if (seleccionado != null) 230.dp else 24.dp
-        SmallFloatingActionButton(
-            onClick = {
-                navController.navigate(Rutas.HOME) {
-                    popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = bottomPad)
-                .navigationBarsPadding(),
-            containerColor = Blanco,
-            contentColor = AzulNavy,
-            elevation = FloatingActionButtonDefaults.elevation(4.dp),
-        ) {
-            Icon(Icons.Default.Home, null)
-        }
-
-        // ── FAB Ubicación (abajo derecha) ─────────────────────────────────────
         if (ubicacionHabilitada) {
             SmallFloatingActionButton(
                 onClick = {
@@ -327,9 +313,8 @@ fun PantallaMapa(
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = bottomPad)
-                    .navigationBarsPadding(),
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = bottomPad),
                 containerColor = Blanco,
                 contentColor = Azul,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
@@ -337,5 +322,6 @@ fun PantallaMapa(
                 Icon(Icons.Default.MyLocation, null)
             }
         }
+    }
     }
 }

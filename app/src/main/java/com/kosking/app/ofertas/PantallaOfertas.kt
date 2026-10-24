@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kosking.app.navegacion.Rutas
+import com.kosking.app.ui.components.KoskingBottomBar
 import com.kosking.app.ui.theme.*
 
 @Composable
@@ -34,7 +35,11 @@ fun PantallaOfertas(navController: NavController, vm: OfertasViewModel = viewMod
     val kioscos by vm.kioscos.collectAsStateWithLifecycle()
     LaunchedEffect(kioscos) { if (kioscos.isNotEmpty() && ofertas.isEmpty()) vm.cargar() }
 
-    Column(modifier = Modifier.fillMaxSize().background(AzulFondo)) {
+    Scaffold(
+        containerColor = AzulFondo,
+        bottomBar = { KoskingBottomBar(navController, 3) },
+    ) { innerPadding ->
+    Column(modifier = Modifier.fillMaxSize().background(AzulFondo).padding(innerPadding)) {
 
         // Header
         Box(
@@ -92,6 +97,7 @@ fun PantallaOfertas(navController: NavController, vm: OfertasViewModel = viewMod
                 }
             }
         }
+    }
     }
 }
 

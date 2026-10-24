@@ -13,7 +13,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +32,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.StockItemConTienda
 import com.kosking.app.modelo.TIPOS_DE_LOCAL
 import com.kosking.app.navegacion.Rutas
+import com.kosking.app.ui.components.KoskingBottomBar
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 
@@ -42,7 +45,6 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     val kioscosFirestore by vm.kioscos.collectAsStateWithLifecycle()
     val productosFirestore: List<StockItemConTienda> by vm.productosPopulares.collectAsStateWithLifecycle()
     val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
-    var tabSeleccionado by remember { mutableIntStateOf(0) }
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
     var cantKioscosVer by remember { mutableIntStateOf(4) }
     var mostrarPerfil by remember { mutableStateOf(false) }
@@ -51,55 +53,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
     Scaffold(
         containerColor = AzulFondo,
-        bottomBar = {
-            Column {
-                HorizontalDivider(color = Gris200, thickness = 1.dp)
-                NavigationBar(containerColor = AzulNavy, tonalElevation = 0.dp) {
-                    val navColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Blanco,
-                        selectedTextColor = Blanco,
-                        indicatorColor = Rojo.copy(alpha = 0.35f),
-                        unselectedIconColor = Blanco.copy(alpha = 0.5f),
-                        unselectedTextColor = Blanco.copy(alpha = 0.5f),
-                    )
-                    NavigationBarItem(
-                        selected = tabSeleccionado == 0,
-                        onClick = { tabSeleccionado = 0 },
-                        icon = { Icon(Icons.Default.Home, null) },
-                        label = { Text("Inicio") },
-                        colors = navColors,
-                    )
-                    NavigationBarItem(
-                        selected = tabSeleccionado == 1,
-                        onClick = { navController.navigate(Rutas.FAVORITOS) },
-                        icon = { Icon(Icons.Default.Favorite, null) },
-                        label = { Text("Favoritos") },
-                        colors = navColors,
-                    )
-                    NavigationBarItem(
-                        selected = tabSeleccionado == 2,
-                        onClick = { navController.navigate(Rutas.MAPA_SIMPLE) },
-                        icon = { Icon(Icons.Default.LocationOn, null) },
-                        label = { Text("Mapa") },
-                        colors = navColors,
-                    )
-                    NavigationBarItem(
-                        selected = tabSeleccionado == 3,
-                        onClick = { navController.navigate(Rutas.OFERTAS) },
-                        icon = { Icon(Icons.Default.LocalOffer, null) },
-                        label = { Text("Ofertas") },
-                        colors = navColors,
-                    )
-                    NavigationBarItem(
-                        selected = tabSeleccionado == 4,
-                        onClick = { navController.navigate(Rutas.MAS) },
-                        icon = { Icon(Icons.Default.MoreHoriz, null) },
-                        label = { Text("Más") },
-                        colors = navColors,
-                    )
-                }
-            }
-        },
+        bottomBar = { KoskingBottomBar(navController, 0) },
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -119,6 +73,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                         .background(HeaderGradient)
+                        .statusBarsPadding()
                         .padding(top = 4.dp, bottom = 10.dp, start = 12.dp, end = 8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -452,66 +407,6 @@ private fun KioscoCard(nombre: String, direccion: String, abierto: Boolean, cant
                     color = Azul,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ProductoItem(prod: StockItemConTienda, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = Blanco,
-        shadowElevation = 1.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(AzulClaro),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("🛒", fontSize = 24.sp)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    prod.item.nombre,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AzulNavy,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (prod.item.marca.isNotBlank()) {
-                    Text(prod.item.marca, fontSize = 12.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Store, null, tint = Gris500, modifier = Modifier.size(11.dp))
-                    Spacer(Modifier.width(3.dp))
-                    Text(
-                        prod.nombreTienda,
-                        fontSize = 12.sp,
-                        color = Gris500,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                "$${"%,.0f".format(prod.item.precio)}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Rojo,
-            )
         }
     }
 }

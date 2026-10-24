@@ -6,21 +6,23 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,30 +34,30 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.kosking.app.home.HomeViewModel
+import com.kosking.app.modelo.TIPOS_DE_LOCAL
 import com.kosking.app.modelo.Tienda
 import com.kosking.app.navegacion.Rutas
 import com.kosking.app.ui.theme.*
 import com.kosking.app.util.estaAbierto
 import com.kosking.app.util.textoHorario
 
-// Centro de Palpalá, Jujuy (fallback si no hay permisos)
 private val PALPALA = LatLng(-24.2597, -65.1219)
 
 @Composable
-private fun KioscoMarker(abierto: Boolean) {
+private fun KioscoMarker(abierto: Boolean, categoria: String) {
+    val emoji = TIPOS_DE_LOCAL.find { it.nombre == categoria }?.emoji
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .background(if (abierto) Verde else Gris500, CircleShape)
             .border(3.dp, Blanco, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            Icons.Default.Store,
-            contentDescription = null,
-            tint = Blanco,
-            modifier = Modifier.size(22.dp),
-        )
+        if (emoji != null) {
+            Text(emoji, fontSize = 20.sp)
+        } else {
+            Icon(Icons.Default.Store, contentDescription = null, tint = Blanco, modifier = Modifier.size(22.dp))
+        }
     }
 }
 
@@ -77,6 +79,7 @@ fun PantallaMapa(
     }
     var seleccionado by remember { mutableStateOf<Tienda?>(null) }
     var ubicacionHabilitada by remember { mutableStateOf(false) }
+    var categoriaFiltro by remember { mutableStateOf<String?>(null) }
 
     val permisosLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -88,8 +91,7 @@ fun PantallaMapa(
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             fusedClient.lastLocation.addOnSuccessListener { loc ->
                 if (loc != null) {
-                    val pos = LatLng(loc.latitude, loc.longitude)
-                    cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(pos, 15f))
+                    cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15f))
                 }
             }
         }
@@ -102,6 +104,11 @@ fun PantallaMapa(
         ))
     }
 
+    val kioscosFiltrados = if (categoriaFiltro != null)
+        kioscos.filter { it.categoria == categoriaFiltro }
+    else kioscos
+    val conUbicacion = kioscosFiltrados.filter { it.latitud != 0.0 || it.longitud != 0.0 }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         // ── Mapa ──────────────────────────────────────────────────────────────
@@ -113,45 +120,106 @@ fun PantallaMapa(
                 myLocationButtonEnabled = false,
             ),
             properties = MapProperties(isMyLocationEnabled = ubicacionHabilitada),
+            onMapClick = { seleccionado = null },
         ) {
-            kioscos.filter { it.latitud != 0.0 || it.longitud != 0.0 }.forEach { tienda ->
+            conUbicacion.forEach { tienda ->
                 val abiertoAhora = estaAbierto(tienda)
                 MarkerComposable(
                     keys = arrayOf(tienda.id, abiertoAhora),
                     state = MarkerState(position = LatLng(tienda.latitud, tienda.longitud)),
                     title = tienda.nombre,
-                    snippet = tienda.direccion,
                     onClick = { seleccionado = tienda; false },
                 ) {
-                    KioscoMarker(abierto = abiertoAhora)
+                    KioscoMarker(abierto = abiertoAhora, categoria = tienda.categoria)
                 }
             }
         }
 
-        // ── Botones top-left: Home + Búsqueda ────────────────────────────────
-        Row(
-            modifier = Modifier.padding(top = 48.dp, start = 16.dp).align(Alignment.TopStart),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        // ── Panel superior: barra de búsqueda + chips ─────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 44.dp),
         ) {
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate(Rutas.HOME) {
-                        popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
+            // Barra de búsqueda
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Blanco,
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = {
+                        navController.navigate(Rutas.HOME) {
+                            popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, null, tint = AzulNavy)
                     }
-                },
-                containerColor = Blanco,
-                contentColor = AzulNavy,
-                elevation = FloatingActionButtonDefaults.elevation(4.dp),
-            ) {
-                Icon(Icons.Default.Home, null)
+                    Text(
+                        "Buscar kioscos...",
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { navController.navigate(Rutas.resultados("")) },
+                        color = Gris500,
+                        fontSize = 15.sp,
+                    )
+                    IconButton(onClick = { navController.navigate(Rutas.resultados("")) }) {
+                        Icon(Icons.Default.Search, null, tint = Rojo)
+                    }
+                }
             }
-            FloatingActionButton(
-                onClick = { navController.navigate(Rutas.resultados("")) },
-                containerColor = Blanco,
-                contentColor = AzulNavy,
-                elevation = FloatingActionButtonDefaults.elevation(4.dp),
+
+            Spacer(Modifier.height(8.dp))
+
+            // Chips de categoría
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Default.Search, null)
+                // Chip "Todos"
+                item {
+                    val sel = categoriaFiltro == null
+                    Surface(
+                        shape = CircleShape,
+                        color = if (sel) AzulNavy else Blanco,
+                        shadowElevation = 3.dp,
+                        modifier = Modifier.clickable { categoriaFiltro = null; seleccionado = null },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(Icons.Default.Apps, null, tint = if (sel) Blanco else Gris500, modifier = Modifier.size(14.dp))
+                            Text("Todos", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (sel) Blanco else AzulNavy)
+                        }
+                    }
+                }
+                items(TIPOS_DE_LOCAL) { tipo ->
+                    val sel = categoriaFiltro == tipo.nombre
+                    Surface(
+                        shape = CircleShape,
+                        color = if (sel) AzulNavy else Blanco,
+                        shadowElevation = 3.dp,
+                        modifier = Modifier.clickable { categoriaFiltro = if (sel) null else tipo.nombre; seleccionado = null },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(tipo.emoji, fontSize = 13.sp)
+                            Text(tipo.nombre, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (sel) Blanco else AzulNavy)
+                        }
+                    }
+                }
             }
         }
 
@@ -162,12 +230,13 @@ fun PantallaMapa(
                     val fusedClient = LocationServices.getFusedLocationProviderClient(context)
                     fusedClient.lastLocation.addOnSuccessListener { loc ->
                         if (loc != null) {
-                            val pos = LatLng(loc.latitude, loc.longitude)
-                            cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(pos, 15f))
+                            cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15f))
                         }
                     }
                 },
-                modifier = Modifier.padding(bottom = 24.dp, end = 16.dp).align(Alignment.BottomEnd),
+                modifier = Modifier
+                    .padding(bottom = if (seleccionado != null) 220.dp else 32.dp, end = 16.dp)
+                    .align(Alignment.BottomEnd),
                 containerColor = Blanco,
                 contentColor = Azul,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
@@ -176,40 +245,38 @@ fun PantallaMapa(
             }
         }
 
-        // ── Contador kioscos ──────────────────────────────────────────────────
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = AzulNavy.copy(alpha = 0.9f),
-            modifier = Modifier
-                .padding(top = 56.dp, end = 16.dp)
-                .align(Alignment.TopEnd),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(Icons.Default.Store, null, tint = Blanco, modifier = Modifier.size(14.dp))
-                Text("${kioscos.size} kioscos", color = Blanco, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        // ── Card kiosco seleccionado ──────────────────────────────────────────
+        // ── Panel inferior: kiosco seleccionado ───────────────────────────────
         seleccionado?.let { tienda ->
             Surface(
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 color = Blanco,
-                shadowElevation = 8.dp,
+                shadowElevation = 12.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter),
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(20.dp).navigationBarsPadding()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(AzulClaro),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val emoji = TIPOS_DE_LOCAL.find { it.nombre == tienda.categoria }?.emoji
+                            if (emoji != null) Text(emoji, fontSize = 22.sp)
+                            else Icon(Icons.Default.Store, null, tint = Azul, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(tienda.nombre, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = AzulNavy)
-                            Spacer(Modifier.height(4.dp))
-                            Text(tienda.direccion.ifBlank { "Sin dirección" }, fontSize = 13.sp, color = Gris500)
+                            Text(tienda.nombre, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = AzulNavy, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.LocationOn, null, tint = Gris500, modifier = Modifier.size(12.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text(tienda.direccion.ifBlank { "Sin dirección" }, fontSize = 13.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -222,6 +289,13 @@ fun PantallaMapa(
                                 color = if (estaAbierto(tienda)) Verde else Gris500,
                                 fontWeight = FontWeight.SemiBold,
                             )
+                        }
+                    }
+                    if (tienda.categoria.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Schedule, null, tint = Gris500, modifier = Modifier.size(13.dp))
+                            Text(textoHorario(tienda), fontSize = 12.sp, color = Gris500)
                         }
                     }
                     Spacer(Modifier.height(14.dp))
@@ -244,28 +318,44 @@ fun PantallaMapa(
                             Text("Ver kiosco")
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
 
-        // ── Mensaje si no hay kioscos con ubicación ───────────────────────────
-        val conUbicacion = kioscos.count { it.latitud != 0.0 || it.longitud != 0.0 }
-        if (kioscos.isNotEmpty() && conUbicacion == 0) {
+        // ── Panel inferior: resumen cuando no hay seleccionado ────────────────
+        if (seleccionado == null) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = AzulNavy.copy(alpha = 0.85f),
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                color = Blanco,
+                shadowElevation = 8.dp,
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
             ) {
-                Text(
-                    "Los kioscos aún no tienen ubicación configurada. El dueño puede agregarla desde Configurar local.",
-                    modifier = Modifier.padding(14.dp),
-                    color = Blanco,
-                    fontSize = 13.sp,
-                )
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Default.Store, null, tint = Azul, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (categoriaFiltro != null)
+                            "${conUbicacion.size} ${categoriaFiltro}s en el mapa"
+                        else
+                            "${conUbicacion.size} kioscos en el mapa",
+                        fontWeight = FontWeight.SemiBold,
+                        color = AzulNavy,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (categoriaFiltro != null) {
+                        TextButton(onClick = { categoriaFiltro = null }) {
+                            Text("Ver todos", color = Azul, fontSize = 13.sp)
+                        }
+                    }
+                }
             }
         }
     }

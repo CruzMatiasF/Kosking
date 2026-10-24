@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.google.maps.android.compose.MapStyleOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -123,7 +124,10 @@ fun PantallaMapa(
                 zoomControlsEnabled = false,
                 myLocationButtonEnabled = false,
             ),
-            properties = MapProperties(isMyLocationEnabled = ubicacionHabilitada),
+            properties = MapProperties(
+            isMyLocationEnabled = ubicacionHabilitada,
+            mapStyleOptions = MapStyleOptions.loadRawResourceStyle(context, com.kosking.app.R.raw.mapa_estilo),
+        ),
             onMapClick = { seleccionado = null },
         ) {
             conUbicacion.forEach { tienda ->

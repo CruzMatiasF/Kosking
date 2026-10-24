@@ -71,16 +71,16 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     )
                     NavigationBarItem(
                         selected = tabSeleccionado == 1,
-                        onClick = { navController.navigate(Rutas.MAPA_SIMPLE) },
-                        icon = { Icon(Icons.Default.LocationOn, null) },
-                        label = { Text("Mapa") },
+                        onClick = { navController.navigate(Rutas.FAVORITOS) },
+                        icon = { Icon(Icons.Default.Favorite, null) },
+                        label = { Text("Favoritos") },
                         colors = navColors,
                     )
                     NavigationBarItem(
                         selected = tabSeleccionado == 2,
-                        onClick = { navController.navigate(Rutas.FAVORITOS) },
-                        icon = { Icon(Icons.Default.Favorite, null) },
-                        label = { Text("Favoritos") },
+                        onClick = { navController.navigate(Rutas.MAPA_SIMPLE) },
+                        icon = { Icon(Icons.Default.LocationOn, null) },
+                        label = { Text("Mapa") },
                         colors = navColors,
                     )
                     NavigationBarItem(
@@ -119,7 +119,8 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                         .background(HeaderGradient)
-                        .padding(top = 48.dp, bottom = 14.dp, start = 12.dp, end = 8.dp),
+                        .statusBarsPadding()
+                        .padding(top = 2.dp, bottom = 10.dp, start = 12.dp, end = 8.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Logo placeholder — reemplazar con Image() cuando haya logo
@@ -250,23 +251,6 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                     kioscosFirestore.filter { it.categoria == categoriaSeleccionada }
                 else kioscosFirestore
 
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Kioscos disponibles",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = AzulNavy,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (kioscosFiltrados.isNotEmpty()) {
-                        TextButton(onClick = { navController.navigate(Rutas.MAPA_SIMPLE) }) {
-                            Text("Ver mapa", color = Azul, fontSize = 13.sp)
-                        }
-                    }
-                }
                 Spacer(Modifier.height(8.dp))
 
                 if (kioscosFiltrados.isEmpty()) {
@@ -334,19 +318,6 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
                 // ── Productos disponibles (lista vertical) ────────────────────
                 if (productosFirestore.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "Productos disponibles",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = AzulNavy,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
                     Column(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),

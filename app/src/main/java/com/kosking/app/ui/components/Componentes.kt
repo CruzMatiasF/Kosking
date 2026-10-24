@@ -120,16 +120,16 @@ fun KoskingBottomBar(navController: NavController, tabSeleccionado: Int) {
             )
             NavigationBarItem(
                 selected = tabSeleccionado == 1,
-                onClick = { navController.navigate(Rutas.MAPA_SIMPLE) { launchSingleTop = true } },
-                icon = { Icon(Icons.Default.LocationOn, null) },
-                label = { Text("Mapa") },
+                onClick = { navController.navigate(Rutas.FAVORITOS) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.Favorite, null) },
+                label = { Text("Favoritos") },
                 colors = navColors,
             )
             NavigationBarItem(
                 selected = tabSeleccionado == 2,
-                onClick = { navController.navigate(Rutas.FAVORITOS) { launchSingleTop = true } },
-                icon = { Icon(Icons.Default.Favorite, null) },
-                label = { Text("Favoritos") },
+                onClick = { navController.navigate(Rutas.MAPA_SIMPLE) { launchSingleTop = true } },
+                icon = { Icon(Icons.Default.LocationOn, null) },
+                label = { Text("Mapa") },
                 colors = navColors,
             )
             NavigationBarItem(

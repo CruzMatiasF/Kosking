@@ -111,7 +111,7 @@ fun PantallaMapa(
     val conUbicacion = kioscosFiltrados.filter { it.latitud != 0.0 || it.longitud != 0.0 }
 
     Scaffold(
-        bottomBar = { KoskingBottomBar(navController, 1) },
+        bottomBar = { KoskingBottomBar(navController, 2) },
     ) { innerPadding ->
     Box(modifier = Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding())) {
 
@@ -313,8 +313,8 @@ fun PantallaMapa(
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = bottomPad),
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = bottomPad),
                 containerColor = Blanco,
                 contentColor = Azul,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),

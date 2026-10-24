@@ -35,7 +35,7 @@ fun PantallaFavoritos(navController: NavController, vm: FavoritosViewModel = vie
 
     Scaffold(
         containerColor = AzulFondo,
-        bottomBar = { KoskingBottomBar(navController, 2) },
+        bottomBar = { KoskingBottomBar(navController, 1) },
         topBar = {
             Box(
                 modifier = Modifier

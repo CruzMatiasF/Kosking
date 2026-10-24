@@ -38,7 +38,7 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
 
     val activas = ofertas.count { it.activa }
 
-    // Reset Ã©xito â†’ cerrar diÃ¡logo
+    // Reset éxito → cerrar diálogo
     LaunchedEffect(estado) {
         if (estado is EstadoOferta.Exito) {
             kotlinx.coroutines.delay(1000)
@@ -104,7 +104,7 @@ fun PantallaMisOfertas(navController: NavController, vm: MisOfertasViewModel = v
                 item {
                     Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("ðŸ·ï¸", fontSize = 48.sp)
+                            Text("🏷️", fontSize = 48.sp)
                             Spacer(Modifier.height(12.dp))
                             Text("No hay ofertas todavía", fontWeight = FontWeight.SemiBold, color = AzulNavy, fontSize = 15.sp)
                             Spacer(Modifier.height(4.dp))

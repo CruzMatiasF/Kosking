@@ -134,7 +134,11 @@ fun PantallaMapa(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             FloatingActionButton(
-                onClick = { navController.navigate(Rutas.HOME) },
+                onClick = {
+                    navController.navigate(Rutas.HOME) {
+                        popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
+                    }
+                },
                 containerColor = Blanco,
                 contentColor = AzulNavy,
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,6 +49,7 @@ fun PantallaDetalleKiosco(
     val horario = tiendaFirestore?.let { textoHorario(it) } ?: ""
     val abierto = tiendaFirestore?.let { estaAbierto(it) } ?: false
     val esFavorito by vm.esFavorito.collectAsStateWithLifecycle()
+    val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
     var tabSeleccionado by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -123,8 +125,13 @@ fun PantallaDetalleKiosco(
             }
         },
     ) { padding ->
-        LazyColumn(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { vm.refresh() },
             modifier = Modifier.fillMaxSize().padding(padding),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp),
         ) {
             // ── Hero ──────────────────────────────────────────────────────────
@@ -290,6 +297,7 @@ fun PantallaDetalleKiosco(
                 }
             }
         }
+        } // PullToRefreshBox
     }
 }
 

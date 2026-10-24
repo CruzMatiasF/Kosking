@@ -8,6 +8,7 @@ import com.kosking.app.datos.KioscoRepository
 import com.kosking.app.modelo.Oferta
 import com.kosking.app.modelo.StockItem
 import com.kosking.app.modelo.Tienda
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,17 @@ class DetalleKioscoViewModel(private val tiendaId: String) : ViewModel() {
             KioscoRepository.kioscosFlow().collect { lista ->
                 _tienda.value = lista.find { it.id == tiendaId }
             }
+        }
+    }
+
+    var isRefreshing = MutableStateFlow(false)
+        private set
+
+    fun refresh() {
+        viewModelScope.launch {
+            isRefreshing.value = true
+            delay(600)
+            isRefreshing.value = false
         }
     }
 

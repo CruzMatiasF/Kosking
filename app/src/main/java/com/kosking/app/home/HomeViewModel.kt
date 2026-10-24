@@ -21,12 +21,28 @@ class HomeViewModel : ViewModel() {
     var productosPopulares = MutableStateFlow<List<StockItemConTienda>>(emptyList())
         private set
 
+    var isRefreshing = MutableStateFlow(false)
+        private set
+
     init {
         viewModelScope.launch {
             val tiendas = kioscos.filter { it.isNotEmpty() }.first()
             try {
                 productosPopulares.value = KioscoRepository.stockPopular(tiendas)
             } catch (_: Exception) { }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            isRefreshing.value = true
+            val tiendas = kioscos.value.ifEmpty {
+                kioscos.filter { it.isNotEmpty() }.first()
+            }
+            try {
+                productosPopulares.value = KioscoRepository.stockPopular(tiendas)
+            } catch (_: Exception) { }
+            isRefreshing.value = false
         }
     }
 }

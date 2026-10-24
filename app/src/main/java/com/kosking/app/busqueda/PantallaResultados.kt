@@ -59,7 +59,8 @@ fun PantallaResultados(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
                 .background(HeaderGradient)
-                .padding(top = 48.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
+                .statusBarsPadding()
+                .padding(top = 8.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
@@ -149,9 +150,16 @@ fun PantallaResultados(
                             )
                         }
                         items(kioscos, key = { "k_${it.id}" }) { kiosco ->
-                            KioscoResultItem(kiosco) {
-                                navController.navigate(Rutas.detalleLocal(kiosco.id))
-                            }
+                            KioscoResultItem(
+                                kiosco = kiosco,
+                                onClick = { navController.navigate(Rutas.detalleLocal(kiosco.id)) },
+                                onMapClick = {
+                                    if (kiosco.latitud != 0.0 || kiosco.longitud != 0.0)
+                                        navController.navigate(Rutas.mapa(kiosco.latitud, kiosco.longitud))
+                                    else
+                                        navController.navigate(Rutas.MAPA_SIMPLE)
+                                },
+                            )
                         }
                     }
                     if (stockItems.isNotEmpty()) {
@@ -178,7 +186,8 @@ fun PantallaResultados(
 }
 
 @Composable
-private fun KioscoResultItem(kiosco: Tienda, onClick: () -> Unit) {
+private fun KioscoResultItem(kiosco: Tienda, onClick: () -> Unit, onMapClick: () -> Unit) {
+    val abierto = estaAbierto(kiosco)
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = Blanco,
@@ -222,11 +231,14 @@ private fun KioscoResultItem(kiosco: Tienda, onClick: () -> Unit) {
                                 Text(kiosco.categoria, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, color = Azul, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        val ab = estaAbierto(kiosco)
-                        Surface(shape = RoundedCornerShape(6.dp), color = if (ab) Verde.copy(alpha = 0.12f) else Gris200) {
-                            Text(if (ab) "Abierto" else "Cerrado", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, color = if (ab) Verde else Gris500, fontWeight = FontWeight.SemiBold)
+                        Surface(shape = RoundedCornerShape(6.dp), color = if (abierto) Verde.copy(alpha = 0.12f) else Gris200) {
+                            Text(if (abierto) "Abierto" else "Cerrado", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, color = if (abierto) Verde else Gris500, fontWeight = FontWeight.SemiBold)
                         }
                     }
+                }
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = onMapClick, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.LocationOn, null, tint = Azul, modifier = Modifier.size(20.dp))
                 }
             }
         }

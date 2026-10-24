@@ -4,8 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosking.app.datos.KioscoRepository
-import com.kosking.app.datos.ProductoRepository
-import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.StockItemConTienda
 import com.kosking.app.modelo.Tienda
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -13,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class BusquedaViewModel : ViewModel() {
 
-    var productos = mutableStateOf<List<Producto>>(emptyList())
+    var stockItems = mutableStateOf<List<StockItemConTienda>>(emptyList())
         private set
 
     var kioscos = mutableStateOf<List<Tienda>>(emptyList())
@@ -24,14 +23,13 @@ class BusquedaViewModel : ViewModel() {
 
     private var jobBusqueda: Job? = null
 
-    // Devuelve true si la query es un filtro por tipo de local (ej: "tipo:Kiosco")
     fun esFiltroTipo(query: String) = query.startsWith("tipo:")
     fun tipoDeQuery(query: String) = query.removePrefix("tipo:")
 
     fun buscar(query: String) {
         jobBusqueda?.cancel()
         if (query.isBlank()) {
-            productos.value = emptyList()
+            stockItems.value = emptyList()
             kioscos.value = emptyList()
             return
         }
@@ -43,13 +41,18 @@ class BusquedaViewModel : ViewModel() {
                 try {
                     kioscos.value = KioscoRepository.buscarKioscosPorTipo(tipo)
                 } catch (_: Exception) { }
-                productos.value = emptyList()
+                stockItems.value = emptyList()
             } else {
                 try {
-                    productos.value = ProductoRepository.buscarProductos(query)
-                } catch (_: Exception) { }
-                try {
-                    kioscos.value = KioscoRepository.buscarKioscos(query)
+                    val todasTiendas = KioscoRepository.todasLasTiendas()
+                    val q = query.trim().lowercase()
+                    kioscos.value = todasTiendas.filter { tienda ->
+                        tienda.nombreBusqueda.contains(q) ||
+                        tienda.nombre.lowercase().contains(q) ||
+                        tienda.categoria.lowercase().contains(q) ||
+                        tienda.direccion.lowercase().contains(q)
+                    }
+                    stockItems.value = KioscoRepository.buscarStock(query, todasTiendas)
                 } catch (_: Exception) { }
             }
             cargando.value = false

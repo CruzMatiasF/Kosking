@@ -87,18 +87,42 @@ object KioscoRepository {
         return result.take(maxItems)
     }
 
+    suspend fun todasLasTiendas(): List<Tienda> {
+        val snap = db.collection("tiendas").get().await()
+        return snap.documents.mapNotNull { doc ->
+            doc.toObject<Tienda>()?.copy(id = doc.id)
+        }
+    }
+
     // Busca kioscos por nombre o dirección
     suspend fun buscarKioscos(query: String): List<Tienda> {
         val q = query.trim().lowercase()
-        val snap = db.collection("tiendas").get().await()
-        return snap.documents.mapNotNull { doc ->
-                doc.toObject<Tienda>()?.copy(id = doc.id)
-            }.filter { tienda ->
-                tienda.nombreBusqueda.contains(q) ||
-                tienda.nombre.lowercase().contains(q) ||
-                tienda.categoria.lowercase().contains(q) ||
-                tienda.direccion.lowercase().contains(q)
-            }
+        return todasLasTiendas().filter { tienda ->
+            tienda.nombreBusqueda.contains(q) ||
+            tienda.nombre.lowercase().contains(q) ||
+            tienda.categoria.lowercase().contains(q) ||
+            tienda.direccion.lowercase().contains(q)
+        }
+    }
+
+    // Busca productos en el stock de todas las tiendas
+    suspend fun buscarStock(query: String, tiendas: List<Tienda>): List<StockItemConTienda> {
+        val q = query.trim().lowercase()
+        val result = mutableListOf<StockItemConTienda>()
+        for (tienda in tiendas.take(12)) {
+            val snap = db.collection("tiendas").document(tienda.id)
+                .collection("stock")
+                .get().await()
+            snap.documents.mapNotNull { doc ->
+                doc.toObject<StockItem>()?.copy(productoId = doc.id)
+            }.filter { item ->
+                item.nombre.lowercase().contains(q) ||
+                item.marca.lowercase().contains(q) ||
+                item.categoria.lowercase().contains(q)
+            }.forEach { result.add(StockItemConTienda(it, tienda.id, tienda.nombre)) }
+            if (result.size >= 20) break
+        }
+        return result.take(20)
     }
 
     // Filtra kioscos por tipo de local (campo categoria)

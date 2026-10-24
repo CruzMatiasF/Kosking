@@ -13,9 +13,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.LatLng
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +57,27 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
     var mostrarPerfil by remember { mutableStateOf(false) }
     val user = FirebaseAuth.getInstance().currentUser
     val nombreUsuario = user?.displayName ?: user?.email?.substringBefore("@") ?: "Vos"
+    val context = LocalContext.current
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+
+    val locationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val ok = permisos[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permisos[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (ok) {
+            LocationServices.getFusedLocationProviderClient(context)
+                .lastLocation.addOnSuccessListener { loc ->
+                    if (loc != null) userLatLng = LatLng(loc.latitude, loc.longitude)
+                }
+        }
+    }
+    LaunchedEffect(Unit) {
+        locationLauncher.launch(arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        ))
+    }
 
     Scaffold(
         containerColor = AzulFondo,
@@ -129,36 +157,29 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
                 Spacer(Modifier.height(16.dp))
 
-                // ── Banner ofertas ────────────────────────────────────────────
-                Box(
+                // ── Banner ofertas compacto ───────────────────────────────────
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Rojo.copy(alpha = 0.08f),
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Rojo, Color(0xFFFF6B6B))))
-                        .padding(20.dp),
+                        .clickable { navController.navigate(Rutas.OFERTAS) },
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Ofertas cerca tuyo", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Blanco)
-                            Spacer(Modifier.height(4.dp))
-                            Text("Descuentos en kioscos de tu barrio", fontSize = 13.sp, color = Blanco.copy(alpha = 0.9f))
-                            Spacer(Modifier.height(12.dp))
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Blanco,
-                                modifier = Modifier.clickable { navController.navigate(Rutas.OFERTAS) },
-                            ) {
-                                Text(
-                                    "Ver promociones",
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                    color = Rojo,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                )
-                            }
-                        }
-                        Text("🏷️", fontSize = 56.sp)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("🏷️", fontSize = 22.sp)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "Ofertas activas cerca tuyo",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = Rojo,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(Icons.Default.ChevronRight, null, tint = Rojo, modifier = Modifier.size(18.dp))
                     }
                 }
 
@@ -200,12 +221,45 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 
                 Spacer(Modifier.height(24.dp))
 
-                // ── Kioscos disponibles (horizontal scroll) ───────────────────
-                val kioscosFiltrados = if (categoriaSeleccionada != null)
-                    kioscosFirestore.filter { it.categoria == categoriaSeleccionada }
-                else kioscosFirestore
+                // ── Abierto cerca tuyo ───────────────────────────────────────
+                fun distanciaMetros(t: com.kosking.app.modelo.Tienda): Float {
+                    val u = userLatLng ?: return Float.MAX_VALUE
+                    val r = FloatArray(1)
+                    android.location.Location.distanceBetween(u.latitude, u.longitude, t.latitud, t.longitud, r)
+                    return r[0]
+                }
 
-                Spacer(Modifier.height(8.dp))
+                val kioscosFiltrados = (if (categoriaSeleccionada != null)
+                    kioscosFirestore.filter { it.categoria == categoriaSeleccionada }
+                else kioscosFirestore)
+                    .sortedWith(compareBy(
+                        { if (estaAbierto(it)) 0 else 1 },
+                        { distanciaMetros(it) },
+                    ))
+
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val hayAbiertos = kioscosFiltrados.any { estaAbierto(it) }
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(if (hayAbiertos) Verde else Gris500),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (categoriaSeleccionada != null) categoriaSeleccionada!!
+                        else if (userLatLng != null) "Cerca tuyo ahora"
+                        else "Kioscos disponibles",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = AzulNavy,
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
 
                 if (kioscosFiltrados.isEmpty()) {
                     Box(
@@ -227,11 +281,19 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         items(kioscosVer, key = { it.id }) { tienda ->
+                            val metros = distanciaMetros(tienda)
+                            val distTexto = when {
+                                userLatLng == null -> null
+                                tienda.latitud == 0.0 && tienda.longitud == 0.0 -> null
+                                metros < 1000 -> "${metros.toInt()} m"
+                                else -> "${"%.1f".format(metros / 1000)} km"
+                            }
                             KioscoCard(
                                 nombre = tienda.nombre,
                                 direccion = tienda.direccion,
                                 abierto = estaAbierto(tienda),
                                 cantProductos = prodCount[tienda.id],
+                                distancia = distTexto,
                             ) { navController.navigate(Rutas.detalleLocal(tienda.id)) }
                         }
                         if (cantKioscosVer < kioscosFiltrados.size) {
@@ -348,7 +410,7 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
 }
 
 @Composable
-private fun KioscoCard(nombre: String, direccion: String, abierto: Boolean, cantProductos: Int?, onClick: () -> Unit) {
+private fun KioscoCard(nombre: String, direccion: String, abierto: Boolean, cantProductos: Int?, distancia: String? = null, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = Blanco,
@@ -399,13 +461,17 @@ private fun KioscoCard(nombre: String, direccion: String, abierto: Boolean, cant
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-            if (cantProductos != null && cantProductos > 0) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "$cantProductos en stock",
-                    fontSize = 11.sp,
-                    color = Azul,
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (distancia != null) {
+                    Text(distancia, fontSize = 11.sp, color = Azul, fontWeight = FontWeight.SemiBold)
+                }
+                if (cantProductos != null && cantProductos > 0) {
+                    if (distancia != null) Text("·", fontSize = 11.sp, color = Gris500)
+                    Text("$cantProductos productos", fontSize = 11.sp, color = Gris500)
+                }
             }
         }
     }

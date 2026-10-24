@@ -216,45 +216,6 @@ fun PantallaMapa(
             }
         }
 
-        // ── Botón Home (abajo izquierda) ─────────────────────────────────────
-        val fabBottomPadding = if (seleccionado != null) 230.dp else 96.dp
-        SmallFloatingActionButton(
-            onClick = {
-                navController.navigate(Rutas.HOME) {
-                    popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
-                }
-            },
-            modifier = Modifier
-                .padding(bottom = fabBottomPadding, start = 16.dp)
-                .align(Alignment.BottomStart),
-            containerColor = Blanco,
-            contentColor = AzulNavy,
-            elevation = FloatingActionButtonDefaults.elevation(4.dp),
-        ) {
-            Icon(Icons.Default.Home, null)
-        }
-
-        // ── Botón mi ubicación (abajo derecha) ───────────────────────────────
-        if (ubicacionHabilitada) {
-            SmallFloatingActionButton(
-                onClick = {
-                    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-                    fusedClient.lastLocation.addOnSuccessListener { loc ->
-                        if (loc != null) {
-                            cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15f))
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .padding(bottom = fabBottomPadding, end = 16.dp)
-                    .align(Alignment.BottomEnd),
-                containerColor = Blanco,
-                contentColor = Azul,
-                elevation = FloatingActionButtonDefaults.elevation(4.dp),
-            ) {
-                Icon(Icons.Default.MyLocation, null)
-            }
-        }
 
         // ── Panel inferior: kiosco seleccionado ───────────────────────────────
         seleccionado?.let { tienda ->
@@ -345,7 +306,7 @@ fun PantallaMapa(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                         .navigationBarsPadding(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -362,8 +323,37 @@ fun PantallaMapa(
                         modifier = Modifier.weight(1f),
                     )
                     if (categoriaFiltro != null) {
-                        TextButton(onClick = { categoriaFiltro = null }) {
-                            Text("Ver todos", color = Azul, fontSize = 13.sp)
+                        TextButton(
+                            onClick = { categoriaFiltro = null },
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                        ) {
+                            Text("Ver todos", color = Azul, fontSize = 12.sp)
+                        }
+                    }
+                    // Botones de acción a la derecha
+                    IconButton(
+                        onClick = {
+                            navController.navigate(Rutas.HOME) {
+                                popUpTo(Rutas.MAPA_SIMPLE) { inclusive = true }
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Default.Home, null, tint = AzulNavy)
+                    }
+                    if (ubicacionHabilitada) {
+                        IconButton(
+                            onClick = {
+                                val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                                fusedClient.lastLocation.addOnSuccessListener { loc ->
+                                    if (loc != null) {
+                                        cameraPositionState.move(
+                                            CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15f)
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
+                            Icon(Icons.Default.MyLocation, null, tint = Azul)
                         }
                     }
                 }

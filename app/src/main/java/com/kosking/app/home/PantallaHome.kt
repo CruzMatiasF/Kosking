@@ -321,8 +321,17 @@ fun PantallaHome(navController: NavController, vm: HomeViewModel = viewModel()) 
                         modifier = Modifier.padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        productosFirestore.forEach { prod ->
-                            ProductoItem(prod) { navController.navigate(Rutas.detalleLocal(prod.tiendaId)) }
+                        productosFirestore.chunked(2).forEach { fila ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                fila.forEach { prod ->
+                                    ProductoCard(
+                                        prod = prod,
+                                        modifier = Modifier.weight(1f),
+                                        onClick = { navController.navigate(Rutas.detalleLocal(prod.tiendaId)) },
+                                    )
+                                }
+                                if (fila.size == 1) Spacer(Modifier.weight(1f))
+                            }
                         }
                     }
                     Spacer(Modifier.height(16.dp))
@@ -503,6 +512,53 @@ private fun ProductoItem(prod: StockItemConTienda, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 color = Rojo,
             )
+        }
+    }
+}
+
+@Composable
+private fun ProductoCard(prod: StockItemConTienda, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Blanco,
+        shadowElevation = 2.dp,
+        modifier = modifier.clickable(onClick = onClick),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(AzulClaro),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("🛒", fontSize = 22.sp)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                prod.item.nombre,
+                fontWeight = FontWeight.SemiBold,
+                color = AzulNavy,
+                fontSize = 13.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (prod.item.marca.isNotBlank()) {
+                Text(prod.item.marca, fontSize = 11.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "$${"%,.0f".format(prod.item.precio)}",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Rojo,
+            )
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Store, null, tint = Gris500, modifier = Modifier.size(10.dp))
+                Spacer(Modifier.width(3.dp))
+                Text(prod.nombreTienda, fontSize = 11.sp, color = Gris500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }

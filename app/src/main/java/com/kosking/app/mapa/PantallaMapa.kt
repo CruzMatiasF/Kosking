@@ -217,7 +217,7 @@ fun PantallaMapa(
         }
 
         // ── Botón Home (abajo izquierda) ─────────────────────────────────────
-        val fabBottomPadding = if (seleccionado != null) 220.dp else 72.dp
+        val fabBottomPadding = if (seleccionado != null) 230.dp else 96.dp
         SmallFloatingActionButton(
             onClick = {
                 navController.navigate(Rutas.HOME) {

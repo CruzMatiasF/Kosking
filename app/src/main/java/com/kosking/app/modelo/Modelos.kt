@@ -2,87 +2,96 @@ package com.kosking.app.modelo
 
 import com.google.firebase.Timestamp
 
-data class Usuario(
-    val uid: String = "",
+data class Permisos(
+    val anotarFiados: Boolean = true,
+    val registrarPagos: Boolean = true,
+    val verTotal: Boolean = false
+)
+
+data class Local(
+    val id: String = "",
     val nombre: String = "",
-    val email: String = "",
-    val tiendaId: String? = null,
-    val empleadoEnTiendaId: String? = null,
-    val creadoAt: Timestamp? = null
+    val duenoUid: String = "",
+    val codigo: String = "",
+    val permisos: Permisos = Permisos(),
+    val telefono: String = "",
+    val tipo: String = "Kiosco",
+    val direccion: String = "",
+    val abierto: Boolean = true,
+    val imagenUrl: String = "",
+    val descripcion: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0
+)
+
+data class Cliente(
+    val id: String = "",
+    val localId: String = "",
+    val nombre: String = "",
+    val telefono: String = "",
+    val domicilio: String = "",
+    val pin: String = "",
+    val habilitado: Boolean = true,
+    val deudaTotal: Double = 0.0,
+    val codigoAcceso: String = ""
+)
+
+data class Movimiento(
+    val id: String = "",
+    val localId: String = "",
+    val clienteId: String = "",
+    val tipo: String = "cargo",
+    val producto: String = "",
+    val cantidad: Int = 1,
+    val monto: Double = 0.0,
+    val fecha: Timestamp = Timestamp.now(),
+    val anotadoPorUid: String = "",
+    val anotadoPorNombre: String = "",
+    val anulado: Boolean = false,
+    val motivoAnulacion: String = "",
+    val disputado: Boolean = false
+)
+
+data class Empleado(
+    val id: String = "",
+    val localId: String = "",
+    val uid: String = "",
+    val nombre: String = ""
 )
 
 data class Producto(
     val id: String = "",
+    val localId: String = "",
     val nombre: String = "",
-    val nombreBusqueda: String = "",
-    val marca: String = "",
-    val categoria: String = "",
-    val creadoPor: String = "",
-    val creadoAt: Timestamp? = null
-)
-
-data class Tienda(
-    val id: String = "",
-    val nombre: String = "",
-    val nombreBusqueda: String = "",
-    val duenioUid: String = "",
-    val codigoInvitacion: String = "",
-    val direccion: String = "",
-    val categoria: String = "",
-    val telefono: String = "",
-    val ventasDelDia: Double = 0.0,
-    val latitud: Double = 0.0,
-    val longitud: Double = 0.0,
-    // Horario estructurado
-    val horarioApertura: String = "",
-    val horarioCierre: String = "",
-    val diasActivos: String = "Todos los días",
-    // Override manual (expira a medianoche)
-    val overrideAbierto: Boolean? = null,
-    val overrideHasta: Timestamp? = null,
-    val fotoUrl: String = "",
-    val creadoAt: Timestamp? = null
-)
-
-data class StockItem(
-    val productoId: String = "",
-    val nombre: String = "",
-    val marca: String = "",
-    val nombreBusqueda: String = "",
     val precio: Double = 0.0,
-    val cantidad: Int = 0,
-    val updatedAt: Timestamp? = null
+    val descripcion: String = "",
+    val habilitado: Boolean = true,
+    val esOferta: Boolean = false,
+    val precioAnterior: Double = 0.0,
+    val imagenUrl: String = ""
 )
 
-data class StockItemConTienda(
-    val item: StockItem,
-    val tiendaId: String,
-    val nombreTienda: String,
+data class LocalGuardado(
+    val localId: String = "",
+    val clienteId: String = "",
+    val nombreLocal: String = ""
 )
 
-data class Oferta(
-    val id: String = "",
-    val productoId: String = "",
-    val nombreProducto: String = "",
-    val precioNormal: Double = 0.0,
-    val precioOferta: Double = 0.0,
-    val descripcion: String? = null,
-    val venceAt: Timestamp? = null,
-    val activa: Boolean = true,
-    val creadoAt: Timestamp? = null
-)
-
-data class ItemVenta(
-    val productoId: String = "",
+data class Usuario(
+    val uid: String = "",
     val nombre: String = "",
-    val cantidad: Int = 0,
-    val precioUnitario: Double = 0.0
+    val rol: String = "dueno",
+    val localId: String = "",
+    val empleadoLocalId: String = "",
+    val empleadoNombreLocal: String = ""
 )
 
-data class Venta(
+data class Notificacion(
     val id: String = "",
-    val empleadoUid: String = "",
-    val items: List<ItemVenta> = emptyList(),
-    val total: Double = 0.0,
-    val fecha: Timestamp? = null
+    val uid: String = "",
+    val titulo: String = "",
+    val cuerpo: String = "",
+    val leida: Boolean = false,
+    val fecha: Timestamp = Timestamp.now(),
+    val tipo: String = "sistema"   // "oferta", "sistema", "local"
 )

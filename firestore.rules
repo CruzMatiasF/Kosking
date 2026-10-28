@@ -2,30 +2,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Tiendas: cualquier usuario autenticado puede leer,
-    // solo el dueño puede escribir
-    match /tiendas/{tiendaId} {
+    // Locales: el dueño puede crear y leer el suyo
+    match /locales/{localId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
       allow update, delete: if request.auth != null
-        && request.auth.uid == resource.data.duenioUid;
+        && resource.data.duenoUid == request.auth.uid;
+    }
 
-      // Subcolecciones de la tienda (stock, ofertas)
-      match /{subcoleccion}/{docId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null
-          && get(/databases/$(database)/documents/tiendas/$(tiendaId)).data.duenioUid == request.auth.uid;
+    // Usuarios: cada uno lee/escribe su propio documento
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /localesGuardados/{localId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
       }
     }
 
-    // Usuarios: solo el propio usuario lee/escribe su documento
-    match /usuarios/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // Clientes: cualquier usuario autenticado del local puede leer/escribir
+    match /clientes/{clienteId} {
+      allow read, write: if request.auth != null;
+    }
 
-      // Favoritos: solo el propio usuario
-      match /favoritos/{tiendaId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
-      }
+    // Movimientos: cualquier usuario autenticado puede crear y leer
+    match /movimientos/{movId} {
+      allow read, create: if request.auth != null;
+    }
+
+    // Empleados: cualquier usuario autenticado puede leer/escribir
+    match /empleados/{empId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Códigos de empleado: cualquier usuario puede leer (para verificar),
+    // solo autenticados pueden crear; actualizar (marcar usado) sin auth (empleado sin cuenta)
+    match /codigosEmpleado/{codId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if true;
+    }
+
+    // Códigos de cliente: cualquier usuario autenticado puede leer (para conectarse con su código)
+    match /codigosCliente/{codId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }

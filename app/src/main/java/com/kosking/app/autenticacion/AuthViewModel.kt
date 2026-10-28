@@ -1,89 +1,51 @@
 package com.kosking.app.autenticacion
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import com.kosking.app.datos.FiadoRepository
+import com.kosking.app.modelo.Usuario
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class AuthViewModel : ViewModel() {
 
-    var cargando by mutableStateOf(false)
-        private set
+    private val auth = FirebaseAuth.getInstance()
 
-    var error by mutableStateOf("")
-        private set
+    val error = MutableStateFlow<String?>(null)
+    val cargando = MutableStateFlow(false)
 
-    private val _navegarAlHome = MutableSharedFlow<Unit>()
-    val navegarAlHome = _navegarAlHome.asSharedFlow()
-
-    fun limpiarError() { error = "" }
-
-    fun login(email: String, password: String, alExito: () -> Unit) {
-        if (!validarCampos(email, password)) return
-        cargando = true
-        error = ""
+    fun login(email: String, password: String, onExito: () -> Unit) {
         viewModelScope.launch {
+            cargando.value = true
+            error.value = null
             try {
-                FirebaseAuth.getInstance()
-                    .signInWithEmailAndPassword(email.trim(), password).await()
-                cargando = false
-                _navegarAlHome.emit(Unit)
+                auth.signInWithEmailAndPassword(email, password).await()
+                onExito()
             } catch (e: Exception) {
-                cargando = false
-                error = traducirError(e.message)
+                error.value = "Email o contraseña incorrectos"
+            } finally {
+                cargando.value = false
             }
         }
     }
 
-    fun registrar(nombre: String, email: String, password: String, alExito: () -> Unit) {
-        if (nombre.isBlank()) { error = "Ingresá tu nombre"; return }
-        if (!validarCampos(email, password)) return
-        cargando = true
-        error = ""
+    fun registrar(nombre: String, email: String, password: String, onExito: () -> Unit) {
         viewModelScope.launch {
+            cargando.value = true
+            error.value = null
             try {
-                val resultado = FirebaseAuth.getInstance()
-                    .createUserWithEmailAndPassword(email.trim(), password).await()
-                val uid = resultado.user!!.uid
-                // Fire-and-forget: no esperamos confirmación del servidor
-                FirebaseFirestore.getInstance()
-                    .collection("usuarios").document(uid)
-                    .set(mapOf(
-                        "nombre" to nombre.trim(),
-                        "email" to email.trim(),
-                        "creadoAt" to FieldValue.serverTimestamp()
-                    ))
-                cargando = false
-                _navegarAlHome.emit(Unit)
+                val result = auth.createUserWithEmailAndPassword(email, password).await()
+                val uid = result.user?.uid ?: return@launch
+                val usuario = Usuario(uid = uid, nombre = nombre, rol = "dueno")
+                FiadoRepository.guardarUsuario(usuario)
+                onExito()
             } catch (e: Exception) {
-                cargando = false
-                error = traducirError(e.message)
+                error.value = "No se pudo crear la cuenta"
+            } finally {
+                cargando.value = false
             }
         }
-    }
-
-    private fun validarCampos(email: String, password: String): Boolean {
-        if (email.isBlank()) { error = "Ingresá tu email"; return false }
-        if (password.length < 6) { error = "La contraseña debe tener al menos 6 caracteres"; return false }
-        return true
-    }
-
-    private fun traducirError(msg: String?): String = when {
-        msg == null -> "Ocurrió un error. Intentá de nuevo."
-        "email address is already in use" in msg -> "Este email ya está registrado"
-        "wrong-password" in msg || "invalid-credential" in msg -> "Email o contraseña incorrectos"
-        "no user record" in msg -> "No existe una cuenta con ese email"
-        "badly formatted" in msg -> "El email no es válido"
-        "weak-password" in msg -> "La contraseña debe tener al menos 6 caracteres"
-        "network" in msg -> "Sin conexión. Revisá tu internet."
-        else -> "Ocurrió un error. Intentá de nuevo."
     }
 }

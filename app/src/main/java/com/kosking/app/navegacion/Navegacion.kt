@@ -1,192 +1,332 @@
 package com.kosking.app.navegacion
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.kosking.app.autenticacion.AuthViewModel
+import androidx.navigation.navArgument
+import androidx.activity.compose.BackHandler
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
-import com.kosking.app.busqueda.PantallaResultados
-import com.kosking.app.detalle.PantallaDetalleKiosco
-import com.kosking.app.mapa.PantallaMapa
-import com.kosking.app.detalle.PantallaDetalleProducto
-import com.kosking.app.dueno.PantallaAgregarProducto
-import com.kosking.app.dueno.PantallaConfigLocal
+import com.kosking.app.cliente.ClienteViewModel
+import com.kosking.app.cliente.PantallaIngresarPIN
 import com.kosking.app.dueno.PantallaCrearLocal
-import com.kosking.app.dueno.PantallaInventario
-import com.kosking.app.dueno.PantallaMisOfertas
-import com.kosking.app.dueno.PantallaPanelDueno
-import com.kosking.app.dueno.PantallaRegistrarVenta
+import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.dueno.PanelDueno
+import com.kosking.app.dueno.PantallaDetalleMovimiento
+import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
-import com.kosking.app.favoritos.PantallaFavoritos
-import com.kosking.app.notificaciones.PantallaNotificaciones
-import com.kosking.app.ofertas.PantallaOfertas
-import com.kosking.app.configuracion.PantallaConfiguracion
-import com.kosking.app.historial.PantallaHistorial
-import com.kosking.app.perfil.PantallaPerfil
-import com.kosking.app.home.PantallaElegirRol
-import com.kosking.app.home.PantallaHome
-import com.kosking.app.home.PantallaMas
+import com.kosking.app.explorar.ExplorarViewModel
+import com.kosking.app.explorar.PantallaExplorar
+import com.kosking.app.explorar.PantallaVidreraPublica
+import com.kosking.app.explorar.VidreraPublicaViewModel
+import com.kosking.app.datos.FiadoRepository
+import com.kosking.app.perfil.PantallaConfigurarPerfil
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import java.net.URLDecoder
+import java.net.URLEncoder
 
-object Rutas {
-    const val SPLASH = "splash"
-    const val HOME = "home"
-    const val LOGIN = "login"
-    const val REGISTRO = "registro"
-
-    // Menú inferior
-    const val MAPA = "mapa?lat={lat}&lng={lng}"
-    const val MAPA_SIMPLE = "mapa"
-    fun mapa(lat: Double, lng: Double) = "mapa?lat=$lat&lng=$lng"
-    const val FAVORITOS = "favoritos"
-    const val OFERTAS = "ofertas"
-    const val PERFIL = "perfil"
-    const val CONFIGURACION = "configuracion"
-    const val HISTORIAL = "historial"
-    const val NOTIFICACIONES = "notificaciones"
-
-    // Cliente
-    const val RESULTADOS = "resultados/{query}"
-    const val DETALLE_PRODUCTO = "producto/{productoId}"
-    const val DETALLE_LOCAL = "local/{tiendaId}"
-    const val DETALLE_OFERTA = "oferta/{tiendaId}/{ofertaId}"
-
-    // Dueño
-    const val PANEL_DUENO = "panel_dueno"
-    const val INVENTARIO = "inventario"
-    const val AGREGAR_PRODUCTO = "agregar_producto"
-    const val MIS_OFERTAS = "mis_ofertas"
-    const val CREAR_OFERTA = "crear_oferta"
-    const val CONFIG_LOCAL = "config_local"
-    const val CREAR_LOCAL = "crear_local"
-
-    // Empleado
-    const val PANEL_EMPLEADO = "panel_empleado"
-    const val REGISTRAR_VENTA = "registrar_venta"
-    const val INGRESAR_CODIGO = "ingresar_codigo"
-    const val ELEGIR_ROL = "elegir_rol"
-    const val MAS = "mas"
-
-    // Helpers para navegar con argumentos
-    fun resultados(query: String) = "resultados/$query"
-    fun detalleProducto(id: String) = "producto/$id"
-    fun detalleLocal(id: String) = "local/$id"
-    fun detalleOferta(tiendaId: String, ofertaId: String) = "oferta/$tiendaId/$ofertaId"
+private sealed class DestinoPostLogin {
+    object PanelDueno : DestinoPostLogin()
+    object IngresarCodigo : DestinoPostLogin()
+    data class IngresarPIN(val localId: String, val nombreLocal: String) : DestinoPostLogin()
 }
 
 @Composable
-fun KoskingNavHost(
-    navController: NavHostController = rememberNavController(),
-    inicio: String = Rutas.HOME,
-) {
-    val authViewModel: AuthViewModel = viewModel()
+fun KoskingNavHost() {
+    val nav = rememberNavController()
+    val duenoVm: DuenoViewModel = viewModel()
+    val empleadoVm: EmpleadoViewModel = viewModel()
+    val clienteVm: ClienteViewModel = viewModel()
+    val explorarVm: ExplorarViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = inicio) {
-        composable(Rutas.SPLASH) {
-            // PantallaSplash(navController)
+    var mostrarPanelDueno by remember { mutableStateOf(false) }
+    var destinoPostLogin by remember { mutableStateOf<DestinoPostLogin?>(null) }
+
+    // Auth state reactivo
+    val authUser by produceState<FirebaseUser?>(
+        initialValue = FirebaseAuth.getInstance().currentUser?.takeIf { !it.isAnonymous }
+    ) {
+        val listener = FirebaseAuth.AuthStateListener { fa ->
+            value = fa.currentUser?.takeIf { !it.isAnonymous }
         }
-        composable(Rutas.HOME) {
-            PantallaHome(navController = navController)
+        FirebaseAuth.getInstance().addAuthStateListener(listener)
+        awaitDispose { FirebaseAuth.getInstance().removeAuthStateListener(listener) }
+    }
+
+    val estaLogueado = authUser != null
+    val emailUsuario = authUser?.email ?: ""
+
+    // Cargar nombre real del usuario desde Firestore
+    var nombreUsuario by remember { mutableStateOf("") }
+    LaunchedEffect(authUser?.uid) {
+        val uid = authUser?.uid ?: run { nombreUsuario = ""; return@LaunchedEffect }
+        try {
+            nombreUsuario = FiadoRepository.obtenerUsuario(uid)?.nombre
+                ?: authUser?.displayName ?: ""
+        } catch (_: Exception) {}
+    }
+
+    val esDueno by duenoVm.localId.collectAsState()
+    val esEmpleado by empleadoVm.tieneSession.collectAsState()
+
+    // EXPLORAR siempre es la raíz — se redirige desde ahí si hay sesión activa
+    NavHost(navController = nav, startDestination = Rutas.EXPLORAR) {
+
+        // ── Explorar (raíz) ───────────────────────────────────────────────────
+
+        composable(Rutas.EXPLORAR) {
+            val empleadoTieneSession by empleadoVm.tieneSession.collectAsState()
+            val localesGuardados by clienteVm.localesGuardados.collectAsState()
+
+            // Solo redirigir a empleados (tienen panel propio); clientes navegan manualmente desde Más
+            LaunchedEffect(Unit) {
+                if (clienteVm.startupRedirectDone) return@LaunchedEffect
+                clienteVm.startupRedirectDone = true
+                delay(600L)
+                if (empleadoVm.tieneSession.value) {
+                    nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                }
+            }
+
+            PantallaExplorar(
+                onVerLocal = { localId -> nav.navigate(Rutas.vidreraPublica(localId)) },
+                onConfigurarPerfil = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
+                onSoyDueno = {
+                    when {
+                        !estaLogueado -> {
+                            destinoPostLogin = DestinoPostLogin.PanelDueno
+                            nav.navigate(Rutas.LOGIN)
+                        }
+                        duenoVm.tieneSession -> mostrarPanelDueno = true
+                        else -> nav.navigate(Rutas.CREAR_LOCAL)
+                    }
+                },
+                onSoyEmpleado = {
+                    if (!estaLogueado) {
+                        destinoPostLogin = DestinoPostLogin.IngresarCodigo
+                        nav.navigate(Rutas.LOGIN)
+                    } else if (empleadoTieneSession) {
+                        nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                    } else {
+                        nav.navigate(Rutas.INGRESAR_CODIGO)
+                    }
+                },
+                onVerMisLocales = { nav.navigate(Rutas.VER_FIADO) },
+                onIniciarSesion = {
+                    destinoPostLogin = null
+                    nav.navigate(Rutas.LOGIN)
+                },
+                onCerrarSesionCuenta = {
+                    empleadoVm.cerrarSesion()
+                    duenoVm.cerrarSesion()
+                    mostrarPanelDueno = false
+                },
+                estaLogueado = estaLogueado,
+                nombreUsuario = nombreUsuario,
+                emailUsuario = emailUsuario,
+                esDueno = esDueno.isNotBlank(),
+                esEmpleado = esEmpleado,
+                clienteVm = clienteVm,
+                duenoVm = duenoVm,
+                mostrarPanelDueno = mostrarPanelDueno,
+                onCerrarPanelDueno = { mostrarPanelDueno = false },
+                vm = explorarVm
+            )
         }
-        composable(Rutas.LOGIN) {
-            PantallaLogin(navController = navController, vm = authViewModel)
-        }
-        composable(Rutas.REGISTRO) {
-            PantallaRegistro(navController = navController, vm = authViewModel)
-        }
+
         composable(
-            route = Rutas.MAPA,
-            arguments = listOf(
-                androidx.navigation.navArgument("lat") { type = androidx.navigation.NavType.FloatType; defaultValue = 0f },
-                androidx.navigation.navArgument("lng") { type = androidx.navigation.NavType.FloatType; defaultValue = 0f },
-            ),
-        ) { backStack ->
-            val lat = backStack.arguments?.getFloat("lat")?.toDouble() ?: 0.0
-            val lng = backStack.arguments?.getFloat("lng")?.toDouble() ?: 0.0
-            PantallaMapa(navController = navController, focusLat = lat, focusLng = lng)
+            Rutas.VIDRIERA_PUBLICA,
+            arguments = listOf(navArgument("localId") { type = NavType.StringType })
+        ) { back ->
+            val localId = back.arguments?.getString("localId") ?: return@composable
+            val vm: VidreraPublicaViewModel = viewModel()
+            PantallaVidreraPublica(
+                localId = localId,
+                onVolver = { nav.popBackStack() },
+                vm = vm
+            )
         }
-        composable(Rutas.MAPA_SIMPLE) {
-            PantallaMapa(navController = navController)
+
+        // ── Autenticación ─────────────────────────────────────────────────────
+
+        composable(Rutas.LOGIN) {
+            PantallaLogin(
+                onLoginExitoso = {
+                    nav.popBackStack()
+                    when (val dest = destinoPostLogin) {
+                        DestinoPostLogin.IngresarCodigo -> {
+                            destinoPostLogin = null
+                            nav.navigate(Rutas.INGRESAR_CODIGO)
+                        }
+                        is DestinoPostLogin.IngresarPIN -> {
+                            destinoPostLogin = null
+                            nav.navigate(Rutas.ingresarPIN(dest.localId, dest.nombreLocal))
+                        }
+                        else -> {
+                            destinoPostLogin = null
+                            mostrarPanelDueno = true
+                        }
+                    }
+                },
+                onIrARegistro = { nav.navigate(Rutas.REGISTRO) }
+            )
         }
-        composable(Rutas.FAVORITOS) {
-            PantallaFavoritos(navController = navController)
+
+        composable(Rutas.REGISTRO) {
+            PantallaRegistro(
+                onRegistroExitoso = {
+                    when (val dest = destinoPostLogin) {
+                        DestinoPostLogin.IngresarCodigo -> {
+                            destinoPostLogin = null
+                            nav.navigate(Rutas.INGRESAR_CODIGO) { popUpTo(Rutas.EXPLORAR) }
+                        }
+                        is DestinoPostLogin.IngresarPIN -> {
+                            destinoPostLogin = null
+                            nav.navigate(Rutas.ingresarPIN(dest.localId, dest.nombreLocal)) {
+                                popUpTo(Rutas.EXPLORAR)
+                            }
+                        }
+                        else -> {
+                            destinoPostLogin = null
+                            nav.navigate(Rutas.CREAR_LOCAL) { popUpTo(Rutas.EXPLORAR) }
+                        }
+                    }
+                },
+                onVolver = { nav.popBackStack() }
+            )
         }
-        composable(Rutas.OFERTAS) {
-            PantallaOfertas(navController = navController)
-        }
-        composable(Rutas.PERFIL) {
-            PantallaPerfil(navController = navController)
-        }
-        composable(Rutas.CONFIGURACION) {
-            PantallaConfiguracion(navController = navController)
-        }
-        composable(Rutas.HISTORIAL) {
-            PantallaHistorial(navController = navController)
-        }
-        composable(Rutas.NOTIFICACIONES) {
-            PantallaNotificaciones(navController = navController)
-        }
-        composable(Rutas.RESULTADOS) { backStack ->
-            val query = backStack.arguments?.getString("query") ?: ""
-            PantallaResultados(queryInicial = query, navController = navController)
-        }
-        composable(Rutas.DETALLE_PRODUCTO) { backStack ->
-            val productoId = backStack.arguments?.getString("productoId") ?: ""
-            PantallaDetalleProducto(productoId = productoId, navController = navController)
-        }
-        composable(Rutas.DETALLE_LOCAL) { backStack ->
-            val tiendaId = backStack.arguments?.getString("tiendaId") ?: ""
-            PantallaDetalleKiosco(tiendaId = tiendaId, navController = navController)
-        }
-        composable(Rutas.DETALLE_OFERTA) { backStack ->
-            val tiendaId = backStack.arguments?.getString("tiendaId") ?: ""
-            val ofertaId = backStack.arguments?.getString("ofertaId") ?: ""
-            // PantallaDetalleOferta(tiendaId, ofertaId, navController)
-        }
-        composable(Rutas.PANEL_DUENO) {
-            PantallaPanelDueno(navController = navController)
-        }
-        composable(Rutas.INVENTARIO) {
-            PantallaInventario(navController = navController)
-        }
-        composable(Rutas.AGREGAR_PRODUCTO) {
-            PantallaAgregarProducto(navController = navController)
-        }
-        composable(Rutas.MIS_OFERTAS) {
-            PantallaMisOfertas(navController = navController)
-        }
-        composable(Rutas.CREAR_OFERTA) {
-            // PantallaCrearOferta(navController)
-        }
-        composable(Rutas.CONFIG_LOCAL) {
-            PantallaConfigLocal(navController = navController)
-        }
+
         composable(Rutas.CREAR_LOCAL) {
-            PantallaCrearLocal(navController = navController)
+            PantallaCrearLocal(
+                onLocalCreado = {
+                    nav.popBackStack(Rutas.EXPLORAR, inclusive = false)
+                    mostrarPanelDueno = true
+                },
+                vm = duenoVm
+            )
         }
-        composable(Rutas.PANEL_EMPLEADO) {
-            PantallaPanelEmpleado(navController = navController)
+
+        composable(Rutas.PANEL_DUENO) {
+            PanelDueno(
+                onCerrarSesion = {
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                },
+                onVolver = { nav.popBackStack() },
+                vm = duenoVm
+            )
         }
-        composable(Rutas.REGISTRAR_VENTA) {
-            PantallaRegistrarVenta(navController = navController)
-        }
+
+        // ── Empleado ──────────────────────────────────────────────────────────
+
         composable(Rutas.INGRESAR_CODIGO) {
-            PantallaIngresarCodigo(navController = navController)
+            PantallaIngresarCodigo(
+                onEmpleadoVerificado = {
+                    nav.navigate(Rutas.PANEL_EMPLEADO) {
+                        popUpTo(Rutas.EXPLORAR)
+                    }
+                },
+                onVolver = { nav.popBackStack() },
+                vm = empleadoVm
+            )
         }
-        composable(Rutas.ELEGIR_ROL) {
-            PantallaElegirRol(navController = navController)
+
+        composable(Rutas.PANEL_EMPLEADO) {
+            PantallaPanelEmpleado(
+                onVerCliente = { id -> nav.navigate(Rutas.agregarFiadoEmpleado(id)) },
+                onCerrarSesion = {
+                    empleadoVm.cerrarSesion()
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                },
+                onVolver = { nav.popBackStack() },
+                vm = empleadoVm
+            )
         }
-        composable(Rutas.MAS) {
-            PantallaMas(navController = navController)
+
+        composable(
+            Rutas.AGREGAR_FIADO_EMPLEADO,
+            arguments = listOf(navArgument("clienteId") { type = NavType.StringType })
+        ) { back ->
+            val clienteId = back.arguments?.getString("clienteId") ?: return@composable
+            val cargando by empleadoVm.cargando.collectAsState()
+            val error by empleadoVm.error.collectAsState()
+            val productos by empleadoVm.productos.collectAsState()
+            val nombreEmpleado by empleadoVm.nombreEmpleado.collectAsState()
+            com.kosking.app.dueno.PantallaAgregarFiadoConLambda(
+                onGuardado = { nav.popBackStack() },
+                onVolver = { nav.popBackStack() },
+                cargando = cargando,
+                error = error,
+                productos = productos,
+                nombreEmpleado = nombreEmpleado,
+                onAgregar = { producto, cantidad, monto, tipo ->
+                    empleadoVm.agregarMovimiento(clienteId, producto, cantidad, monto, tipo) {
+                        nav.popBackStack()
+                    }
+                }
+            )
+        }
+
+        // ── Cliente ───────────────────────────────────────────────────────────
+
+        composable(
+            Rutas.INGRESAR_PIN,
+            arguments = listOf(
+                navArgument("localId") { type = NavType.StringType },
+                navArgument("nombreLocal") { type = NavType.StringType }
+            )
+        ) { back ->
+            val localId = back.arguments?.getString("localId") ?: return@composable
+            val nombreLocal = URLDecoder.decode(
+                back.arguments?.getString("nombreLocal") ?: "", "UTF-8"
+            )
+            PantallaIngresarPIN(
+                localId = localId,
+                nombreLocal = nombreLocal,
+                onClienteVerificado = {
+                    nav.navigate(Rutas.VER_FIADO) {
+                        popUpTo(Rutas.EXPLORAR)
+                    }
+                },
+                onVolver = { nav.popBackStack() },
+                vm = clienteVm
+            )
+        }
+
+        composable(
+            Rutas.DETALLE_MOVIMIENTO,
+            arguments = listOf(navArgument("movimientoId") { type = NavType.StringType })
+        ) { back ->
+            val movimientoId = back.arguments?.getString("movimientoId") ?: return@composable
+            PantallaDetalleMovimiento(
+                movimientoId = movimientoId,
+                onVolver = { nav.popBackStack() },
+                vm = duenoVm
+            )
+        }
+
+        composable(Rutas.VER_FIADO) {
+            com.kosking.app.cliente.PantallaVerFiado(
+                onVolver = { nav.popBackStack() },
+                vm = clienteVm
+            )
+        }
+
+        composable(Rutas.CONFIGURAR_PERFIL) {
+            PantallaConfigurarPerfil(
+                nombreActual = nombreUsuario,
+                emailActual = emailUsuario,
+                onVolver = { nav.popBackStack() }
+            )
         }
     }
 }

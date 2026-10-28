@@ -548,6 +548,7 @@ private fun TabProductos(vm: DuenoViewModel) {
     if (mostrarDialogo) {
         DialogProducto(
             productoInicial = productoEditar,
+            productosExistentes = if (productoEditar == null) productos else emptyList(),
             onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(

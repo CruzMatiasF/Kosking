@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kosking.app.dueno.DialogProducto
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.Producto
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,8 +31,10 @@ fun PantallaPanelEmpleado(
     val nombreLocal by vm.nombreLocal.collectAsState()
     val clientes by vm.clientesHabilitados.collectAsState()
     val movimientos by vm.movimientosLocal.collectAsState()
+    val productos by vm.productos.collectAsState()
     var mostrarMenu by remember { mutableStateOf(false) }
     var busqueda by remember { mutableStateOf("") }
+    var tabActual by remember { mutableStateOf(0) }
 
     // El back natural va a EXPLORAR (que está en el back stack)
 
@@ -81,74 +87,179 @@ fun PantallaPanelEmpleado(
             )
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Mini stats
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$fiadosHoy", style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold)
-                            Text("fiado${if (fiadosHoy != 1) "s" else ""} hoy",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            TabRow(selectedTabIndex = tabActual) {
+                Tab(selected = tabActual == 0, onClick = { tabActual = 0 },
+                    text = { Text("Clientes") })
+                Tab(selected = tabActual == 1, onClick = { tabActual = 1 },
+                    text = { Text("Precios") })
+            }
+
+            when (tabActual) {
+                0 -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("$fiadosHoy", style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold)
+                                        Text("fiado${if (fiadosHoy != 1) "s" else ""} hoy",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    VerticalDivider(modifier = Modifier.height(40.dp))
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("$${"%.0f".format(cobradoHoy)}",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold)
+                                        Text("cobrado hoy",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
                         }
-                        VerticalDivider(modifier = Modifier.height(40.dp))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$${"%.0f".format(cobradoHoy)}",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold)
-                            Text("cobrado hoy",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        item {
+                            OutlinedTextField(
+                                value = busqueda,
+                                onValueChange = { busqueda = it },
+                                placeholder = { Text("Buscar cliente...") },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                singleLine = true
+                            )
+                        }
+                        item {
+                            Text("Clientes", style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                        }
+                        if (clientesFiltrados.isEmpty()) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        if (clientes.isEmpty()) "No hay clientes todavía"
+                                        else "Sin resultados",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            items(clientesFiltrados, key = { it.id }) { cliente ->
+                                ClienteItemEmpleado(
+                                    cliente = cliente,
+                                    onClick = if (cliente.habilitado) ({ onVerCliente(cliente.id) }) else null
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
+                1 -> TabPreciosEmpleado(vm = vm, productos = productos)
             }
+        }
+    }
+}
 
-            // Búsqueda
-            item {
-                OutlinedTextField(
-                    value = busqueda,
-                    onValueChange = { busqueda = it },
-                    placeholder = { Text("Buscar cliente...") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    singleLine = true
-                )
+@Composable
+private fun TabPreciosEmpleado(vm: EmpleadoViewModel, productos: List<Producto>) {
+    var mostrarDialogo by remember { mutableStateOf(false) }
+    var productoEditar by remember { mutableStateOf<Producto?>(null) }
+
+    Box(Modifier.fillMaxSize()) {
+        if (productos.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("No hay productos cargados",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(4.dp))
+                Text("Tocá + para agregar precios",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            item {
-                Text("Clientes", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            }
-
-            if (clientesFiltrados.isEmpty()) {
+        } else {
+            LazyColumn(Modifier.fillMaxSize()) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            if (clientes.isEmpty()) "No hay clientes todavía"
-                            else "Sin resultados",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text("Podés agregar y editar precios. Solo el dueño puede eliminar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                 }
-            } else {
-                items(clientesFiltrados, key = { it.id }) { cliente ->
-                    ClienteItemEmpleado(
-                        cliente = cliente,
-                        onClick = if (cliente.habilitado) ({ onVerCliente(cliente.id) }) else null
+                items(productos, key = { it.id }) { prod ->
+                    ListItem(
+                        headlineContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(prod.nombre, fontWeight = FontWeight.Medium)
+                                if (prod.esOferta) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+                                        Text("Oferta", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                    }
+                                }
+                                if (!prod.habilitado) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
+                                        Text("Oculto", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        },
+                        supportingContent = {
+                            if (prod.descripcion.isNotBlank()) Text(prod.descripcion)
+                        },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("$${"%.2f".format(prod.precio)}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary)
+                                IconButton(onClick = { productoEditar = prod; mostrarDialogo = true }) {
+                                    Icon(Icons.Default.Edit, "Editar",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
                     )
                     HorizontalDivider()
                 }
+                item { Spacer(Modifier.height(80.dp)) }
             }
         }
+
+        FloatingActionButton(
+            onClick = { productoEditar = null; mostrarDialogo = true },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, "Agregar producto")
+        }
+    }
+
+    if (mostrarDialogo) {
+        DialogProducto(
+            productoInicial = productoEditar,
+            productosExistentes = if (productoEditar == null) productos else emptyList(),
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior ->
+                if (productoEditar != null) {
+                    vm.actualizarProducto(productoEditar!!.copy(
+                        nombre = nombre, precio = precio, descripcion = descripcion,
+                        habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior
+                    ))
+                } else {
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior)
+                }
+                mostrarDialogo = false
+            },
+            onDismiss = { mostrarDialogo = false }
+        )
     }
 }
 

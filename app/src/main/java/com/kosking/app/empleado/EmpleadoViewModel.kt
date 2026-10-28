@@ -151,6 +151,34 @@ class EmpleadoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                FiadoRepository.agregarProducto(
+                    Producto(localId = _localId.value, nombre = nombre, precio = precio,
+                        descripcion = descripcion, habilitado = habilitado,
+                        esOferta = esOferta, precioAnterior = precioAnterior)
+                )
+            } catch (e: Exception) {
+                error.value = "No se pudo agregar el producto"
+            } finally { cargando.value = false }
+        }
+    }
+
+    fun actualizarProducto(producto: Producto) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                FiadoRepository.actualizarProducto(producto)
+            } catch (e: Exception) {
+                error.value = "No se pudo actualizar el producto"
+            } finally { cargando.value = false }
+        }
+    }
+
     fun agregarMovimiento(
         clienteId: String,
         producto: String,

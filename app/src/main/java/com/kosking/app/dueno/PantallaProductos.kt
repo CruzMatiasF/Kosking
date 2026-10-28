@@ -23,6 +23,7 @@ import com.kosking.app.modelo.Producto
 @Composable
 fun PantallaProductos(
     onVolver: () -> Unit,
+    esDueno: Boolean = true,
     vm: DuenoViewModel = viewModel()
 ) {
     val productos by vm.productos.collectAsState()
@@ -100,9 +101,11 @@ fun PantallaProductos(
                                     Icon(Icons.Default.Edit, "Editar",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                IconButton(onClick = { productoAEliminar = prod }) {
-                                    Icon(Icons.Default.Delete, "Eliminar",
-                                        tint = MaterialTheme.colorScheme.error)
+                                if (esDueno) {
+                                    IconButton(onClick = { productoAEliminar = prod }) {
+                                        Icon(Icons.Default.Delete, "Eliminar",
+                                            tint = MaterialTheme.colorScheme.error)
+                                    }
                                 }
                             }
                         }
@@ -116,6 +119,7 @@ fun PantallaProductos(
     if (mostrarDialogo) {
         DialogProducto(
             productoInicial = productoEditar,
+            productosExistentes = if (productoEditar == null) productos else emptyList(),
             onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
@@ -131,27 +135,30 @@ fun PantallaProductos(
         )
     }
 
-    productoAEliminar?.let { prod ->
-        AlertDialog(
-            onDismissRequest = { productoAEliminar = null },
-            title = { Text("Eliminar producto") },
-            text = { Text("¿Eliminar ${prod.nombre} de la lista de precios?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.eliminarProducto(prod.id)
-                    productoAEliminar = null
-                }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { productoAEliminar = null }) { Text("Cancelar") }
-            }
-        )
+    if (esDueno) {
+        productoAEliminar?.let { prod ->
+            AlertDialog(
+                onDismissRequest = { productoAEliminar = null },
+                title = { Text("Eliminar producto") },
+                text = { Text("¿Eliminar ${prod.nombre} de la lista de precios?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        vm.eliminarProducto(prod.id)
+                        productoAEliminar = null
+                    }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { productoAEliminar = null }) { Text("Cancelar") }
+                }
+            )
+        }
     }
 }
 
 @Composable
 internal fun DialogProducto(
     productoInicial: Producto?,
+    productosExistentes: List<Producto> = emptyList(),
     onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -161,6 +168,13 @@ internal fun DialogProducto(
     var habilitado by remember { mutableStateOf(productoInicial?.habilitado ?: true) }
     var esOferta by remember { mutableStateOf(productoInicial?.esOferta ?: false) }
     var precioAnterior by remember { mutableStateOf(productoInicial?.precioAnterior?.let { if (it > 0) "%.2f".format(it) else "" } ?: "") }
+
+    val similarExistente = remember(nombre, productosExistentes) {
+        val trimmed = nombre.trim()
+        if (trimmed.length >= 3)
+            productosExistentes.firstOrNull { it.nombre.contains(trimmed, ignoreCase = true) || trimmed.contains(it.nombre, ignoreCase = true) }
+        else null
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -174,6 +188,13 @@ internal fun DialogProducto(
                     placeholder = { Text("Ej: Coca 500ml, Pan, Cigarrillos") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                if (similarExistente != null) {
+                    Text(
+                        "Ya existe \"${similarExistente.nombre}\" — revisá si no es el mismo producto",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 OutlinedTextField(
                     value = precio,
                     onValueChange = { precio = it },

@@ -12,8 +12,10 @@ import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -156,6 +158,18 @@ class ClienteViewModel : ViewModel() {
             if (lg != null) FiadoRepository.productosFlow(lg.localId) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Deuda de cada local guardado — para mostrar en la pantalla de selección
+    val deudasPorLocal: StateFlow<Map<String, Double>> = localesGuardados
+        .flatMapLatest { lista ->
+            if (lista.isEmpty()) return@flatMapLatest flowOf(emptyMap())
+            val flows = lista.map { lg ->
+                FiadoRepository.clienteFlow(lg.clienteId)
+                    .map { cliente -> lg.localId to (cliente?.deudaTotal ?: 0.0) }
+            }
+            combine(flows) { pares -> pares.toMap() }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val localInfo: StateFlow<Local?> = _localSeleccionado
         .flatMapLatest { lg ->

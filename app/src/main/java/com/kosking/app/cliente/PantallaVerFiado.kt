@@ -3,11 +3,12 @@ package com.kosking.app.cliente
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kosking.app.modelo.LocalGuardado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
 import java.text.SimpleDateFormat
@@ -29,54 +31,160 @@ fun PantallaVerFiado(
     onVolver: () -> Unit,
     vm: ClienteViewModel = viewModel()
 ) {
+    val localesGuardados by vm.localesGuardados.collectAsState()
+    val deudasPorLocal by vm.deudasPorLocal.collectAsState()
+
+    // Si hay más de 1 local, mostrar lista primero; si hay exactamente 1, entrar directo
+    var localAbiertoId by remember(localesGuardados) {
+        mutableStateOf(if (localesGuardados.size == 1) localesGuardados.first().localId else null)
+    }
+
+    val localAbierto = localesGuardados.firstOrNull { it.localId == localAbiertoId }
+
+    BackHandler(enabled = localAbierto != null && localesGuardados.size > 1) {
+        localAbiertoId = null
+    }
+
+    if (localAbierto != null) {
+        LaunchedEffect(localAbierto.localId) { vm.seleccionarLocal(localAbierto.localId) }
+        DetalleFiado(
+            local = localAbierto,
+            onVolver = if (localesGuardados.size > 1) ({ localAbiertoId = null }) else onVolver,
+            onQuitarLocal = {
+                vm.quitarLocal(localAbierto.localId)
+                if (localesGuardados.size <= 1) onVolver()
+                else localAbiertoId = null
+            },
+            vm = vm
+        )
+    } else {
+        ListaLocales(
+            locales = localesGuardados,
+            deudasPorLocal = deudasPorLocal,
+            onSeleccionar = { localAbiertoId = it.localId },
+            onQuitarLocal = { vm.quitarLocal(it.localId) },
+            onVolver = onVolver
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ListaLocales(
+    locales: List<LocalGuardado>,
+    deudasPorLocal: Map<String, Double>,
+    onSeleccionar: (LocalGuardado) -> Unit,
+    onQuitarLocal: (LocalGuardado) -> Unit,
+    onVolver: () -> Unit
+) {
+    var localAConfirmarQuitar by remember { mutableStateOf<LocalGuardado?>(null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Mis locales") },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.Default.Close, "Cerrar")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        if (locales.isEmpty()) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("No estás conectado a ningún local",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                item {
+                    Text(
+                        "Tocá un local para ver tu fiado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                items(locales, key = { it.localId }) { local ->
+                    val deuda = deudasPorLocal[local.localId] ?: 0.0
+                    ListItem(
+                        headlineContent = { Text(local.nombreLocal, fontWeight = FontWeight.Medium) },
+                        supportingContent = {
+                            if (deuda > 0)
+                                Text("Debés $${"%.2f".format(deuda)}",
+                                    color = MaterialTheme.colorScheme.error)
+                            else
+                                Text("Sin deuda", color = MaterialTheme.colorScheme.primary)
+                        },
+                        trailingContent = {
+                            TextButton(onClick = { localAConfirmarQuitar = local }) {
+                                Text("Quitar", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        modifier = Modifier.clickable { onSeleccionar(local) }
+                    )
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+
+    localAConfirmarQuitar?.let { local ->
+        AlertDialog(
+            onDismissRequest = { localAConfirmarQuitar = null },
+            title = { Text("Quitar local") },
+            text = { Text("¿Quitar ${local.nombreLocal} de tu lista? Podés volver a conectarte con tu código.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onQuitarLocal(local)
+                    localAConfirmarQuitar = null
+                }) { Text("Quitar", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { localAConfirmarQuitar = null }) { Text("Cancelar") }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetalleFiado(
+    local: LocalGuardado,
+    onVolver: () -> Unit,
+    onQuitarLocal: () -> Unit,
+    vm: ClienteViewModel
+) {
     val movimientos by vm.movimientos.collectAsState()
     val cliente by vm.cliente.collectAsState()
     val productos by vm.productos.collectAsState()
-    val localesGuardados by vm.localesGuardados.collectAsState()
-    val localSeleccionado by vm.localSeleccionado.collectAsState()
     val localInfo by vm.localInfo.collectAsState()
     val productosHabilitados = productos.filter { it.habilitado }
     val context = LocalContext.current
 
     var tabSeleccionado by remember { mutableStateOf(0) }
     var movimientoADisputar by remember { mutableStateOf<Movimiento?>(null) }
+    var confirmarQuitar by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(localSeleccionado?.nombreLocal ?: "Mi fiado") },
+                title = { Text(local.nombreLocal) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(Icons.Default.Close, "Salir")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
                 },
                 actions = {
-                    localSeleccionado?.let { local ->
-                        TextButton(onClick = { vm.quitarLocal(local.localId) }) {
-                            Text("Quitar local", color = MaterialTheme.colorScheme.error)
-                        }
+                    TextButton(onClick = { confirmarQuitar = true }) {
+                        Text("Quitar local", color = MaterialTheme.colorScheme.error)
                     }
                 }
             )
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-
-            // Selector de locales si hay más de uno
-            if (localesGuardados.size > 1) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(localesGuardados, key = { it.localId }) { lg ->
-                        FilterChip(
-                            selected = lg.localId == localSeleccionado?.localId,
-                            onClick = { vm.seleccionarLocal(lg.localId) },
-                            label = { Text(lg.nombreLocal) }
-                        )
-                    }
-                }
-            }
 
             // Banner cuenta pausada
             if (cliente?.habilitado == false) {
@@ -85,23 +193,19 @@ fun PantallaVerFiado(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Cuenta pausada",
+                        Text("Cuenta pausada",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            "El negocio pausó tu cuenta temporalmente. Escribile para saber más.",
+                            color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text("El negocio pausó tu cuenta temporalmente. Escribile para saber más.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                            color = MaterialTheme.colorScheme.onErrorContainer)
                         val telLocal = localInfo?.telefono?.replace(Regex("[^0-9]"), "") ?: ""
                         if (telLocal.isNotBlank()) {
                             Spacer(Modifier.height(8.dp))
                             TextButton(
                                 onClick = {
-                                    val nombre = localSeleccionado?.nombreLocal ?: "el negocio"
+                                    val nombre = local.nombreLocal
                                     val mensaje = "Hola $nombre, me avisaron que mi cuenta en Kosking está pausada."
                                     try {
                                         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -147,16 +251,29 @@ fun PantallaVerFiado(
             }
 
             when (tabSeleccionado) {
-                0 -> TabFiado(
-                    movimientos = movimientos,
-                    onNoReconozco = { movimientoADisputar = it }
-                )
+                0 -> TabFiado(movimientos = movimientos, onNoReconozco = { movimientoADisputar = it })
                 1 -> TabProductosCliente(productosHabilitados)
             }
         }
     }
 
-    // Dialog de disputa
+    if (confirmarQuitar) {
+        AlertDialog(
+            onDismissRequest = { confirmarQuitar = false },
+            title = { Text("Quitar local") },
+            text = { Text("¿Quitar ${local.nombreLocal} de tu lista? Podés volver a conectarte con tu código.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmarQuitar = false
+                    onQuitarLocal()
+                }) { Text("Quitar", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmarQuitar = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     movimientoADisputar?.let { mov ->
         AlertDialog(
             onDismissRequest = { movimientoADisputar = null },
@@ -164,14 +281,12 @@ fun PantallaVerFiado(
             text = {
                 val fmt = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
                 Column {
-                    Text("${mov.producto.ifBlank { if (mov.tipo == "cargo") "Fiado" else "Pago" }}")
+                    Text(mov.producto.ifBlank { if (mov.tipo == "cargo") "Fiado" else "Pago" })
                     Text("$${"%.2f".format(mov.monto)} · ${fmt.format(mov.fecha.toDate())}")
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Se va a marcar como disputa y el dueño del negocio lo va a revisar.",
+                    Text("Se va a marcar como disputa y el dueño del negocio lo va a revisar.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             confirmButton = {

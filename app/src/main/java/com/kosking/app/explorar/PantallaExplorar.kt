@@ -1367,8 +1367,9 @@ private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
             properties = MapProperties()
         ) {
             localesConCoordenadas.forEach { local ->
+                val markerState = remember(local.lat, local.lng) { MarkerState(position = LatLng(local.lat, local.lng)) }
                 Marker(
-                    state = MarkerState(position = LatLng(local.lat, local.lng)),
+                    state = markerState,
                     title = local.nombre,
                     snippet = local.tipo + if (!local.abierto) " · Cerrado" else "",
                     icon = BitmapDescriptorFactory.defaultMarker(
@@ -1896,38 +1897,6 @@ private fun TabMas(
     }
 }
 
-// ── Componentes compartidos ───────────────────────────────────────────────────
-
-@Composable
-private fun FilaLocal(local: Local, onClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
-        ListItem(
-            headlineContent = { Text(local.nombre, fontWeight = FontWeight.Medium) },
-            supportingContent = { if (local.direccion.isNotBlank()) Text(local.direccion) },
-            leadingContent = {
-                Box(modifier = Modifier.size(40.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center) {
-                    Icon(iconParaTipo(local.tipo), null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp))
-                }
-            },
-            trailingContent = {
-                Box(modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                    .background(if (local.abierto) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Text(if (local.abierto) "Abierto" else "Cerrado",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (local.abierto) MaterialTheme.colorScheme.surface
-                                else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        )
-    }
-}
 
 fun iconParaTipo(tipo: String): ImageVector = when (tipo) {
     "Almacén" -> Icons.Default.ShoppingBasket

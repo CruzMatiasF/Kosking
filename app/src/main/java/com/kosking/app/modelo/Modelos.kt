@@ -1,13 +1,16 @@
 package com.kosking.app.modelo
 
+import androidx.compose.runtime.Immutable
 import com.google.firebase.Timestamp
 
+@Immutable
 data class Permisos(
     val anotarFiados: Boolean = true,
     val registrarPagos: Boolean = true,
     val verTotal: Boolean = false
 )
 
+@Immutable
 data class Local(
     val id: String = "",
     val nombre: String = "",
@@ -24,6 +27,7 @@ data class Local(
     val lng: Double = 0.0
 )
 
+@Immutable
 data class Cliente(
     val id: String = "",
     val localId: String = "",
@@ -33,9 +37,11 @@ data class Cliente(
     val pin: String = "",
     val habilitado: Boolean = true,
     val deudaTotal: Double = 0.0,
-    val codigoAcceso: String = ""
+    val codigoAcceso: String = "",
+    val limiteCredito: Double = 0.0
 )
 
+@Immutable
 data class Movimiento(
     val id: String = "",
     val localId: String = "",
@@ -52,6 +58,7 @@ data class Movimiento(
     val disputado: Boolean = false
 )
 
+@Immutable
 data class Empleado(
     val id: String = "",
     val localId: String = "",
@@ -59,6 +66,7 @@ data class Empleado(
     val nombre: String = ""
 )
 
+@Immutable
 data class Producto(
     val id: String = "",
     val localId: String = "",
@@ -71,21 +79,25 @@ data class Producto(
     val imagenUrl: String = ""
 )
 
+@Immutable
 data class LocalGuardado(
     val localId: String = "",
     val clienteId: String = "",
     val nombreLocal: String = ""
 )
 
+@Immutable
 data class Usuario(
     val uid: String = "",
     val nombre: String = "",
     val rol: String = "dueno",
     val localId: String = "",
     val empleadoLocalId: String = "",
-    val empleadoNombreLocal: String = ""
+    val empleadoNombreLocal: String = "",
+    val fcmToken: String = ""
 )
 
+@Immutable
 data class Notificacion(
     val id: String = "",
     val uid: String = "",

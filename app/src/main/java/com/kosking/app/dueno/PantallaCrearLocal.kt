@@ -3,6 +3,9 @@ package com.kosking.app.dueno
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +29,24 @@ fun PantallaCrearLocal(
     var tipo by remember { mutableStateOf("Kiosco") }
     var direccion by remember { mutableStateOf("") }
     var expandirTipo by remember { mutableStateOf(false) }
+
+    var lat by remember { mutableStateOf(0.0) }
+    var lng by remember { mutableStateOf(0.0) }
+    var obteniendoUbicacion by remember { mutableStateOf(false) }
+    var errorUbicacion by remember { mutableStateOf<String?>(null) }
+
+    val lanzarUbicacion = rememberUbicacionLauncher(
+        onUbicacion = { latObt, lngObt ->
+            lat = latObt
+            lng = lngObt
+            obteniendoUbicacion = false
+            errorUbicacion = null
+        },
+        onError = { msg ->
+            errorUbicacion = msg
+            obteniendoUbicacion = false
+        }
+    )
 
     Column(
         modifier = Modifier
@@ -52,7 +73,6 @@ fun PantallaCrearLocal(
 
         Spacer(Modifier.height(12.dp))
 
-        // Selector de tipo
         ExposedDropdownMenuBox(
             expanded = expandirTipo,
             onExpandedChange = { expandirTipo = it }
@@ -88,6 +108,51 @@ fun PantallaCrearLocal(
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(Modifier.height(12.dp))
+
+        // Botón de ubicación GPS
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Ubicación en el mapa", style = MaterialTheme.typography.titleSmall)
+                if (lat != 0.0 && lng != 0.0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.LocationOn, null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp))
+                        Text("%.5f, %.5f".format(lat, lng),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    Text("Opcional — permite que aparezcas en el mapa.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                errorUbicacion?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                OutlinedButton(
+                    onClick = { obteniendoUbicacion = true; lanzarUbicacion() },
+                    enabled = !obteniendoUbicacion,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (obteniendoUbicacion) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Obteniendo...")
+                    } else {
+                        Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (lat != 0.0) "Ubicación obtenida ✓" else "Usar mi ubicación")
+                    }
+                }
+            }
+        }
+
         error?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, color = MaterialTheme.colorScheme.error,
@@ -97,7 +162,7 @@ fun PantallaCrearLocal(
         Spacer(Modifier.height(32.dp))
 
         Button(
-            onClick = { vm.crearLocal(nombre, tipo, direccion, onLocalCreado) },
+            onClick = { vm.crearLocal(nombre, tipo, direccion, lat, lng, onLocalCreado) },
             enabled = !cargando && nombre.isNotBlank(),
             modifier = Modifier.fillMaxWidth().height(48.dp)
         ) {

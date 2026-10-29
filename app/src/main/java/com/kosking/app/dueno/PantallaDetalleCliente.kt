@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -27,7 +28,7 @@ import androidx.compose.foundation.clickable
 @Composable
 fun PantallaDetalleCliente(
     clienteId: String,
-    onAgregarFiado: () -> Unit,
+    onAgregarFiado: (tipo: String) -> Unit,
     onVolver: () -> Unit,
     vm: DuenoViewModel = viewModel()
 ) {
@@ -38,6 +39,8 @@ fun PantallaDetalleCliente(
     val cliente = clientes.find { it.id == clienteId }
     val error by vm.error.collectAsState()
     val cargando by vm.cargando.collectAsState()
+    val nombreLocal by vm.nombreLocal.collectAsState()
+    val nombreUsuario by vm.nombreUsuario.collectAsState()
 
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
 
@@ -77,7 +80,17 @@ fun PantallaDetalleCliente(
         topBar = {
             TopAppBar(
                 title = { Text(cliente?.nombre ?: "") },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    }
+                },
                 actions = {
+                    if (cliente != null) {
+                        IconButton(onClick = { onAgregarFiado("pago") }) {
+                            Icon(Icons.Default.AttachMoney, "Cobrar")
+                        }
+                    }
                     if (movimientos.isEmpty() && cliente != null) {
                         IconButton(onClick = { mostrarConfirmarEliminar = true }) {
                             Icon(Icons.Default.Delete, "Eliminar cliente",
@@ -88,8 +101,8 @@ fun PantallaDetalleCliente(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAgregarFiado) {
-                Icon(Icons.Default.Add, "Agregar movimiento")
+            FloatingActionButton(onClick = { onAgregarFiado("cargo") }) {
+                Icon(Icons.Default.Add, "Anotar fiado")
             }
         }
     ) { padding ->
@@ -106,7 +119,7 @@ fun PantallaDetalleCliente(
                 }
             } else {
                 items(movimientos) { mov ->
-                    ItemMovimiento(mov)
+                    ItemMovimiento(mov, nombreLocal, nombreUsuario)
                     HorizontalDivider()
                 }
             }
@@ -187,14 +200,22 @@ private fun ResumenCliente(cliente: Cliente, vm: DuenoViewModel) {
 }
 
 @Composable
-private fun ItemMovimiento(mov: Movimiento) {
+private fun ItemMovimiento(mov: Movimiento, nombreLocal: String = "", nombreUsuario: String = "") {
     val fmt = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
     val esCargo = mov.tipo == "cargo"
+    val quienAnoto = run {
+        val n = mov.anotadoPorNombre.trim()
+        when {
+            n.isBlank() -> nombreUsuario.ifBlank { "Vos" }
+            n.equals(nombreLocal, ignoreCase = true) -> nombreUsuario.ifBlank { "Vos" }
+            else -> n
+        }
+    }
 
     ListItem(
         headlineContent = { Text(mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" }) },
         supportingContent = {
-            Text("${mov.anotadoPorNombre} · ${fmt.format(mov.fecha.toDate())}")
+            Text("$quienAnoto · ${fmt.format(mov.fecha.toDate())}")
         },
         trailingContent = {
             Text(

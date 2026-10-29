@@ -37,6 +37,15 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.kosking.app.cliente.ClienteViewModel
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.PanelDuenoEmbedido
@@ -57,7 +66,7 @@ private sealed class VistaDueno {
     object Panel : VistaDueno()
     object AgregarCliente : VistaDueno()
     data class DetalleCliente(val id: String) : VistaDueno()
-    data class AgregarFiado(val clienteId: String) : VistaDueno()
+    data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo") : VistaDueno()
     data class DetalleMovimiento(val id: String) : VistaDueno()
 }
 
@@ -71,6 +80,10 @@ fun PantallaExplorar(
     onVerMisLocales: () -> Unit,
     onIniciarSesion: () -> Unit,
     onCerrarSesionCuenta: () -> Unit,
+    onConfiguracion: () -> Unit = {},
+    onNotificaciones: () -> Unit = {},
+    onAcercaDe: () -> Unit = {},
+    onHistorial: () -> Unit = {},
     estaLogueado: Boolean,
     nombreUsuario: String,
     emailUsuario: String,
@@ -80,6 +93,7 @@ fun PantallaExplorar(
     duenoVm: DuenoViewModel,
     mostrarPanelDueno: Boolean,
     onCerrarPanelDueno: () -> Unit,
+    tabInicialDueno: Int = 0,
     vm: ExplorarViewModel = viewModel()
 ) {
     val locales by vm.locales.collectAsState()
@@ -100,6 +114,7 @@ fun PantallaExplorar(
     var tabActual by rememberSaveable { mutableStateOf(TabExplorar.INICIO) }
     val tabHistory = remember { mutableStateListOf<TabExplorar>() }
     var vistaDueno by remember { mutableStateOf<VistaDueno>(VistaDueno.Panel) }
+    var tabPanelDueno by remember { mutableStateOf(0) }
     var mostrarPerfil by remember { mutableStateOf(false) }
     // Controla si el panel se muestra dentro del tab Más.
     // Se activa solo cuando mostrarPanelDueno se vuelve true (navegación explícita).
@@ -114,6 +129,7 @@ fun PantallaExplorar(
                 tabActual = TabExplorar.MAS
             }
             vistaDueno = VistaDueno.Panel
+            tabPanelDueno = tabInicialDueno
             panelActivoEnMas = true
         } else {
             panelActivoEnMas = false
@@ -510,9 +526,11 @@ fun PantallaExplorar(
                     when (val vista = vistaDueno) {
                         is VistaDueno.Panel -> PanelDuenoEmbedido(
                             vm = duenoVm,
+                            tabSeleccionado = tabPanelDueno,
+                            onTabChange = { tabPanelDueno = it },
                             onAbrirAgregarCliente = { vistaDueno = VistaDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = VistaDueno.DetalleCliente(it) },
-                            onAbrirAgregarFiado = { clienteId -> vistaDueno = VistaDueno.AgregarFiado(clienteId) },
+                            onAbrirAgregarFiado = { clienteId, tipo -> vistaDueno = VistaDueno.AgregarFiado(clienteId, tipo) },
                             onAbrirDetalleMovimiento = { vistaDueno = VistaDueno.DetalleMovimiento(it) }
                         )
                         is VistaDueno.AgregarCliente -> PantallaAgregarCliente(
@@ -521,7 +539,7 @@ fun PantallaExplorar(
                         )
                         is VistaDueno.DetalleCliente -> PantallaDetalleCliente(
                             clienteId = vista.id,
-                            onAgregarFiado = { vistaDueno = VistaDueno.AgregarFiado(vista.id) },
+                            onAgregarFiado = { tipo -> vistaDueno = VistaDueno.AgregarFiado(vista.id, tipo) },
                             onVolver = { vistaDueno = VistaDueno.Panel },
                             vm = duenoVm
                         )
@@ -529,7 +547,8 @@ fun PantallaExplorar(
                             clienteId = vista.clienteId,
                             onGuardado = { vistaDueno = VistaDueno.DetalleCliente(vista.clienteId) },
                             onVolver = { vistaDueno = VistaDueno.DetalleCliente(vista.clienteId) },
-                            vm = duenoVm
+                            vm = duenoVm,
+                            tipoInicial = vista.tipoInicial
                         )
                         is VistaDueno.DetalleMovimiento -> PantallaDetalleMovimiento(
                             movimientoId = vista.id,
@@ -550,7 +569,11 @@ fun PantallaExplorar(
                         onSoyEmpleado = onSoyEmpleado,
                         onVerMiFiado = onVerMisLocales,
                         onConfigurarPerfil = onConfigurarPerfil,
-                        onConectarmeComoCliente = { mostrarDialogConectarCliente = true }
+                        onConectarmeComoCliente = { mostrarDialogConectarCliente = true },
+                        onConfiguracion = onConfiguracion,
+                        onNotificaciones = onNotificaciones,
+                        onAcercaDe = onAcercaDe,
+                        onHistorial = onHistorial
                     )
                 }
             }
@@ -569,7 +592,7 @@ fun PantallaExplorar(
 }
 
 @Composable
-private fun DialogConectarComoCliente(
+fun DialogConectarComoCliente(
     clienteVm: ClienteViewModel,
     onExito: () -> Unit,
     onDismiss: () -> Unit
@@ -991,12 +1014,27 @@ private fun CardOferta(
     ) {
         Column {
             Box(
-                modifier = Modifier.fillMaxWidth().height(80.dp),
+                modifier = Modifier.fillMaxWidth().height(90.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.ShoppingBag, null,
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (producto.imagenUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = producto.imagenUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.ShoppingBag, null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 if (descuento > 0) {
                     Box(
                         modifier = Modifier.align(Alignment.TopStart)
@@ -1307,63 +1345,125 @@ private fun TabFavoritos(
 
 @Composable
 private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
-    val abiertos = remember(locales) { locales.filter { it.abierto } }
-    val cerrados = remember(locales) { locales.filter { !it.abierto } }
+    val localesConCoordenadas = remember(locales) { locales.filter { it.lat != 0.0 && it.lng != 0.0 } }
+    var localSeleccionado by remember { mutableStateOf<Local?>(null) }
 
-    LazyColumn(modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Centro inicial: si hay locales con coords usar el primero, si no Argentina
+    val centroInicial = remember(localesConCoordenadas) {
+        if (localesConCoordenadas.isNotEmpty())
+            LatLng(localesConCoordenadas.first().lat, localesConCoordenadas.first().lng)
+        else LatLng(-34.6037, -58.3816) // Buenos Aires
+    }
 
-        item {
-            // Placeholder mapa
+    val camaraState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(centroInicial, if (localesConCoordenadas.size == 1) 15f else 11f)
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = camaraState,
+            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+            properties = MapProperties()
+        ) {
+            localesConCoordenadas.forEach { local ->
+                Marker(
+                    state = MarkerState(position = LatLng(local.lat, local.lng)),
+                    title = local.nombre,
+                    snippet = local.tipo + if (!local.abierto) " · Cerrado" else "",
+                    icon = BitmapDescriptorFactory.defaultMarker(
+                        if (local.abierto) BitmapDescriptorFactory.HUE_GREEN
+                        else BitmapDescriptorFactory.HUE_RED
+                    ),
+                    onClick = { localSeleccionado = local; false }
+                )
+            }
+        }
+
+        // Panel inferior cuando se selecciona un marcador
+        localSeleccionado?.let { local ->
             Box(
-                modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+                    .fillMaxWidth()
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Map, null,
-                        modifier = Modifier.size(48.dp),
+                Card(
+                    onClick = { onVerLocal(local.id) },
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    ListItem(
+                        headlineContent = { Text(local.nombre, fontWeight = FontWeight.SemiBold) },
+                        supportingContent = {
+                            Text(
+                                buildString {
+                                    append(local.tipo)
+                                    if (local.direccion.isNotBlank()) append(" · ${local.direccion}")
+                                }
+                            )
+                        },
+                        leadingContent = {
+                            Box(
+                                modifier = Modifier.size(40.dp).clip(CircleShape)
+                                    .background(
+                                        if (local.abierto) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(iconParaTipo(local.tipo), null,
+                                    tint = if (local.abierto) MaterialTheme.colorScheme.primary
+                                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp))
+                            }
+                        },
+                        trailingContent = {
+                            Column(horizontalAlignment = Alignment.End) {
+                                Badge(
+                                    containerColor = if (local.abierto) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Text(if (local.abierto) "Abierto" else "Cerrado",
+                                        color = if (local.abierto) MaterialTheme.colorScheme.onPrimary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Icon(Icons.Default.ChevronRight, null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    )
+                }
+                IconButton(
+                    onClick = { localSeleccionado = null },
+                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp)
+                ) {
+                    Icon(Icons.Default.Close, "Cerrar",
+                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Mapa próximamente",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
 
-        if (abiertos.isNotEmpty()) {
-            item {
-                Text("Abiertos ahora (${abiertos.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold)
-            }
-            items(abiertos, key = { it.id }) { local ->
-                FilaLocal(local = local, onClick = { onVerLocal(local.id) })
-            }
-        }
-
-        if (cerrados.isNotEmpty()) {
-            item {
-                Spacer(Modifier.height(4.dp))
-                Text("Cerrados (${cerrados.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            items(cerrados, key = { it.id }) { local ->
-                FilaLocal(local = local, onClick = { onVerLocal(local.id) })
-            }
-        }
-
-        if (locales.isEmpty()) {
-            item {
-                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center) {
-                    Text("No hay locales registrados",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Aviso si no hay locales con coordenadas
+        if (localesConCoordenadas.isEmpty() && locales.isNotEmpty()) {
+            Card(
+                modifier = Modifier.align(Alignment.TopCenter).padding(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Info, null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Ningún local cargó su ubicación todavía",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -1443,7 +1543,11 @@ private fun TabMas(
     onSoyEmpleado: () -> Unit,
     onVerMiFiado: () -> Unit,
     onConfigurarPerfil: () -> Unit,
-    onConectarmeComoCliente: () -> Unit = {}
+    onConectarmeComoCliente: () -> Unit = {},
+    onConfiguracion: () -> Unit = {},
+    onNotificaciones: () -> Unit = {},
+    onAcercaDe: () -> Unit = {},
+    onHistorial: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1562,7 +1666,7 @@ private fun TabMas(
                 }
             }
 
-            // Conectar con un local (siempre visible si está logueado)
+            // Fiado: una sola entrada que adapta su acción según si ya tiene locales
             item {
                 Text(
                     "Mi fiado",
@@ -1570,25 +1674,20 @@ private fun TabMas(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        if (tieneLocalesFiado) {
-                            ListItem(
-                                headlineContent = { Text("Ver mi fiado", fontWeight = FontWeight.Medium) },
-                                supportingContent = { Text("Revisá lo que debés en tus locales guardados") },
-                                leadingContent = { Icon(Icons.Default.Receipt, null, tint = MaterialTheme.colorScheme.primary) },
-                                trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                                modifier = Modifier.clickable(onClick = onVerMiFiado)
+                    ListItem(
+                        headlineContent = { Text("Ver mi fiado", fontWeight = FontWeight.Medium) },
+                        supportingContent = {
+                            Text(
+                                if (tieneLocalesFiado) "Revisá lo que debés en tus locales guardados"
+                                else "Conectate a un local para ver tu fiado"
                             )
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        }
-                        ListItem(
-                            headlineContent = { Text("Tengo cuenta en un local", fontWeight = FontWeight.Medium) },
-                            supportingContent = { Text("Ingresá el código del local y tu PIN") },
-                            leadingContent = { Icon(Icons.Default.AddCard, null, tint = MaterialTheme.colorScheme.secondary) },
-                            trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                            modifier = Modifier.clickable(onClick = onConectarmeComoCliente)
+                        },
+                        leadingContent = { Icon(Icons.Default.Receipt, null, tint = MaterialTheme.colorScheme.primary) },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, null) },
+                        modifier = Modifier.clickable(
+                            onClick = if (tieneLocalesFiado) onVerMiFiado else onConectarmeComoCliente
                         )
-                    }
+                    )
                 }
             }
 
@@ -1689,7 +1788,7 @@ private fun TabMas(
                             supportingContent = { Text("Avisos de tus locales y novedades") },
                             leadingContent = { Icon(Icons.Default.Notifications, null, tint = MaterialTheme.colorScheme.primary) },
                             trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                            modifier = Modifier.clickable { /* TODO */ }
+                            modifier = Modifier.clickable(onClick = onNotificaciones)
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         ListItem(
@@ -1697,7 +1796,7 @@ private fun TabMas(
                             supportingContent = { Text("Lo que viste y visitaste últimamente") },
                             leadingContent = { Icon(Icons.Default.History, null, tint = MaterialTheme.colorScheme.primary) },
                             trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                            modifier = Modifier.clickable { /* TODO */ }
+                            modifier = Modifier.clickable(onClick = onHistorial)
                         )
                     }
                 }
@@ -1772,7 +1871,7 @@ private fun TabMas(
                         supportingContent = { Text("Preferencias de la aplicación") },
                         leadingContent = { Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                        modifier = Modifier.clickable { /* TODO */ }
+                        modifier = Modifier.clickable(onClick = onConfiguracion)
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     ListItem(
@@ -1780,7 +1879,7 @@ private fun TabMas(
                         supportingContent = { Text("Versión, información y contacto") },
                         leadingContent = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                        modifier = Modifier.clickable { /* TODO */ }
+                        modifier = Modifier.clickable(onClick = onAcercaDe)
                     )
                 }
             }

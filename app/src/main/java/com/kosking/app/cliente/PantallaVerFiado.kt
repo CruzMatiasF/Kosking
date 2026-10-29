@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,10 +18,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kosking.app.explorar.DialogConectarComoCliente
 import com.kosking.app.modelo.LocalGuardado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
 import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,14 +36,12 @@ fun PantallaVerFiado(
     val localesGuardados by vm.localesGuardados.collectAsState()
     val deudasPorLocal by vm.deudasPorLocal.collectAsState()
 
-    // Si hay más de 1 local, mostrar lista primero; si hay exactamente 1, entrar directo
-    var localAbiertoId by remember(localesGuardados) {
-        mutableStateOf(if (localesGuardados.size == 1) localesGuardados.first().localId else null)
-    }
+    var localAbiertoId by remember { mutableStateOf<String?>(null) }
+    var mostrarDialogConectar by remember { mutableStateOf(false) }
 
     val localAbierto = localesGuardados.firstOrNull { it.localId == localAbiertoId }
 
-    BackHandler(enabled = localAbierto != null && localesGuardados.size > 1) {
+    BackHandler(enabled = localAbierto != null) {
         localAbiertoId = null
     }
 
@@ -49,12 +49,7 @@ fun PantallaVerFiado(
         LaunchedEffect(localAbierto.localId) { vm.seleccionarLocal(localAbierto.localId) }
         DetalleFiado(
             local = localAbierto,
-            onVolver = if (localesGuardados.size > 1) ({ localAbiertoId = null }) else onVolver,
-            onQuitarLocal = {
-                vm.quitarLocal(localAbierto.localId)
-                if (localesGuardados.size <= 1) onVolver()
-                else localAbiertoId = null
-            },
+            onVolver = { localAbiertoId = null },
             vm = vm
         )
     } else {
@@ -63,7 +58,16 @@ fun PantallaVerFiado(
             deudasPorLocal = deudasPorLocal,
             onSeleccionar = { localAbiertoId = it.localId },
             onQuitarLocal = { vm.quitarLocal(it.localId) },
-            onVolver = onVolver
+            onVolver = onVolver,
+            onConectarme = { mostrarDialogConectar = true }
+        )
+    }
+
+    if (mostrarDialogConectar) {
+        DialogConectarComoCliente(
+            clienteVm = vm,
+            onExito = { mostrarDialogConectar = false },
+            onDismiss = { mostrarDialogConectar = false }
         )
     }
 }
@@ -75,56 +79,73 @@ private fun ListaLocales(
     deudasPorLocal: Map<String, Double>,
     onSeleccionar: (LocalGuardado) -> Unit,
     onQuitarLocal: (LocalGuardado) -> Unit,
-    onVolver: () -> Unit
+    onVolver: () -> Unit,
+    onConectarme: () -> Unit
 ) {
     var localAConfirmarQuitar by remember { mutableStateOf<LocalGuardado?>(null) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Mis locales") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.Default.Close, "Cerrar")
-                    }
-                }
-            )
+            TopAppBar(title = { Text("Ver mi fiado") })
         }
     ) { padding ->
-        if (locales.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("No estás conectado a ningún local",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            if (locales.isEmpty()) {
+                item {
+                    Box(
+                        Modifier.fillParentMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                "No estás conectado a ningún local",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "Pedile el código al dueño del local para conectarte",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(onClick = onConectarme) {
+                                Text("Conectarme a un local")
+                            }
+                        }
+                    }
+                }
+            } else {
                 item {
                     Text(
-                        "Tocá un local para ver tu fiado",
+                        "Tocá un local para ver tus movimientos",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
                 items(locales, key = { it.localId }) { local ->
                     val deuda = deudasPorLocal[local.localId] ?: 0.0
-                    ListItem(
-                        headlineContent = { Text(local.nombreLocal, fontWeight = FontWeight.Medium) },
-                        supportingContent = {
-                            if (deuda > 0)
-                                Text("Debés $${"%.2f".format(deuda)}",
-                                    color = MaterialTheme.colorScheme.error)
-                            else
-                                Text("Sin deuda", color = MaterialTheme.colorScheme.primary)
-                        },
-                        trailingContent = {
-                            TextButton(onClick = { localAConfirmarQuitar = local }) {
-                                Text("Quitar", color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        modifier = Modifier.clickable { onSeleccionar(local) }
+                    TarjetaLocal(
+                        local = local,
+                        deuda = deuda,
+                        onClick = { onSeleccionar(local) },
+                        onDesvincularse = { localAConfirmarQuitar = local }
                     )
-                    HorizontalDivider()
+                }
+                item {
+                    OutlinedButton(
+                        onClick = onConectarme,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text("Conectarme a otro local")
+                    }
                 }
             }
         }
@@ -133,13 +154,13 @@ private fun ListaLocales(
     localAConfirmarQuitar?.let { local ->
         AlertDialog(
             onDismissRequest = { localAConfirmarQuitar = null },
-            title = { Text("Quitar local") },
-            text = { Text("¿Quitar ${local.nombreLocal} de tu lista? Podés volver a conectarte con tu código.") },
+            title = { Text("Desvincularse del local") },
+            text = { Text("¿Querés desvincularte de ${local.nombreLocal}? Podés volver a conectarte con tu código cuando quieras.") },
             confirmButton = {
                 TextButton(onClick = {
                     onQuitarLocal(local)
                     localAConfirmarQuitar = null
-                }) { Text("Quitar", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Desvincularse", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { localAConfirmarQuitar = null }) { Text("Cancelar") }
@@ -148,12 +169,105 @@ private fun ListaLocales(
     }
 }
 
+@Composable
+private fun TarjetaLocal(
+    local: LocalGuardado,
+    deuda: Double,
+    onClick: () -> Unit,
+    onDesvincularse: () -> Unit
+) {
+    val tieneDeuda = deuda > 0
+    val colorContenedor = if (tieneDeuda)
+        MaterialTheme.colorScheme.errorContainer
+    else
+        MaterialTheme.colorScheme.primaryContainer
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Avatar con inicial
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = colorContenedor,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            local.nombreLocal.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (tieneDeuda)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        local.nombreLocal,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    if (tieneDeuda) {
+                        Text(
+                            "$${"%.0f".format(deuda)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            "debés",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            "Al día",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
+            TextButton(
+                onClick = onDesvincularse,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    "Desvincularse",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DetalleFiado(
     local: LocalGuardado,
     onVolver: () -> Unit,
-    onQuitarLocal: () -> Unit,
     vm: ClienteViewModel
 ) {
     val movimientos by vm.movimientos.collectAsState()
@@ -162,23 +276,34 @@ private fun DetalleFiado(
     val localInfo by vm.localInfo.collectAsState()
     val productosHabilitados = productos.filter { it.habilitado }
     val context = LocalContext.current
+    val deuda = cliente?.deudaTotal ?: 0.0
+    val tieneDeuda = deuda > 0
 
     var tabSeleccionado by remember { mutableStateOf(0) }
     var movimientoADisputar by remember { mutableStateOf<Movimiento?>(null) }
-    var confirmarQuitar by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(local.nombreLocal) },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                },
-                actions = {
-                    TextButton(onClick = { confirmarQuitar = true }) {
-                        Text("Quitar local", color = MaterialTheme.colorScheme.error)
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = if (tieneDeuda) MaterialTheme.colorScheme.errorContainer
+                                    else MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    local.nombreLocal.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (tieneDeuda) MaterialTheme.colorScheme.onErrorContainer
+                                            else MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                        Text(local.nombreLocal)
                     }
                 }
             )
@@ -189,29 +314,31 @@ private fun DetalleFiado(
             // Banner cuenta pausada
             if (cliente?.habilitado == false) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Cuenta pausada",
+                        Text(
+                            "Cuenta pausada",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onErrorContainer)
-                        Text("El negocio pausó tu cuenta temporalmente. Escribile para saber más.",
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            "El negocio pausó tu cuenta temporalmente. Escribile para saber más.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer)
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
                         val telLocal = localInfo?.telefono?.replace(Regex("[^0-9]"), "") ?: ""
                         if (telLocal.isNotBlank()) {
                             Spacer(Modifier.height(8.dp))
                             TextButton(
                                 onClick = {
-                                    val nombre = local.nombreLocal
-                                    val mensaje = "Hola $nombre, me avisaron que mi cuenta en Kosking está pausada."
+                                    val mensaje = "Hola ${local.nombreLocal}, me avisaron que mi cuenta en Kosking está pausada."
                                     try {
-                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW).apply {
                                             data = Uri.parse("https://wa.me/$telLocal?text=${Uri.encode(mensaje)}")
-                                        }
-                                        context.startActivity(intent)
+                                        })
                                     } catch (_: Exception) {}
                                 },
                                 contentPadding = PaddingValues(0.dp)
@@ -225,53 +352,59 @@ private fun DetalleFiado(
             }
 
             // Resumen deuda
-            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Deuda total", style = MaterialTheme.typography.bodyMedium)
-                    val deuda = cliente?.deudaTotal ?: 0.0
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
                     Text(
-                        "$${"%.2f".format(deuda)}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (deuda > 0) MaterialTheme.colorScheme.error
+                        "lo que debés",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "$${"%.0f".format(deuda)}",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = if (tieneDeuda) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.primary
                     )
                 }
+                if (!tieneDeuda) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            "estás al día ✓",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                }
             }
+
+            HorizontalDivider()
 
             if (productosHabilitados.isNotEmpty()) {
                 TabRow(selectedTabIndex = tabSeleccionado) {
                     Tab(selected = tabSeleccionado == 0, onClick = { tabSeleccionado = 0 }) {
-                        Text("Mi fiado", modifier = Modifier.padding(vertical = 12.dp))
+                        Text("Movimientos", modifier = Modifier.padding(vertical = 12.dp))
                     }
                     Tab(selected = tabSeleccionado == 1, onClick = { tabSeleccionado = 1 }) {
-                        Text("Precios del negocio", modifier = Modifier.padding(vertical = 12.dp))
+                        Text("Precios", modifier = Modifier.padding(vertical = 12.dp))
                     }
                 }
             }
 
             when (tabSeleccionado) {
-                0 -> TabFiado(movimientos = movimientos, onNoReconozco = { movimientoADisputar = it })
+                0 -> TabMovimientos(movimientos = movimientos, onNoReconozco = { movimientoADisputar = it })
                 1 -> TabProductosCliente(productosHabilitados)
             }
         }
-    }
-
-    if (confirmarQuitar) {
-        AlertDialog(
-            onDismissRequest = { confirmarQuitar = false },
-            title = { Text("Quitar local") },
-            text = { Text("¿Quitar ${local.nombreLocal} de tu lista? Podés volver a conectarte con tu código.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmarQuitar = false
-                    onQuitarLocal()
-                }) { Text("Quitar", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmarQuitar = false }) { Text("Cancelar") }
-            }
-        )
     }
 
     movimientoADisputar?.let { mov ->
@@ -284,9 +417,11 @@ private fun DetalleFiado(
                     Text(mov.producto.ifBlank { if (mov.tipo == "cargo") "Fiado" else "Pago" })
                     Text("$${"%.2f".format(mov.monto)} · ${fmt.format(mov.fecha.toDate())}")
                     Spacer(Modifier.height(8.dp))
-                    Text("Se va a marcar como disputa y el dueño del negocio lo va a revisar.",
+                    Text(
+                        "Se va a marcar como disputa y el dueño del negocio lo va a revisar.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             },
             confirmButton = {
@@ -302,24 +437,66 @@ private fun DetalleFiado(
     }
 }
 
+private fun agruparPorDia(movimientos: List<Movimiento>): List<Pair<String, List<Movimiento>>> {
+    val hoy = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val ayer = hoy - 86_400_000L
+    val fmt = SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
+
+    return movimientos
+        .groupBy { mov ->
+            val t = mov.fecha.toDate().time
+            when {
+                t >= hoy -> "Hoy"
+                t >= ayer -> "Ayer"
+                else -> fmt.format(Date(t)).replaceFirstChar { it.uppercase() }
+            }
+        }
+        .entries
+        .map { it.key to it.value }
+}
+
 @Composable
-private fun TabFiado(
+private fun TabMovimientos(
     movimientos: List<Movimiento>,
     onNoReconozco: (Movimiento) -> Unit
 ) {
+    if (movimientos.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text("Sin movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Cuando el negocio anote algo vas a verlo acá",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    val grupos = remember(movimientos) { agruparPorDia(movimientos) }
+
     LazyColumn {
-        if (movimientos.isEmpty()) {
-            item {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Sin movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        grupos.forEach { (label, movs) ->
+            item(key = "header_$label") {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                )
             }
-        } else {
-            items(movimientos, key = { it.id }) { mov ->
+            items(movs, key = { it.id }) { mov ->
                 ItemMovimientoCliente(mov = mov, onNoReconozco = { onNoReconozco(mov) })
-                HorizontalDivider()
+                HorizontalDivider(modifier = Modifier.padding(start = 68.dp))
             }
         }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -341,12 +518,27 @@ private fun TabProductosCliente(productos: List<Producto>) {
                     if (prod.descripcion.isNotBlank()) Text(prod.descripcion)
                 },
                 trailingContent = {
-                    Text(
-                        "$${"%.2f".format(prod.precio)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (prod.esOferta && prod.precioAnterior > 0) {
+                            Text(
+                                "$${"%.0f".format(prod.precioAnterior)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                            )
+                        }
+                        Text(
+                            "$${"%.0f".format(prod.precio)}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (prod.esOferta) {
+                            Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                                Text("Oferta", color = MaterialTheme.colorScheme.onTertiaryContainer)
+                            }
+                        }
+                    }
                 }
             )
             HorizontalDivider()
@@ -356,15 +548,40 @@ private fun TabProductosCliente(productos: List<Producto>) {
 
 @Composable
 private fun ItemMovimientoCliente(mov: Movimiento, onNoReconozco: () -> Unit) {
-    val fmt = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
+    val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
     val esCargo = mov.tipo == "cargo"
 
-    ListItem(
-        headlineContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Ícono
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = if (esCargo) MaterialTheme.colorScheme.errorContainer
+                    else MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    if (esCargo) "↑" else "↓",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (esCargo) MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+
+        // Info
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" },
-                    modifier = Modifier.weight(1f)
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (mov.anulado) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface
                 )
                 if (mov.anulado) {
                     Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
@@ -376,33 +593,36 @@ private fun ItemMovimientoCliente(mov: Movimiento, onNoReconozco: () -> Unit) {
                     }
                 }
             }
-        },
-        supportingContent = {
-            Column {
-                Text(fmt.format(mov.fecha.toDate()))
-                if (!mov.anulado && !mov.disputado && esCargo) {
-                    TextButton(
-                        onClick = onNoReconozco,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.height(24.dp)
-                    ) {
-                        Text(
-                            "No lo reconozco",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
+            Text(
+                "por ${mov.anotadoPorNombre} · ${fmt.format(mov.fecha.toDate())}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!mov.anulado && !mov.disputado && esCargo) {
+                TextButton(
+                    onClick = onNoReconozco,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.height(24.dp)
+                ) {
+                    Text(
+                        "No lo reconozco",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
-        },
-        trailingContent = {
-            Text(
-                "${if (esCargo) "+" else "-"}${"%.2f".format(mov.monto)}",
-                color = if (mov.anulado) MaterialTheme.colorScheme.onSurfaceVariant
-                        else if (esCargo) MaterialTheme.colorScheme.error
-                        else Color(0xFF2E7D32),
-                fontWeight = if (mov.anulado) FontWeight.Normal else FontWeight.Medium
-            )
         }
-    )
+
+        // Monto
+        Text(
+            "${if (esCargo) "+" else "−"}$${"%.0f".format(mov.monto)}",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = when {
+                mov.anulado -> MaterialTheme.colorScheme.onSurfaceVariant
+                esCargo -> MaterialTheme.colorScheme.error
+                else -> Color(0xFF2E7D32)
+            }
+        )
+    }
 }

@@ -20,7 +20,8 @@ fun PantallaAgregarFiado(
     clienteId: String,
     onGuardado: () -> Unit,
     onVolver: () -> Unit,
-    vm: DuenoViewModel
+    vm: DuenoViewModel,
+    tipoInicial: String = "cargo"
 ) {
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
@@ -30,7 +31,7 @@ fun PantallaAgregarFiado(
 
     var productoSeleccionado by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
-    var tipo by remember { mutableStateOf("cargo") }
+    var tipo by remember { mutableStateOf(tipoInicial) }
 
     val montoDouble = monto.toDoubleOrNull() ?: 0.0
     val deudaFinal = if (tipo == "cargo") deudaActual + montoDouble else deudaActual - montoDouble
@@ -143,6 +144,8 @@ fun PantallaAgregarFiadoConLambda(
     cargando: Boolean = false,
     error: String? = null,
     deudaActual: Double = 0.0,
+    limiteCredito: Double = 0.0,
+    nombreCliente: String = "",
     nombreEmpleado: String = ""
 ) {
     var productoSeleccionado by remember { mutableStateOf("") }
@@ -211,6 +214,47 @@ fun PantallaAgregarFiadoConLambda(
 
             Spacer(Modifier.weight(1f))
 
+            // Header con info del cliente
+            if (nombreCliente.isNotBlank() || deudaActual > 0) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (nombreCliente.isNotBlank()) {
+                            Text(nombreCliente, style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold)
+                        }
+                        Text(
+                            "Deuda actual: $${"%.2f".format(deudaActual)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (limiteCredito > 0) {
+                            val porcentaje = (deudaActual / limiteCredito).toFloat().coerceIn(0f, 1f)
+                            val colorBarra = when {
+                                deudaActual > limiteCredito -> MaterialTheme.colorScheme.error
+                                porcentaje >= 0.8f -> androidx.compose.ui.graphics.Color(0xFFE65100)
+                                else -> MaterialTheme.colorScheme.primary
+                            }
+                            LinearProgressIndicator(
+                                progress = { porcentaje },
+                                modifier = Modifier.fillMaxWidth().height(4.dp),
+                                color = colorBarra,
+                                trackColor = MaterialTheme.colorScheme.surface
+                            )
+                            Text(
+                                "Límite: $${"%.0f".format(limiteCredito)}" +
+                                    if (deudaActual > limiteCredito) " · EXCEDIDO" else " · ${"%.0f".format(porcentaje * 100)}% usado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (deudaActual > limiteCredito) MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             if (montoDouble > 0) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -225,6 +269,12 @@ fun PantallaAgregarFiadoConLambda(
                                 color = if (deudaFinal > 0) MaterialTheme.colorScheme.error
                                         else MaterialTheme.colorScheme.primary
                             )
+                        }
+                        if (limiteCredito > 0 && tipo == "cargo" && deudaFinal > limiteCredito) {
+                            Spacer(Modifier.height(4.dp))
+                            Text("⚠ Va a superar el límite de crédito",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error)
                         }
                         if (nombreEmpleado.isNotBlank()) {
                             Spacer(Modifier.height(6.dp))

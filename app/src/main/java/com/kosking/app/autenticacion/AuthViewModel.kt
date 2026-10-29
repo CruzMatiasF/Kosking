@@ -3,6 +3,7 @@ package com.kosking.app.autenticacion
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Usuario
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +22,9 @@ class AuthViewModel : ViewModel() {
             cargando.value = true
             error.value = null
             try {
-                auth.signInWithEmailAndPassword(email, password).await()
+                val result = auth.signInWithEmailAndPassword(email, password).await()
+                val uid = result.user?.uid
+                if (uid != null) guardarTokenFcm(uid)
                 onExito()
             } catch (e: Exception) {
                 error.value = "Email o contraseña incorrectos"
@@ -40,6 +43,7 @@ class AuthViewModel : ViewModel() {
                 val uid = result.user?.uid ?: return@launch
                 val usuario = Usuario(uid = uid, nombre = nombre, rol = "dueno")
                 FiadoRepository.guardarUsuario(usuario)
+                guardarTokenFcm(uid)
                 onExito()
             } catch (e: Exception) {
                 error.value = "No se pudo crear la cuenta"
@@ -47,5 +51,12 @@ class AuthViewModel : ViewModel() {
                 cargando.value = false
             }
         }
+    }
+
+    private suspend fun guardarTokenFcm(uid: String) {
+        try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            FiadoRepository.guardarFcmToken(uid, token)
+        } catch (_: Exception) {}
     }
 }

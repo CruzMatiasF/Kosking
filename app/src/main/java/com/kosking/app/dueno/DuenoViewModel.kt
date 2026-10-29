@@ -1,5 +1,6 @@
 package com.kosking.app.dueno
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -10,15 +11,19 @@ import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import java.util.Calendar
 
 class DuenoViewModel : ViewModel() {
 
@@ -34,10 +39,14 @@ class DuenoViewModel : ViewModel() {
     private val _nombreLocal = MutableStateFlow("")
     val nombreLocal: StateFlow<String> = _nombreLocal
 
+    private val _localData = MutableStateFlow<Local?>(null)
+    val localData: StateFlow<Local?> = _localData.asStateFlow()
+
     private val _codigoLocal = MutableStateFlow("")
     val codigoLocal: StateFlow<String> = _codigoLocal
 
     private val _nombreUsuario = MutableStateFlow("")
+    val nombreUsuario: StateFlow<String> = _nombreUsuario
 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val uid = firebaseAuth.currentUser?.uid
@@ -63,10 +72,56 @@ class DuenoViewModel : ViewModel() {
             val local = FiadoRepository.obtenerLocal(usuario.localId)
             _nombreLocal.value = local?.nombre ?: ""
             _codigoLocal.value = local?.codigo ?: ""
+            _localData.value = local
         }
     }
 
-    fun crearLocal(nombre: String, tipo: String = "Kiosco", direccion: String = "", onExito: () -> Unit) {
+    fun cargarDatosLocal() {
+        viewModelScope.launch {
+            val id = _localId.value.ifBlank { return@launch }
+            _localData.value = FiadoRepository.obtenerLocal(id)
+        }
+    }
+
+    fun actualizarLocal(
+        nombre: String,
+        tipo: String,
+        direccion: String,
+        telefono: String,
+        descripcion: String,
+        abierto: Boolean,
+        lat: Double? = null,
+        lng: Double? = null,
+        onExito: () -> Unit
+    ) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                val local = _localData.value ?: return@launch
+                val actualizado = local.copy(
+                    nombre = nombre,
+                    tipo = tipo,
+                    direccion = direccion,
+                    telefono = telefono,
+                    descripcion = descripcion,
+                    abierto = abierto,
+                    lat = lat ?: local.lat,
+                    lng = lng ?: local.lng
+                )
+                FiadoRepository.actualizarLocal(actualizado)
+                _nombreLocal.value = nombre
+                _localData.value = actualizado
+                onExito()
+            } catch (e: Exception) {
+                error.value = "No se pudo guardar"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
+    fun crearLocal(nombre: String, tipo: String = "Kiosco", direccion: String = "", lat: Double = 0.0, lng: Double = 0.0, onExito: () -> Unit) {
         viewModelScope.launch {
             cargando.value = true
             error.value = null
@@ -75,7 +130,7 @@ class DuenoViewModel : ViewModel() {
                 val ref = db.collection("locales").document()
                 val codigo = ref.id.take(6).uppercase()
                 val local = Local(id = ref.id, nombre = nombre, duenoUid = uid, codigo = codigo,
-                    tipo = tipo, direccion = direccion)
+                    tipo = tipo, direccion = direccion, lat = lat, lng = lng)
                 FiadoRepository.crearLocal(local)
                 db.collection("usuarios").document(uid).update("localId", ref.id).await()
                 _localId.value = ref.id
@@ -203,6 +258,37 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // ── Estadísticas derivadas (calculadas en background, no en el hilo de UI) ─
+
+    val totalDeuda: StateFlow<Double> = clientes
+        .map { lista -> lista.sumOf { it.deudaTotal } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val clientesConDeuda: StateFlow<Int> = clientes
+        .map { lista -> lista.count { it.deudaTotal > 0 && it.habilitado } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val sobreLimite: StateFlow<List<Cliente>> = clientes
+        .map { lista -> lista.filter { it.limiteCredito > 0 && it.deudaTotal > it.limiteCredito } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val resumenHoy: StateFlow<Triple<List<Movimiento>, Double, Double>> = movimientosLocal
+        .map { movs ->
+            val inicioDia = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val hoy = movs.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
+            val fiado = hoy.filter { it.tipo == "cargo" }.sumOf { it.monto }
+            val cobrado = hoy.filter { it.tipo == "pago" }.sumOf { it.monto }
+            Triple(hoy, fiado, cobrado)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Triple(emptyList(), 0.0, 0.0))
+
+    val disputados: StateFlow<List<Movimiento>> = movimientosLocal
+        .map { movs -> movs.filter { it.disputado && !it.anulado } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {
         viewModelScope.launch {
             try {
@@ -310,6 +396,38 @@ class DuenoViewModel : ViewModel() {
                 FiadoRepository.eliminarProducto(productoId)
             } catch (e: Exception) {
                 error.value = "No se pudo eliminar el producto"
+            }
+        }
+    }
+
+    fun subirFotoLocal(uri: Uri, onExito: (String) -> Unit) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                val url = FiadoRepository.subirImagenLocal(_localId.value, uri)
+                FiadoRepository.actualizarImagenLocal(_localId.value, url)
+                onExito(url)
+            } catch (e: Exception) {
+                error.value = "No se pudo subir la foto"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
+    fun subirFotoProducto(producto: Producto, uri: Uri, onExito: (String) -> Unit) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                val url = FiadoRepository.subirImagenProducto(_localId.value, producto.id, uri)
+                FiadoRepository.actualizarImagenProducto(producto.id, url)
+                onExito(url)
+            } catch (e: Exception) {
+                error.value = "No se pudo subir la foto"
+            } finally {
+                cargando.value = false
             }
         }
     }

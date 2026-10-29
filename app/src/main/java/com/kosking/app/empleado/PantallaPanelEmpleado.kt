@@ -9,10 +9,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DialogProducto
@@ -26,6 +28,7 @@ fun PantallaPanelEmpleado(
     onVerCliente: (String) -> Unit,
     onCerrarSesion: () -> Unit,
     onVolver: () -> Unit = {},
+    tabInicial: Int = 0,
     vm: EmpleadoViewModel
 ) {
     val nombreLocal by vm.nombreLocal.collectAsState()
@@ -34,7 +37,7 @@ fun PantallaPanelEmpleado(
     val productos by vm.productos.collectAsState()
     var mostrarMenu by remember { mutableStateOf(false) }
     var busqueda by remember { mutableStateOf("") }
-    var tabActual by remember { mutableStateOf(0) }
+    var tabActual by remember { mutableStateOf(tabInicial) }
 
     // El back natural va a EXPLORAR (que está en el back stack)
 
@@ -265,6 +268,15 @@ private fun TabPreciosEmpleado(vm: EmpleadoViewModel, productos: List<Producto>)
 
 @Composable
 private fun ClienteItemEmpleado(cliente: Cliente, onClick: (() -> Unit)?) {
+    val tieneLimite = cliente.limiteCredito > 0
+    val sobreLimite = tieneLimite && cliente.deudaTotal > cliente.limiteCredito
+    val porcentaje = if (tieneLimite) (cliente.deudaTotal / cliente.limiteCredito).toFloat().coerceIn(0f, 1f) else 0f
+    val colorBarra = when {
+        sobreLimite -> MaterialTheme.colorScheme.error
+        porcentaje >= 0.8f -> Color(0xFFE65100)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
     ListItem(
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -276,14 +288,37 @@ private fun ClienteItemEmpleado(cliente: Cliente, onClick: (() -> Unit)?) {
                             style = MaterialTheme.typography.labelSmall)
                     }
                 }
+                if (sobreLimite) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Default.Warning, "Sobre límite",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp))
+                }
             }
         },
         supportingContent = {
             if (cliente.habilitado) {
-                Text(
-                    if (cliente.deudaTotal > 0) "Debe $${"%.2f".format(cliente.deudaTotal)}"
-                    else "Sin deuda"
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        if (cliente.deudaTotal > 0) "Debe $${"%.2f".format(cliente.deudaTotal)}"
+                        else "Sin deuda"
+                    )
+                    if (tieneLimite) {
+                        LinearProgressIndicator(
+                            progress = { porcentaje },
+                            modifier = Modifier.fillMaxWidth().height(4.dp),
+                            color = colorBarra,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Text(
+                            "Límite: $${"%.0f".format(cliente.limiteCredito)}" +
+                                if (sobreLimite) " · EXCEDIDO" else " · ${"%.0f".format(porcentaje * 100)}% usado",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (sobreLimite) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             } else {
                 Text("El dueño no permitió anotar para este cliente",
                     color = MaterialTheme.colorScheme.onSurfaceVariant)

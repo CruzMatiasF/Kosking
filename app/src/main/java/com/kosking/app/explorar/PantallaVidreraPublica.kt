@@ -29,6 +29,7 @@ import coil.compose.AsyncImage
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Producto
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,8 +43,14 @@ class VidreraPublicaViewModel : ViewModel() {
     fun cargar(localId: String) {
         viewModelScope.launch {
             cargando.value = true
-            local.value = FiadoRepository.obtenerLocal(localId)
+            val loc = FiadoRepository.obtenerLocal(localId)
+            local.value = loc
             cargando.value = false
+            // Registrar visita si hay sesión activa
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null && loc != null) {
+                try { FiadoRepository.registrarVisitaLocal(uid, localId, loc.nombre) } catch (_: Exception) {}
+            }
         }
     }
 
@@ -196,6 +203,42 @@ fun PantallaVidreraPublica(
                             }
                             if (ofertas.isNotEmpty()) {
                                 ChipHeader("${ofertas.size} oferta${if (ofertas.size != 1) "s" else ""}")
+                            }
+                        }
+
+                        // Teléfono / WhatsApp
+                        if (loc.telefono.isNotBlank()) {
+                            Spacer(Modifier.height(10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val uri = Uri.parse("tel:${loc.telefono}")
+                                        context.startActivity(Intent(Intent.ACTION_DIAL, uri))
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = HeaderText),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Phone, null, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Llamar", style = MaterialTheme.typography.labelSmall)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        val numero = loc.telefono.filter { it.isDigit() }
+                                        val uri = Uri.parse("https://wa.me/54$numero")
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF25D366)),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF25D366).copy(alpha = 0.5f)),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Chat, null, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("WhatsApp", style = MaterialTheme.typography.labelSmall)
+                                }
                             }
                         }
 

@@ -1,7 +1,10 @@
 package com.kosking.app.datos
 
+import android.net.Uri
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
@@ -18,6 +21,29 @@ import kotlinx.coroutines.tasks.await
 object FiadoRepository {
 
     private val db = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
+
+    // ── Storage ──────────────────────────────────────────────────────────────
+
+    suspend fun subirImagenLocal(localId: String, uri: Uri): String {
+        val ref = storage.reference.child("locales/$localId/portada.jpg")
+        ref.putFile(uri).await()
+        return ref.downloadUrl.await().toString()
+    }
+
+    suspend fun subirImagenProducto(localId: String, productoId: String, uri: Uri): String {
+        val ref = storage.reference.child("locales/$localId/productos/$productoId.jpg")
+        ref.putFile(uri).await()
+        return ref.downloadUrl.await().toString()
+    }
+
+    suspend fun actualizarImagenLocal(localId: String, imagenUrl: String) {
+        db.collection("locales").document(localId).update("imagenUrl", imagenUrl).await()
+    }
+
+    suspend fun actualizarImagenProducto(productoId: String, imagenUrl: String) {
+        db.collection("productos").document(productoId).update("imagenUrl", imagenUrl).await()
+    }
 
     // ── Local ────────────────────────────────────────────────────────────────
 
@@ -25,8 +51,9 @@ object FiadoRepository {
         db.collection("locales").document(local.id).set(local).await()
     }
 
-    fun localesFlow(): Flow<List<Local>> = callbackFlow {
+    fun localesFlow(limite: Int = 100): Flow<List<Local>> = callbackFlow {
         val sub = db.collection("locales")
+            .limit(limite.toLong())
             .addSnapshotListener { snap, _ ->
                 trySend(snap?.toObjects(Local::class.java) ?: emptyList())
             }
@@ -36,6 +63,10 @@ object FiadoRepository {
     suspend fun obtenerLocal(localId: String): Local? {
         return db.collection("locales").document(localId).get().await()
             .toObject(Local::class.java)
+    }
+
+    suspend fun actualizarLocal(local: Local) {
+        db.collection("locales").document(local.id).set(local).await()
     }
 
     fun localFlow(localId: String): Flow<Local?> = callbackFlow {
@@ -57,6 +88,10 @@ object FiadoRepository {
 
     suspend fun guardarUsuario(usuario: Usuario) {
         db.collection("usuarios").document(usuario.uid).set(usuario).await()
+    }
+
+    suspend fun guardarFcmToken(uid: String, token: String) {
+        db.collection("usuarios").document(uid).update("fcmToken", token).await()
     }
 
     suspend fun obtenerUsuario(uid: String): Usuario? {
@@ -136,22 +171,26 @@ object FiadoRepository {
 
     // ── Movimientos ──────────────────────────────────────────────────────────
 
-    fun movimientosLocalFlow(localId: String): Flow<List<Movimiento>> = callbackFlow {
+    fun movimientosLocalFlow(localId: String, diasAtras: Int = 30): Flow<List<Movimiento>> = callbackFlow {
+        val desde = Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
         val sub = db.collection("movimientos")
             .whereEqualTo("localId", localId)
-            .orderBy("fecha", Query.Direction.DESCENDING)
+            .whereGreaterThan("fecha", desde)
             .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
+                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
+                trySend(lista.sortedByDescending { it.fecha.seconds })
             }
         awaitClose { sub.remove() }
     }
 
-    fun movimientosFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
+    fun movimientosFlow(clienteId: String, diasAtras: Int = 60): Flow<List<Movimiento>> = callbackFlow {
+        val desde = Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
-            .orderBy("fecha", Query.Direction.DESCENDING)
+            .whereGreaterThan("fecha", desde)
             .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
+                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
+                trySend(lista.sortedByDescending { it.fecha.seconds })
             }
         awaitClose { sub.remove() }
     }
@@ -304,6 +343,33 @@ object FiadoRepository {
         val batch = db.batch()
         snap.documents.forEach { batch.update(it.reference, "leida", true) }
         batch.commit().await()
+    }
+
+    // ── Historial de locales visitados ───────────────────────────────────────
+
+    suspend fun registrarVisitaLocal(uid: String, localId: String, nombreLocal: String) {
+        db.collection("usuarios").document(uid)
+            .collection("historialLocales").document(localId)
+            .set(mapOf(
+                "localId" to localId,
+                "nombreLocal" to nombreLocal,
+                "ultimaVisita" to com.google.firebase.Timestamp.now()
+            )).await()
+    }
+
+    fun historialLocalesFlow(uid: String): Flow<List<Map<String, Any>>> = callbackFlow {
+        val sub = db.collection("usuarios").document(uid)
+            .collection("historialLocales")
+            .orderBy("ultimaVisita", Query.Direction.DESCENDING)
+            .limit(20)
+            .addSnapshotListener { snap, _ ->
+                val lista = snap?.documents?.mapNotNull { doc ->
+                    @Suppress("UNCHECKED_CAST")
+                    doc.data as? Map<String, Any>
+                } ?: emptyList()
+                trySend(lista)
+            }
+        awaitClose { sub.remove() }
     }
 
     suspend fun quitarLocalCliente(uid: String, localId: String) {

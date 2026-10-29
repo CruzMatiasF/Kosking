@@ -25,6 +25,11 @@ object Rutas {
     const val VIDRIERA_PUBLICA = "vidriera_publica/{localId}"
     const val DETALLE_MOVIMIENTO = "detalle_movimiento/{movimientoId}"
     const val CONFIGURAR_PERFIL = "configurar_perfil"
+    const val CONFIGURACION = "configuracion"
+    const val NOTIFICACIONES = "notificaciones"
+    const val ACERCA_DE = "acerca_de"
+    const val EDITAR_LOCAL = "editar_local"
+    const val HISTORIAL = "historial"
 
     fun vidreraPublica(localId: String) = "vidriera_publica/$localId"
     fun ingresarPIN(localId: String, nombreLocal: String) =

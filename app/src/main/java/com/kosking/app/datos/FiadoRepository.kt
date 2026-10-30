@@ -171,23 +171,42 @@ object FiadoRepository {
 
     // ── Movimientos ──────────────────────────────────────────────────────────
 
-    fun movimientosLocalFlow(localId: String, diasAtras: Int = 30): Flow<List<Movimiento>> = callbackFlow {
-        val desde = Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
+    fun movimientosLocalFlow(localId: String, diasAtras: Int = 90): Flow<List<Movimiento>> = callbackFlow {
+        val desdeSec = System.currentTimeMillis() / 1000 - diasAtras * 86400L
         val sub = db.collection("movimientos")
             .whereEqualTo("localId", localId)
-            .whereGreaterThan("fecha", desde)
             .addSnapshotListener { snap, _ ->
                 val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
-                trySend(lista.sortedByDescending { it.fecha.seconds })
+                trySend(
+                    lista
+                        .filter { it.fecha.seconds >= desdeSec }
+                        .sortedByDescending { it.fecha.seconds }
+                )
             }
         awaitClose { sub.remove() }
     }
 
     fun movimientosFlow(clienteId: String, diasAtras: Int = 60): Flow<List<Movimiento>> = callbackFlow {
-        val desde = Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
+        val desdeSec = System.currentTimeMillis() / 1000 - diasAtras * 86400L
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
-            .whereGreaterThan("fecha", desde)
+            .addSnapshotListener { snap, _ ->
+                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
+                trySend(
+                    lista
+                        .filter { it.fecha.seconds >= desdeSec }
+                        .sortedByDescending { it.fecha.seconds }
+                )
+            }
+        awaitClose { sub.remove() }
+    }
+
+    suspend fun obtenerMovimiento(id: String): Movimiento? =
+        db.collection("movimientos").document(id).get().await().toObject(Movimiento::class.java)
+
+    fun movimentosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
+        val sub = db.collection("movimientos")
+            .whereEqualTo("clienteId", clienteId)
             .addSnapshotListener { snap, _ ->
                 val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
                 trySend(lista.sortedByDescending { it.fecha.seconds })
@@ -200,6 +219,21 @@ object FiadoRepository {
         val conId = movimiento.copy(id = ref.id)
         ref.set(conId).await()
         actualizarDeuda(movimiento.clienteId, movimiento.monto, movimiento.tipo)
+    }
+
+    suspend fun agregarMovimientos(movimientos: List<Movimiento>) {
+        if (movimientos.isEmpty()) return
+        val batch = db.batch()
+        movimientos.forEach { mov ->
+            val ref = db.collection("movimientos").document()
+            batch.set(ref, mov.copy(id = ref.id))
+        }
+        batch.commit().await()
+        // Actualizar deuda una sola vez con el total
+        val clienteId = movimientos.first().clienteId
+        val tipo = movimientos.first().tipo
+        val total = movimientos.sumOf { it.monto }
+        actualizarDeuda(clienteId, total, tipo)
     }
 
     suspend fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {

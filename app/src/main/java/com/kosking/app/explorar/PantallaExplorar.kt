@@ -78,7 +78,7 @@ private sealed class VistaDueno {
     data class DetalleCliente(val id: String) : VistaDueno()
     data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo", val desdeResumen: Boolean = false) : VistaDueno()
     data class SeleccionarCliente(val tipo: String) : VistaDueno()
-    data class DetalleMovimiento(val id: String) : VistaDueno()
+    data class DetalleMovimiento(val id: String, val clienteId: String? = null) : VistaDueno()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -252,7 +252,7 @@ fun PantallaExplorar(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
-                    Text("Anda a 'Mas' para iniciar sesion",
+                    Text("Andá a 'Más' para iniciar sesión",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -553,8 +553,10 @@ fun PantallaExplorar(
                         )
                         is VistaDueno.DetalleCliente -> PantallaDetalleCliente(
                             clienteId = vista.id,
-                            onAgregarFiado = { tipo -> vistaDueno = VistaDueno.AgregarFiado(vista.id, tipo) },
                             onVolver = { vistaDueno = VistaDueno.Panel },
+                            onVerMovimiento = { movId ->
+                                vistaDueno = VistaDueno.DetalleMovimiento(movId, clienteId = vista.id)
+                            },
                             vm = duenoVm
                         )
                         is VistaDueno.AgregarFiado -> PantallaAgregarFiado(
@@ -580,7 +582,10 @@ fun PantallaExplorar(
                         )
                         is VistaDueno.DetalleMovimiento -> PantallaDetalleMovimiento(
                             movimientoId = vista.id,
-                            onVolver = { vistaDueno = VistaDueno.Panel },
+                            onVolver = {
+                                vistaDueno = vista.clienteId?.let { VistaDueno.DetalleCliente(it) }
+                                    ?: VistaDueno.Panel
+                            },
                             vm = duenoVm
                         )
                     }

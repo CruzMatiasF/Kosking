@@ -59,7 +59,7 @@ private sealed class SubPantalla {
         val desdeResumen: Boolean = false
     ) : SubPantalla()
     data class SeleccionarCliente(val tipo: String) : SubPantalla()
-    data class DetalleMovimiento(val movimientoId: String) : SubPantalla()
+    data class DetalleMovimiento(val movimientoId: String, val clienteId: String? = null) : SubPantalla()
 }
 
 private data class TabItem(val label: String, val icon: ImageVector)
@@ -105,8 +105,10 @@ fun PanelDueno(
         is SubPantalla.DetalleCliente -> {
             PantallaDetalleCliente(
                 clienteId = sp.id,
-                onAgregarFiado = { tipo -> subPantalla = SubPantalla.AgregarFiado(sp.id, tipo) },
                 onVolver = { subPantalla = null },
+                onVerMovimiento = { movId ->
+                    subPantalla = SubPantalla.DetalleMovimiento(movId, clienteId = sp.id)
+                },
                 vm = vm
             )
             return
@@ -141,7 +143,9 @@ fun PanelDueno(
         is SubPantalla.DetalleMovimiento -> {
             PantallaDetalleMovimiento(
                 movimientoId = sp.movimientoId,
-                onVolver = { subPantalla = null },
+                onVolver = {
+                    subPantalla = sp.clienteId?.let { SubPantalla.DetalleCliente(it) }
+                },
                 vm = vm
             )
             return
@@ -190,9 +194,10 @@ fun PanelDueno(
                 0 -> TabResumen(
                     clientes = clientes,
                     movimientos = movimientosLocal,
+                    movimientosHoy = fiadoHoy.first,
                     onIrAClientes = { tabSeleccionado = 1 },
-                onAnotarFiado = { subPantalla = SubPantalla.SeleccionarCliente("cargo") },
-                onCobrar = { subPantalla = SubPantalla.SeleccionarCliente("pago") },
+                    onAnotarFiado = { subPantalla = SubPantalla.SeleccionarCliente("cargo") },
+                    onCobrar = { subPantalla = SubPantalla.SeleccionarCliente("pago") },
                     onVerMovimiento = { subPantalla = SubPantalla.DetalleMovimiento(it) },
                     nombreLocal = nombreLocal,
                     nombreUsuario = nombreUsuario,
@@ -238,6 +243,7 @@ private fun resolverNombreAnotador(anotadoPorNombre: String, nombreLocal: String
 private fun TabResumen(
     clientes: List<Cliente>,
     movimientos: List<Movimiento>,
+    movimientosHoy: List<Movimiento> = emptyList(),
     onIrAClientes: () -> Unit,
     onVerMovimiento: (String) -> Unit,
     onAnotarFiado: () -> Unit = {},
@@ -254,7 +260,7 @@ private fun TabResumen(
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val alertaTotal = disputados.size + sobreLimite.size
 
-    val ultimoMov = movimientos.firstOrNull()
+    val ultimoMov = movimientos.firstOrNull { !it.anulado }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     LazyColumn(
@@ -366,18 +372,29 @@ private fun TabResumen(
             }
         }
 
-        // Último movimiento
-        if (ultimoMov != null) {
+        // Movimientos de hoy / último movimiento
+        val seccionLabel = if (movimientosHoy.isNotEmpty()) "MOVIMIENTOS DE HOY · ${movimientosHoy.size}"
+                           else if (ultimoMov != null) "ÚLTIMO MOVIMIENTO"
+                           else null
+
+        if (seccionLabel != null) {
             item {
-                Text("ÚLTIMO MOVIMIENTO",
+                Text(seccionLabel,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            item {
-                val esCargo = ultimoMov.tipo == "cargo"
-                val nombreCliente = clienteMap[ultimoMov.clienteId]?.nombre ?: ""
-                Card(modifier = Modifier.fillMaxWidth().clickable { onVerMovimiento(ultimoMov.id) }) {
+        }
+
+        val movsAMostrar = if (movimientosHoy.isNotEmpty()) movimientosHoy
+                           else if (ultimoMov != null) listOf(ultimoMov)
+                           else emptyList()
+
+        if (movsAMostrar.isNotEmpty()) {
+            items(movsAMostrar, key = { "res_${it.id}" }) { mov ->
+                val esCargo = mov.tipo == "cargo"
+                val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: ""
+                Card(modifier = Modifier.fillMaxWidth().clickable { onVerMovimiento(mov.id) }) {
                     ListItem(
                         leadingContent = {
                             Surface(
@@ -398,16 +415,16 @@ private fun TabResumen(
                         },
                         headlineContent = {
                             Text(
-                                "${ultimoMov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" }} · $nombreCliente",
+                                "${mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" }} · $nombreCliente",
                                 fontWeight = FontWeight.Medium
                             )
                         },
                         supportingContent = {
-                            Text("${fmtHora.format(ultimoMov.fecha.toDate())} · ${resolverNombreAnotador(ultimoMov.anotadoPorNombre, nombreLocal, nombreUsuario)}")
+                            Text("${fmtHora.format(mov.fecha.toDate())} · ${resolverNombreAnotador(mov.anotadoPorNombre, nombreLocal, nombreUsuario)}")
                         },
                         trailingContent = {
                             Text(
-                                "${if (esCargo) "+" else "−"}$${"%.0f".format(ultimoMov.monto)}",
+                                "${if (esCargo) "+" else "−"}$${"%.0f".format(mov.monto)}",
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
                             )
@@ -415,7 +432,7 @@ private fun TabResumen(
                     )
                 }
             }
-        } else if (movimientos.isEmpty()) {
+        } else {
             item {
                 Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
                     Text("Todavía no hay movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -937,9 +954,13 @@ private fun TabEquipo(
 
     val totalCobradoHoy = remember(statsHoy) { statsHoy.sumOf { it.cobro } }
 
-    // Último movimiento por uid
+    // Último movimiento por uid (sin anulados)
+    val fmtFecha = remember { SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()) }
     val ultimoMovPorUid = remember(movimientos) {
-        movimientos.groupBy { it.anotadoPorUid }.mapValues { it.value.first() }
+        movimientos
+            .filter { !it.anulado }
+            .groupBy { it.anotadoPorUid }
+            .mapValues { it.value.first() }
     }
 
     // Disputas por uid
@@ -1103,7 +1124,10 @@ private fun TabEquipo(
                         supportingContent = {
                             if (ultimoMov != null) {
                                 val accion = if (ultimoMov.tipo == "cargo") "Anotó fiado" else "Cobró"
-                                Text("Último: hoy ${fmtHora.format(ultimoMov.fecha.toDate())} · $accion",
+                                val esHoy = ultimoMov.fecha.toDate().time >= inicioDia
+                                val fechaStr = if (esHoy) "hoy ${fmtHora.format(ultimoMov.fecha.toDate())}"
+                                              else fmtFecha.format(ultimoMov.fecha.toDate())
+                                Text("Último: $fechaStr · $accion",
                                     style = MaterialTheme.typography.bodySmall)
                             }
                         },
@@ -1229,6 +1253,7 @@ fun PanelDuenoEmbedido(
                 0 -> TabResumen(
                     clientes = clientes,
                     movimientos = movimientosLocal,
+                    movimientosHoy = fiadoHoy.first,
                     onIrAClientes = { onTabChange(1) },
                     onVerMovimiento = onAbrirDetalleMovimiento,
                     onAnotarFiado = { onAbrirSeleccionarCliente("cargo") },

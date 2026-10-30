@@ -3,13 +3,14 @@ package com.kosking.app.dueno
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,13 +29,16 @@ import androidx.compose.foundation.clickable
 @Composable
 fun PantallaDetalleCliente(
     clienteId: String,
-    onAgregarFiado: (tipo: String) -> Unit,
     onVolver: () -> Unit,
+    onVerMovimiento: (String) -> Unit = {},
     vm: DuenoViewModel = viewModel()
 ) {
     LaunchedEffect(clienteId) { vm.seleccionarCliente(clienteId) }
 
     val movimientos by vm.movimientosDetalle.collectAsState()
+    // Esperar al menos un tick de carga antes de mostrar el botón eliminar
+    var movimientosCargados by remember { mutableStateOf(false) }
+    LaunchedEffect(movimientos) { movimientosCargados = true }
     val clientes by vm.clientes.collectAsState()
     val cliente = clientes.find { it.id == clienteId }
     val error by vm.error.collectAsState()
@@ -43,6 +47,7 @@ fun PantallaDetalleCliente(
     val nombreUsuario by vm.nombreUsuario.collectAsState()
 
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
+    var mostrarEditar by remember { mutableStateOf(false) }
 
     if (mostrarConfirmarEliminar && cliente != null) {
         AlertDialog(
@@ -87,11 +92,11 @@ fun PantallaDetalleCliente(
                 },
                 actions = {
                     if (cliente != null) {
-                        IconButton(onClick = { onAgregarFiado("pago") }) {
-                            Icon(Icons.Default.AttachMoney, "Cobrar")
+                        IconButton(onClick = { mostrarEditar = true }) {
+                            Icon(Icons.Default.Edit, "Editar cliente")
                         }
                     }
-                    if (movimientos.isEmpty() && cliente != null) {
+                    if (movimientosCargados && movimientos.isEmpty() && cliente != null) {
                         IconButton(onClick = { mostrarConfirmarEliminar = true }) {
                             Icon(Icons.Default.Delete, "Eliminar cliente",
                                 tint = MaterialTheme.colorScheme.error)
@@ -100,11 +105,6 @@ fun PantallaDetalleCliente(
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { onAgregarFiado("cargo") }) {
-                Icon(Icons.Default.Add, "Anotar fiado")
-            }
-        }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             cliente?.let {
@@ -119,11 +119,28 @@ fun PantallaDetalleCliente(
                 }
             } else {
                 items(movimientos) { mov ->
-                    ItemMovimiento(mov, nombreLocal, nombreUsuario)
+                    ItemMovimiento(
+                        mov = mov,
+                        nombreLocal = nombreLocal,
+                        nombreUsuario = nombreUsuario,
+                        onClick = { onVerMovimiento(mov.id) }
+                    )
                     HorizontalDivider()
                 }
             }
         }
+    }
+
+    // Diálogo editar cliente
+    if (mostrarEditar && cliente != null) {
+        DialogEditarCliente(
+            cliente = cliente,
+            onGuardar = { actualizado ->
+                vm.actualizarCliente(actualizado)
+                mostrarEditar = false
+            },
+            onDismiss = { mostrarEditar = false }
+        )
     }
 }
 
@@ -199,8 +216,71 @@ private fun ResumenCliente(cliente: Cliente, vm: DuenoViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ItemMovimiento(mov: Movimiento, nombreLocal: String = "", nombreUsuario: String = "") {
+private fun DialogEditarCliente(
+    cliente: Cliente,
+    onGuardar: (Cliente) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var nombre by remember { mutableStateOf(cliente.nombre) }
+    var telefono by remember { mutableStateOf(cliente.telefono) }
+    var domicilio by remember { mutableStateOf(cliente.domicilio) }
+    var limiteCredito by remember { mutableStateOf(if (cliente.limiteCredito > 0) "%.0f".format(cliente.limiteCredito) else "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar cliente") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = nombre, onValueChange = { nombre = it },
+                    label = { Text("Nombre *") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = telefono, onValueChange = { telefono = it },
+                    label = { Text("Teléfono") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = domicilio, onValueChange = { domicilio = it },
+                    label = { Text("Domicilio") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = limiteCredito,
+                    onValueChange = { limiteCredito = it.filter { c -> c.isDigit() || c == '.' } },
+                    label = { Text("Límite de crédito $") },
+                    placeholder = { Text("Sin límite") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onGuardar(cliente.copy(
+                        nombre = nombre.trim(),
+                        telefono = telefono.trim(),
+                        domicilio = domicilio.trim(),
+                        limiteCredito = limiteCredito.toDoubleOrNull() ?: 0.0
+                    ))
+                },
+                enabled = nombre.isNotBlank()
+            ) { Text("Guardar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+private fun ItemMovimiento(mov: Movimiento, nombreLocal: String = "", nombreUsuario: String = "", onClick: () -> Unit = {}) {
     val fmt = SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault())
     val esCargo = mov.tipo == "cargo"
     val quienAnoto = run {
@@ -212,17 +292,31 @@ private fun ItemMovimiento(mov: Movimiento, nombreLocal: String = "", nombreUsua
         }
     }
 
+    val dimColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
     ListItem(
-        headlineContent = { Text(mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" }) },
+        headlineContent = {
+            Text(
+                mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" },
+                color = if (mov.anulado) dimColor else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (mov.anulado) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+            )
+        },
         supportingContent = {
-            Text("$quienAnoto · ${fmt.format(mov.fecha.toDate())}")
+            if (mov.anulado) {
+                Text("Anulado · ${fmt.format(mov.fecha.toDate())}", color = dimColor)
+            } else {
+                Text("$quienAnoto · ${fmt.format(mov.fecha.toDate())}")
+            }
         },
         trailingContent = {
             Text(
                 "${if (esCargo) "+" else "-"}${"%.2f".format(mov.monto)}",
-                color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32),
-                fontWeight = FontWeight.Medium
+                color = if (mov.anulado) dimColor
+                        else if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32),
+                fontWeight = FontWeight.Medium,
+                textDecoration = if (mov.anulado) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
             )
-        }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
     )
 }

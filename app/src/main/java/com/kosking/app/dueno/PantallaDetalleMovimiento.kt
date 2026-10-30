@@ -22,11 +22,13 @@ fun PantallaDetalleMovimiento(
     onVolver: () -> Unit,
     vm: DuenoViewModel = viewModel()
 ) {
-    val movimientos by vm.movimientosLocal.collectAsState()
+    LaunchedEffect(movimientoId) { vm.seleccionarMovimiento(movimientoId) }
+    val mov by vm.movimientoSeleccionado.collectAsState()
     val clientes by vm.clientes.collectAsState()
-    val mov = movimientos.find { it.id == movimientoId }
     val cliente = clientes.find { it.id == mov?.clienteId }
 
+    val cargando by vm.cargando.collectAsState()
+    val vmError by vm.error.collectAsState()
     var mostrarDialogAnular by remember { mutableStateOf(false) }
     var motivoAnulacion by remember { mutableStateOf("") }
 
@@ -34,10 +36,16 @@ fun PantallaDetalleMovimiento(
         topBar = {
             TopAppBar(
                 title = { Text("Detalle del movimiento") },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    }
+                }
             )
         }
     ) { padding ->
-        if (mov == null) {
+        val movActual = mov
+        if (movActual == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -45,7 +53,7 @@ fun PantallaDetalleMovimiento(
         }
 
         val fmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        val esCargo = mov.tipo == "cargo"
+        val esCargo = movActual.tipo == "cargo"
 
         Column(
             modifier = Modifier
@@ -54,8 +62,7 @@ fun PantallaDetalleMovimiento(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Banner disputado
-            if (mov.disputado && !mov.anulado) {
+            if (movActual.disputado && !movActual.anulado) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
@@ -67,142 +74,121 @@ fun PantallaDetalleMovimiento(
                     ) {
                         Text("⚠", style = MaterialTheme.typography.titleMedium)
                         Column {
-                            Text(
-                                "Movimiento no reconocido",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Text(
-                                "El cliente indicó que no reconoce este movimiento.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                            Text("Movimiento no reconocido", style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
+                            Text("El cliente indicó que no reconoce este movimiento.",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
                 }
             }
 
-            // Banner anulado
-            if (mov.anulado) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
+            if (movActual.anulado) {
+                Card(modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Movimiento anulado",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (mov.motivoAnulacion.isNotBlank()) {
+                        Text("Movimiento anulado", style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (movActual.motivoAnulacion.isNotBlank()) {
                             Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Motivo: ${mov.motivoAnulacion}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text("Motivo: ${movActual.motivoAnulacion}", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
 
-            // Card principal
             Card(Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            if (esCargo) "Fiado" else "Pago",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (mov.anulado) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (esCargo) "Fiado" else "Pago", style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (movActual.anulado) {
                             Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
                                 Text("Anulado", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                        } else if (mov.disputado) {
+                        } else if (movActual.disputado) {
                             Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
                                 Text("En disputa", color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
-
-                    Text(
-                        "$${String.format("%.2f", mov.monto)}",
-                        style = MaterialTheme.typography.headlineLarge,
+                    Text("$${String.format("%.2f", movActual.monto)}", style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (mov.anulado) MaterialTheme.colorScheme.onSurfaceVariant
-                                else if (esCargo) MaterialTheme.colorScheme.error
-                                else Color(0xFF2E7D32)
-                    )
-
+                        color = if (movActual.anulado) MaterialTheme.colorScheme.onSurfaceVariant
+                                else if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32))
                     HorizontalDivider()
-
                     FilaDetalle("Cliente", cliente?.nombre ?: "—")
-                    if (mov.producto.isNotBlank()) FilaDetalle("Producto", mov.producto)
-                    if (mov.cantidad > 1) FilaDetalle("Cantidad", mov.cantidad.toString())
-                    FilaDetalle("Fecha", fmt.format(mov.fecha.toDate()))
-                    FilaDetalle("Registrado por", mov.anotadoPorNombre.ifBlank { "—" })
-                    if (mov.anulado && mov.motivoAnulacion.isNotBlank()) {
-                        FilaDetalle("Motivo anulación", mov.motivoAnulacion)
+                    if (movActual.producto.isNotBlank()) FilaDetalle("Producto", movActual.producto)
+                    if (movActual.cantidad > 1) FilaDetalle("Cantidad", movActual.cantidad.toString())
+                    FilaDetalle("Fecha", fmt.format(movActual.fecha.toDate()))
+                    FilaDetalle("Registrado por", movActual.anotadoPorNombre.ifBlank { "—" })
+                    if (movActual.anulado && movActual.motivoAnulacion.isNotBlank()) {
+                        FilaDetalle("Motivo anulación", movActual.motivoAnulacion)
                     }
                 }
             }
 
-            // Botón anular (solo si no está anulado)
-            if (!mov.anulado) {
+            if (!movActual.anulado) {
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(
-                    onClick = { mostrarDialogAnular = true },
+                    onClick = { vm.marcarDisputado(movActual.id, !movActual.disputado) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                    colors = if (movActual.disputado)
+                        ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    else
+                        ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
+                    Text(if (movActual.disputado) "Quitar disputa" else "Marcar como disputado")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = { mostrarDialogAnular = true }, modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                     Text("Anular movimiento")
                 }
             }
         }
     }
 
-    if (mostrarDialogAnular && mov != null) {
+    vmError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { vm.error.value = null },
+            title = { Text("Error") },
+            text = { Text(msg) },
+            confirmButton = { TextButton(onClick = { vm.error.value = null }) { Text("Cerrar") } }
+        )
+    }
+
+    if (mostrarDialogAnular) {
+        val m = mov ?: return
         AlertDialog(
             onDismissRequest = { mostrarDialogAnular = false },
             title = { Text("Anular movimiento") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Esta acción revierte el efecto en la deuda del cliente y no se puede deshacer.")
-                    OutlinedTextField(
-                        value = motivoAnulacion,
-                        onValueChange = { motivoAnulacion = it },
-                        label = { Text("Motivo (opcional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3
-                    )
+                    OutlinedTextField(value = motivoAnulacion, onValueChange = { motivoAnulacion = it },
+                        label = { Text("Motivo (opcional)") }, modifier = Modifier.fillMaxWidth(), maxLines = 3)
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         vm.anularMovimiento(
-                            movimientoId = mov.id,
-                            clienteId = mov.clienteId,
-                            monto = mov.monto,
-                            tipo = mov.tipo,
-                            motivo = motivoAnulacion
-                        )
+                            movimientoId = m.id, clienteId = m.clienteId,
+                            monto = m.monto, tipo = m.tipo, motivo = motivoAnulacion
+                        ) {
+                            mostrarDialogAnular = false
+                            onVolver()
+                        }
                         mostrarDialogAnular = false
-                        onVolver()
-                    }
-                ) { Text("Anular", color = MaterialTheme.colorScheme.error) }
+                    },
+                    enabled = !cargando
+                ) {
+                    if (cargando) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    else Text("Anular", color = MaterialTheme.colorScheme.error)
+                }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogAnular = false }) { Text("Cancelar") }

@@ -82,6 +82,11 @@ fun PantallaAgregarCliente(
         topBar = {
             TopAppBar(
                 title = { Text("Nuevo cliente") },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    }
+                }
             )
         }
     ) { padding ->

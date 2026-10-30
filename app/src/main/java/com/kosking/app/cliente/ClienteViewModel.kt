@@ -143,7 +143,7 @@ class ClienteViewModel : ViewModel() {
 
     val movimientos: StateFlow<List<Movimiento>> = _localSeleccionado
         .flatMapLatest { lg ->
-            if (lg != null) FiadoRepository.movimientosFlow(lg.clienteId) else flowOf(emptyList())
+            if (lg != null) FiadoRepository.movimentosClienteFlow(lg.clienteId) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

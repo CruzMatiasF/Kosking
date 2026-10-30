@@ -186,9 +186,29 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarCliente(cliente: Cliente) {
+        viewModelScope.launch { FiadoRepository.actualizarCliente(cliente) }
+    }
+
     fun toggleHabilitado(cliente: Cliente) {
         viewModelScope.launch {
             FiadoRepository.actualizarCliente(cliente.copy(habilitado = !cliente.habilitado))
+        }
+    }
+
+    // ── Movimiento seleccionado (para detalle) ────────────────────────────────
+
+    private val _movimientoSeleccionado = MutableStateFlow<Movimiento?>(null)
+    val movimientoSeleccionado: StateFlow<Movimiento?> = _movimientoSeleccionado.asStateFlow()
+
+    fun seleccionarMovimiento(id: String) {
+        _movimientoSeleccionado.value =
+            movimientosLocal.value.find { it.id == id }
+            ?: movimientosDetalle.value.find { it.id == id }
+        viewModelScope.launch {
+            if (_movimientoSeleccionado.value == null) {
+                _movimientoSeleccionado.value = FiadoRepository.obtenerMovimiento(id)
+            }
         }
     }
 
@@ -218,7 +238,7 @@ class DuenoViewModel : ViewModel() {
 
     val movimientosDetalle: StateFlow<List<Movimiento>> = _detalleClienteId
         .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.movimientosFlow(id) else flowOf(emptyList())
+            if (id.isNotBlank()) FiadoRepository.movimentosClienteFlow(id) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -250,6 +270,39 @@ class DuenoViewModel : ViewModel() {
                     anotadoPorNombre = _nombreUsuario.value
                 )
                 FiadoRepository.agregarMovimiento(mov)
+                onExito()
+            } catch (e: Exception) {
+                error.value = "No se pudo guardar"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
+    fun agregarMovimientos(
+        clienteId: String,
+        items: List<Pair<String, Double>>, // producto → monto
+        tipo: String,
+        onExito: () -> Unit
+    ) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                val uid = auth.currentUser?.uid ?: return@launch
+                val movs = items.map { (producto, monto) ->
+                    Movimiento(
+                        localId = _localId.value,
+                        clienteId = clienteId,
+                        tipo = tipo,
+                        producto = producto,
+                        cantidad = 1,
+                        monto = monto,
+                        anotadoPorUid = uid,
+                        anotadoPorNombre = _nombreUsuario.value
+                    )
+                }
+                FiadoRepository.agregarMovimientos(movs)
                 onExito()
             } catch (e: Exception) {
                 error.value = "No se pudo guardar"
@@ -296,12 +349,33 @@ class DuenoViewModel : ViewModel() {
         .map { movs -> movs.filter { it.disputado && !it.anulado } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {
+    fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String, onExito: () -> Unit = {}) {
         viewModelScope.launch {
+            cargando.value = true
+            error.value = null
             try {
                 FiadoRepository.anularMovimiento(movimientoId, clienteId, monto, tipo, motivo)
+                if (_movimientoSeleccionado.value?.id == movimientoId) {
+                    _movimientoSeleccionado.value = _movimientoSeleccionado.value?.copy(anulado = true, motivoAnulacion = motivo)
+                }
+                onExito()
             } catch (e: Exception) {
                 error.value = "No se pudo anular el movimiento"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
+    fun marcarDisputado(movimientoId: String, disputado: Boolean) {
+        viewModelScope.launch {
+            try {
+                FiadoRepository.marcarDisputado(movimientoId, disputado)
+                if (_movimientoSeleccionado.value?.id == movimientoId) {
+                    _movimientoSeleccionado.value = _movimientoSeleccionado.value?.copy(disputado = disputado)
+                }
+            } catch (e: Exception) {
+                error.value = "No se pudo actualizar el movimiento"
             }
         }
     }

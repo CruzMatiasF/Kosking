@@ -123,7 +123,15 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    fun crearLocal(nombre: String, tipo: String = "Kiosco", direccion: String = "", lat: Double = 0.0, lng: Double = 0.0, onExito: () -> Unit) {
+    fun crearLocal(
+        nombre: String,
+        tipo: String = "Kiosco",
+        direccion: String = "",
+        lat: Double = 0.0,
+        lng: Double = 0.0,
+        horarios: Map<String, com.kosking.app.modelo.HorarioDia> = emptyMap(),
+        onExito: () -> Unit
+    ) {
         viewModelScope.launch {
             cargando.value = true
             error.value = null
@@ -132,7 +140,7 @@ class DuenoViewModel : ViewModel() {
                 val ref = db.collection("locales").document()
                 val codigo = ref.id.take(6).uppercase()
                 val local = Local(id = ref.id, nombre = nombre, duenoUid = uid, codigo = codigo,
-                    tipo = tipo, direccion = direccion, lat = lat, lng = lng)
+                    tipo = tipo, direccion = direccion, lat = lat, lng = lng, horarios = horarios)
                 FiadoRepository.crearLocal(local)
                 db.collection("usuarios").document(uid).update("localId", ref.id).await()
                 _localId.value = ref.id

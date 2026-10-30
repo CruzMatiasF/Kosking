@@ -31,6 +31,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
@@ -1347,36 +1356,20 @@ private fun TabMiLocal(vm: DuenoViewModel) {
             }
         }
 
-        // Ubicacion GPS
+        // Ubicacion GPS con mapa interactivo
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Ubicacion en el mapa", style = MaterialTheme.typography.titleSmall)
-                    if (latGuardada != 0.0 && lngGuardada != 0.0) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            Text("%.5f, %.5f".format(latGuardada, lngGuardada),
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        Text("Sin ubicacion, tu local no aparece en el mapa.",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    errorUbicacion?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                    OutlinedButton(onClick = { obteniendoUbicacion = true; lanzarUbicacion() },
-                        enabled = !obteniendoUbicacion, modifier = Modifier.fillMaxWidth()) {
-                        if (obteniendoUbicacion) {
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Obteniendo ubicacion...")
-                        } else {
-                            Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(if (latGuardada != 0.0) "Actualizar ubicacion" else "Usar mi ubicacion actual")
-                        }
-                    }
+            UbicacionCard(
+                lat = latGuardada,
+                lng = lngGuardada,
+                obteniendo = obteniendoUbicacion,
+                error = errorUbicacion,
+                onUsarGps = { obteniendoUbicacion = true; guardado = false; lanzarUbicacion() },
+                onPosicionCambiada = { nuevaLat, nuevaLng ->
+                    latGuardada = nuevaLat
+                    lngGuardada = nuevaLng
+                    guardado = false
                 }
-            }
+            )
         }
 
         // Estado abierto/cerrado
@@ -1415,6 +1408,107 @@ private fun TabMiLocal(vm: DuenoViewModel) {
                 else Text("Guardar cambios")
             }
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun UbicacionCard(
+    lat: Double,
+    lng: Double,
+    obteniendo: Boolean,
+    error: String?,
+    onUsarGps: () -> Unit,
+    onPosicionCambiada: (Double, Double) -> Unit
+) {
+    val tieneUbicacion = lat != 0.0 && lng != 0.0
+    val camaraState = rememberCameraPositionState {
+        position = if (tieneUbicacion)
+            CameraPosition.fromLatLngZoom(LatLng(lat, lng), 16f)
+        else
+            CameraPosition.fromLatLngZoom(LatLng(-34.6037, -58.3816), 11f)
+    }
+    val markerState = remember(lat, lng) { MarkerState(LatLng(lat, lng)) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(lat, lng) {
+        if (lat != 0.0 && lng != 0.0) {
+            camaraState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 16f))
+        }
+    }
+
+    // Detectar cuando el marker termina de ser arrastrado
+    val markerDragging = markerState.dragState == com.google.maps.android.compose.DragState.END
+    LaunchedEffect(markerDragging) {
+        if (markerDragging) {
+            onPosicionCambiada(markerState.position.latitude, markerState.position.longitude)
+        }
+    }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Ubicación en el mapa", style = MaterialTheme.typography.titleSmall)
+
+            if (tieneUbicacion) {
+                Text(
+                    "Tocá el mapa para mover el pin al lugar exacto, o arrastrá el marcador.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                ) {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = camaraState,
+                        uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+                        onMapClick = { latlng ->
+                            markerState.position = latlng
+                            onPosicionCambiada(latlng.latitude, latlng.longitude)
+                        }
+                    ) {
+                        Marker(
+                            state = markerState,
+                            draggable = true
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Text(
+                        "%.5f, %.5f".format(markerState.position.latitude, markerState.position.longitude),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Text(
+                    "Sin ubicación — tu local no aparece en el mapa de la app.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+
+            OutlinedButton(
+                onClick = onUsarGps,
+                enabled = !obteniendo,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (obteniendo) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Obteniendo ubicación...")
+                } else {
+                    Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (tieneUbicacion) "Actualizar con GPS" else "Usar mi ubicación actual")
+                }
+            }
         }
     }
 }

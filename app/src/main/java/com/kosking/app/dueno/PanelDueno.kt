@@ -194,6 +194,7 @@ fun PanelDueno(
                     movimientos = movimientosLocal,
                     onIrAClientes = { tabSeleccionado = 1 },
                     onVerMovimiento = { subPantalla = SubPantalla.DetalleMovimiento(it) },
+                    onEditarLocal = { mostrarEditarLocal = true },
                     nombreLocal = nombreLocal,
                     nombreUsuario = nombreUsuario,
                     totalDeuda = totalDeuda,
@@ -239,6 +240,7 @@ private fun TabResumen(
     movimientos: List<Movimiento>,
     onIrAClientes: () -> Unit,
     onVerMovimiento: (String) -> Unit,
+    onEditarLocal: () -> Unit = {},
     nombreLocal: String = "",
     nombreUsuario: String = "",
     totalDeuda: Double = 0.0,
@@ -315,6 +317,18 @@ private fun TabResumen(
                 OutlinedButton(onClick = onIrAClientes, modifier = Modifier.weight(1f)) {
                     Text("Cobrar")
                 }
+            }
+        }
+
+        // Acceso rápido a editar local
+        item {
+            OutlinedButton(
+                onClick = onEditarLocal,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Editar mi local (horarios, ubicación, foto...)")
             }
         }
 

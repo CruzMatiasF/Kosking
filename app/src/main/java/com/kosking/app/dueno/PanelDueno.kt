@@ -1259,7 +1259,12 @@ private fun TabMiLocal(vm: DuenoViewModel) {
         onError = { msg -> errorUbicacion = msg; obteniendoUbicacion = false }
     )
 
-    LaunchedEffect(Unit) { vm.cargarDatosLocal() }
+    if (localActual == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

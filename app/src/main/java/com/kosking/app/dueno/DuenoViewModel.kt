@@ -39,8 +39,12 @@ class DuenoViewModel : ViewModel() {
     private val _nombreLocal = MutableStateFlow("")
     val nombreLocal: StateFlow<String> = _nombreLocal
 
-    private val _localData = MutableStateFlow<Local?>(null)
-    val localData: StateFlow<Local?> = _localData.asStateFlow()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val localData: StateFlow<Local?> = _localId
+        .flatMapLatest { id ->
+            if (id.isNotBlank()) FiadoRepository.localFlow(id) else flowOf(null)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _codigoLocal = MutableStateFlow("")
     val codigoLocal: StateFlow<String> = _codigoLocal
@@ -72,16 +76,10 @@ class DuenoViewModel : ViewModel() {
             val local = FiadoRepository.obtenerLocal(usuario.localId)
             _nombreLocal.value = local?.nombre ?: ""
             _codigoLocal.value = local?.codigo ?: ""
-            _localData.value = local
         }
     }
 
-    fun cargarDatosLocal() {
-        viewModelScope.launch {
-            val id = _localId.value.ifBlank { return@launch }
-            _localData.value = FiadoRepository.obtenerLocal(id)
-        }
-    }
+    fun cargarDatosLocal() { /* localData ya es reactivo, no se necesita carga manual */ }
 
     fun actualizarLocal(
         nombre: String,
@@ -99,7 +97,7 @@ class DuenoViewModel : ViewModel() {
             cargando.value = true
             error.value = null
             try {
-                val local = _localData.value ?: return@launch
+                val local = localData.value ?: return@launch
                 val actualizado = local.copy(
                     nombre = nombre,
                     tipo = tipo,
@@ -113,7 +111,6 @@ class DuenoViewModel : ViewModel() {
                 )
                 FiadoRepository.actualizarLocal(actualizado)
                 _nombreLocal.value = nombre
-                _localData.value = actualizado
                 onExito()
             } catch (e: Exception) {
                 error.value = "No se pudo guardar"

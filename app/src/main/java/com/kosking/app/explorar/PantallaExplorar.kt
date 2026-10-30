@@ -53,6 +53,7 @@ import com.kosking.app.dueno.PantallaAgregarCliente
 import com.kosking.app.dueno.PantallaAgregarFiado
 import com.kosking.app.dueno.PantallaDetalleCliente
 import com.kosking.app.dueno.PantallaDetalleMovimiento
+import com.kosking.app.dueno.PantallaSeleccionarCliente
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
@@ -75,7 +76,8 @@ private sealed class VistaDueno {
     object Panel : VistaDueno()
     object AgregarCliente : VistaDueno()
     data class DetalleCliente(val id: String) : VistaDueno()
-    data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo") : VistaDueno()
+    data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo", val desdeResumen: Boolean = false) : VistaDueno()
+    data class SeleccionarCliente(val tipo: String) : VistaDueno()
     data class DetalleMovimiento(val id: String) : VistaDueno()
 }
 
@@ -274,7 +276,9 @@ fun PantallaExplorar(
             }
             panelActivoEnMas && vistaDueno !is VistaDueno.Panel -> {
                 vistaDueno = when (val v = vistaDueno) {
-                    is VistaDueno.AgregarFiado -> VistaDueno.DetalleCliente(v.clienteId)
+                    is VistaDueno.AgregarFiado -> if (v.desdeResumen) VistaDueno.SeleccionarCliente(v.tipoInicial)
+                                                  else VistaDueno.DetalleCliente(v.clienteId)
+                    is VistaDueno.SeleccionarCliente -> VistaDueno.Panel
                     else -> VistaDueno.Panel
                 }
             }
@@ -540,7 +544,8 @@ fun PantallaExplorar(
                             onAbrirAgregarCliente = { vistaDueno = VistaDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = VistaDueno.DetalleCliente(it) },
                             onAbrirAgregarFiado = { clienteId, tipo -> vistaDueno = VistaDueno.AgregarFiado(clienteId, tipo) },
-                            onAbrirDetalleMovimiento = { vistaDueno = VistaDueno.DetalleMovimiento(it) }
+                            onAbrirDetalleMovimiento = { vistaDueno = VistaDueno.DetalleMovimiento(it) },
+                            onAbrirSeleccionarCliente = { tipo -> vistaDueno = VistaDueno.SeleccionarCliente(tipo) }
                         )
                         is VistaDueno.AgregarCliente -> PantallaAgregarCliente(
                             onVolver = { vistaDueno = VistaDueno.Panel },
@@ -554,10 +559,24 @@ fun PantallaExplorar(
                         )
                         is VistaDueno.AgregarFiado -> PantallaAgregarFiado(
                             clienteId = vista.clienteId,
-                            onGuardado = { vistaDueno = VistaDueno.DetalleCliente(vista.clienteId) },
-                            onVolver = { vistaDueno = VistaDueno.DetalleCliente(vista.clienteId) },
+                            onGuardado = {
+                                vistaDueno = if (vista.desdeResumen) VistaDueno.Panel
+                                             else VistaDueno.DetalleCliente(vista.clienteId)
+                            },
+                            onVolver = {
+                                vistaDueno = if (vista.desdeResumen) VistaDueno.SeleccionarCliente(vista.tipoInicial)
+                                             else VistaDueno.DetalleCliente(vista.clienteId)
+                            },
                             vm = duenoVm,
                             tipoInicial = vista.tipoInicial
+                        )
+                        is VistaDueno.SeleccionarCliente -> PantallaSeleccionarCliente(
+                            tipo = vista.tipo,
+                            vm = duenoVm,
+                            onSeleccionado = { clienteId ->
+                                vistaDueno = VistaDueno.AgregarFiado(clienteId, vista.tipo, desdeResumen = true)
+                            },
+                            onVolver = { vistaDueno = VistaDueno.Panel }
                         )
                         is VistaDueno.DetalleMovimiento -> PantallaDetalleMovimiento(
                             movimientoId = vista.id,

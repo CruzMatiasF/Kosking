@@ -53,7 +53,12 @@ import java.util.*
 private sealed class SubPantalla {
     object AgregarCliente : SubPantalla()
     data class DetalleCliente(val id: String) : SubPantalla()
-    data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo") : SubPantalla()
+    data class AgregarFiado(
+        val clienteId: String,
+        val tipoInicial: String = "cargo",
+        val desdeResumen: Boolean = false
+    ) : SubPantalla()
+    data class SeleccionarCliente(val tipo: String) : SubPantalla()
     data class DetalleMovimiento(val movimientoId: String) : SubPantalla()
 }
 
@@ -109,10 +114,27 @@ fun PanelDueno(
         is SubPantalla.AgregarFiado -> {
             PantallaAgregarFiado(
                 clienteId = sp.clienteId,
-                onGuardado = { subPantalla = SubPantalla.DetalleCliente(sp.clienteId) },
-                onVolver = { subPantalla = SubPantalla.DetalleCliente(sp.clienteId) },
+                onGuardado = {
+                    subPantalla = if (sp.desdeResumen) null
+                                 else SubPantalla.DetalleCliente(sp.clienteId)
+                },
+                onVolver = {
+                    subPantalla = if (sp.desdeResumen) SubPantalla.SeleccionarCliente(sp.tipoInicial)
+                                 else SubPantalla.DetalleCliente(sp.clienteId)
+                },
                 vm = vm,
                 tipoInicial = sp.tipoInicial
+            )
+            return
+        }
+        is SubPantalla.SeleccionarCliente -> {
+            PantallaSeleccionarCliente(
+                tipo = sp.tipo,
+                vm = vm,
+                onSeleccionado = { clienteId ->
+                    subPantalla = SubPantalla.AgregarFiado(clienteId, sp.tipo, desdeResumen = true)
+                },
+                onVolver = { subPantalla = null }
             )
             return
         }
@@ -169,6 +191,8 @@ fun PanelDueno(
                     clientes = clientes,
                     movimientos = movimientosLocal,
                     onIrAClientes = { tabSeleccionado = 1 },
+                onAnotarFiado = { subPantalla = SubPantalla.SeleccionarCliente("cargo") },
+                onCobrar = { subPantalla = SubPantalla.SeleccionarCliente("pago") },
                     onVerMovimiento = { subPantalla = SubPantalla.DetalleMovimiento(it) },
                     nombreLocal = nombreLocal,
                     nombreUsuario = nombreUsuario,
@@ -216,6 +240,8 @@ private fun TabResumen(
     movimientos: List<Movimiento>,
     onIrAClientes: () -> Unit,
     onVerMovimiento: (String) -> Unit,
+    onAnotarFiado: () -> Unit = {},
+    onCobrar: () -> Unit = {},
     nombreLocal: String = "",
     nombreUsuario: String = "",
     totalDeuda: Double = 0.0,
@@ -284,12 +310,12 @@ private fun TabResumen(
         // Acciones rápidas
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = onIrAClientes, modifier = Modifier.weight(1f)) {
+                Button(onClick = onAnotarFiado, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Add, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Anotar fiado")
                 }
-                OutlinedButton(onClick = onIrAClientes, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = onCobrar, modifier = Modifier.weight(1f)) {
                     Text("Cobrar")
                 }
             }
@@ -1173,7 +1199,8 @@ fun PanelDuenoEmbedido(
     onAbrirAgregarCliente: () -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirAgregarFiado: (clienteId: String, tipo: String) -> Unit,
-    onAbrirDetalleMovimiento: (String) -> Unit
+    onAbrirDetalleMovimiento: (String) -> Unit,
+    onAbrirSeleccionarCliente: (tipo: String) -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
@@ -1204,6 +1231,8 @@ fun PanelDuenoEmbedido(
                     movimientos = movimientosLocal,
                     onIrAClientes = { onTabChange(1) },
                     onVerMovimiento = onAbrirDetalleMovimiento,
+                    onAnotarFiado = { onAbrirSeleccionarCliente("cargo") },
+                    onCobrar = { onAbrirSeleccionarCliente("pago") },
                     nombreLocal = nombreLocal,
                     nombreUsuario = nombreUsuario,
                     totalDeuda = totalDeuda,
@@ -1226,6 +1255,77 @@ fun PanelDuenoEmbedido(
                     vm = vm
                 )
                 4 -> TabMiLocal(vm = vm)
+            }
+        }
+    }
+}
+
+// ── Pantalla Seleccionar Cliente (acción rápida desde Resumen) ────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PantallaSeleccionarCliente(
+    tipo: String,
+    vm: DuenoViewModel,
+    onSeleccionado: (clienteId: String) -> Unit,
+    onVolver: () -> Unit
+) {
+    val clientes by vm.clientes.collectAsState()
+    var busqueda by remember { mutableStateOf("") }
+
+    val titulo = if (tipo == "cargo") "¿A quién le anotás?" else "¿Quién está pagando?"
+    val clientesFiltrados = remember(clientes, busqueda) {
+        if (busqueda.isBlank()) clientes
+        else clientes.filter { it.nombre.contains(busqueda, ignoreCase = true) }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(titulo) },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            OutlinedTextField(
+                value = busqueda,
+                onValueChange = { busqueda = it },
+                placeholder = { Text("Buscar cliente...") },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            if (clientesFiltrados.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (clientes.isEmpty()) "No tenés clientes aún" else "Sin resultados",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                androidx.compose.foundation.lazy.LazyColumn {
+                    items(clientesFiltrados, key = { it.id }) { cliente ->
+                        ListItem(
+                            headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
+                            supportingContent = {
+                                if (cliente.deudaTotal > 0)
+                                    Text("Debe $${"%.2f".format(cliente.deudaTotal)}",
+                                        color = MaterialTheme.colorScheme.error)
+                                else
+                                    Text("Sin deuda", color = MaterialTheme.colorScheme.primary)
+                            },
+                            trailingContent = { Icon(Icons.Default.ChevronRight, null) },
+                            modifier = Modifier.clickable { onSeleccionado(cliente.id) }
+                        )
+                        HorizontalDivider()
+                    }
+                }
             }
         }
     }

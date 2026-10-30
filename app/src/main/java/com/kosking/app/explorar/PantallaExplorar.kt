@@ -53,8 +53,17 @@ import com.kosking.app.dueno.PantallaAgregarCliente
 import com.kosking.app.dueno.PantallaAgregarFiado
 import com.kosking.app.dueno.PantallaDetalleCliente
 import com.kosking.app.dueno.PantallaDetalleMovimiento
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.launch
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Producto
+import com.kosking.app.explorar.estaAbiertoAhora
+import com.kosking.app.explorar.textoHorarioHoy
 
 private val tiposLocales = listOf(
     "Todos", "Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería"
@@ -1345,18 +1354,57 @@ private fun TabFavoritos(
 
 @Composable
 private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val localesConCoordenadas = remember(locales) { locales.filter { it.lat != 0.0 && it.lng != 0.0 } }
     var localSeleccionado by remember { mutableStateOf<Local?>(null) }
+    var soloAbiertos by remember { mutableStateOf(false) }
+    var ubicacionUsuario by remember { mutableStateOf<LatLng?>(null) }
+    var permisoUbicacionDenegado by remember { mutableStateOf(false) }
 
-    // Centro inicial: si hay locales con coords usar el primero, si no Argentina
-    val centroInicial = remember(localesConCoordenadas) {
-        if (localesConCoordenadas.isNotEmpty())
-            LatLng(localesConCoordenadas.first().lat, localesConCoordenadas.first().lng)
-        else LatLng(-34.6037, -58.3816) // Buenos Aires
+    val localesFiltrados = remember(localesConCoordenadas, soloAbiertos) {
+        if (soloAbiertos) localesConCoordenadas.filter { estaAbiertoAhora(it) }
+        else localesConCoordenadas
     }
 
     val camaraState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(centroInicial, if (localesConCoordenadas.size == 1) 15f else 11f)
+        position = CameraPosition.fromLatLngZoom(LatLng(-34.6037, -58.3816), 11f)
+    }
+
+    // Pedir ubicación al entrar al tab y centrar cámara
+    val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        val ok = permisos[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                 permisos[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (ok) {
+            val client = LocationServices.getFusedLocationProviderClient(context)
+            val cts = CancellationTokenSource()
+            try {
+                client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.token)
+                    .addOnSuccessListener { loc ->
+                        if (loc != null) ubicacionUsuario = LatLng(loc.latitude, loc.longitude)
+                    }
+            } catch (_: SecurityException) {}
+        } else {
+            permisoUbicacionDenegado = true
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        permLauncher.launch(arrayOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ))
+    }
+
+    // Centrar cámara cuando llega la ubicación
+    LaunchedEffect(ubicacionUsuario) {
+        ubicacionUsuario?.let { pos ->
+            camaraState.animate(
+                com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(pos, 13f)
+            )
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -1364,16 +1412,21 @@ private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = camaraState,
             uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
-            properties = MapProperties()
+            properties = MapProperties(isMyLocationEnabled = ubicacionUsuario != null)
         ) {
-            localesConCoordenadas.forEach { local ->
+            localesFiltrados.forEach { local ->
+                val abierto = estaAbiertoAhora(local)
                 val markerState = remember(local.lat, local.lng) { MarkerState(position = LatLng(local.lat, local.lng)) }
                 Marker(
                     state = markerState,
                     title = local.nombre,
-                    snippet = local.tipo + if (!local.abierto) " · Cerrado" else "",
+                    snippet = buildString {
+                        append(local.tipo)
+                        val horarioTexto = textoHorarioHoy(local)
+                        if (horarioTexto.isNotBlank()) append(" · $horarioTexto")
+                    },
                     icon = BitmapDescriptorFactory.defaultMarker(
-                        if (local.abierto) BitmapDescriptorFactory.HUE_GREEN
+                        if (abierto) BitmapDescriptorFactory.HUE_GREEN
                         else BitmapDescriptorFactory.HUE_RED
                     ),
                     onClick = { localSeleccionado = local; false }
@@ -1381,59 +1434,134 @@ private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
             }
         }
 
+        // Chip filtro "Solo abiertos" arriba
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = soloAbiertos,
+                onClick = { soloAbiertos = !soloAbiertos; localSeleccionado = null },
+                label = { Text("Solo abiertos") },
+                leadingIcon = if (soloAbiertos) ({
+                    Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                }) else null
+            )
+        }
+
+        // Botón "Mi ubicación" abajo a la derecha
+        FloatingActionButton(
+            onClick = {
+                val pos = ubicacionUsuario
+                if (pos != null) {
+                    scope.launch {
+                        camaraState.animate(
+                            com.google.android.gms.maps.CameraUpdateFactory.newLatLngZoom(pos, 14f)
+                        )
+                    }
+                } else {
+                    permLauncher.launch(arrayOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    ))
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = if (localSeleccionado != null) 160.dp else 16.dp, end = 16.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(Icons.Default.MyLocation, "Mi ubicación")
+        }
+
         // Panel inferior cuando se selecciona un marcador
         localSeleccionado?.let { local ->
+            val abierto = estaAbiertoAhora(local)
+            val horarioTexto = textoHorarioHoy(local)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp)
+                    .padding(start = 16.dp, end = 72.dp, bottom = 16.dp)
                     .fillMaxWidth()
             ) {
                 Card(
-                    onClick = { onVerLocal(local.id) },
-                    elevation = CardDefaults.cardElevation(8.dp)
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    ListItem(
-                        headlineContent = { Text(local.nombre, fontWeight = FontWeight.SemiBold) },
-                        supportingContent = {
-                            Text(
-                                buildString {
-                                    append(local.tipo)
-                                    if (local.direccion.isNotBlank()) append(" · ${local.direccion}")
+                    Column {
+                        ListItem(
+                            headlineContent = { Text(local.nombre, fontWeight = FontWeight.SemiBold) },
+                            supportingContent = {
+                                Column {
+                                    Text(buildString {
+                                        append(local.tipo)
+                                        if (local.direccion.isNotBlank()) append(" · ${local.direccion}")
+                                    })
+                                    if (horarioTexto.isNotBlank()) {
+                                        Text(horarioTexto,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (abierto) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
-                            )
-                        },
-                        leadingContent = {
-                            Box(
-                                modifier = Modifier.size(40.dp).clip(CircleShape)
-                                    .background(
-                                        if (local.abierto) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(iconParaTipo(local.tipo), null,
-                                    tint = if (local.abierto) MaterialTheme.colorScheme.primary
-                                           else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(22.dp))
-                            }
-                        },
-                        trailingContent = {
-                            Column(horizontalAlignment = Alignment.End) {
+                            },
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier.size(40.dp).clip(CircleShape)
+                                        .background(
+                                            if (abierto) MaterialTheme.colorScheme.primaryContainer
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(iconParaTipo(local.tipo), null,
+                                        tint = if (abierto) MaterialTheme.colorScheme.primary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(22.dp))
+                                }
+                            },
+                            trailingContent = {
                                 Badge(
-                                    containerColor = if (local.abierto) MaterialTheme.colorScheme.primary
+                                    containerColor = if (abierto) MaterialTheme.colorScheme.primary
                                                     else MaterialTheme.colorScheme.surfaceVariant
                                 ) {
-                                    Text(if (local.abierto) "Abierto" else "Cerrado",
-                                        color = if (local.abierto) MaterialTheme.colorScheme.onPrimary
+                                    Text(if (abierto) "Abierto" else "Cerrado",
+                                        color = if (abierto) MaterialTheme.colorScheme.onPrimary
                                                 else MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Spacer(Modifier.height(4.dp))
-                                Icon(Icons.Default.ChevronRight, null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        )
+                        // Botones: Ver vidriera + Cómo llegar
+                        Row(
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { onVerLocal(local.id) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Store, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Ver local")
+                            }
+                            if (local.lat != 0.0 && local.lng != 0.0) {
+                                Button(
+                                    onClick = {
+                                        val uri = Uri.parse("geo:${local.lat},${local.lng}?q=${local.lat},${local.lng}(${Uri.encode(local.nombre)})")
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.Directions, null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Cómo llegar")
+                                }
                             }
                         }
-                    )
+                    }
                 }
                 IconButton(
                     onClick = { localSeleccionado = null },
@@ -1449,7 +1577,7 @@ private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
         // Aviso si no hay locales con coordenadas
         if (localesConCoordenadas.isEmpty() && locales.isNotEmpty()) {
             Card(
-                modifier = Modifier.align(Alignment.TopCenter).padding(12.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 56.dp, start = 12.dp, end = 12.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Row(
@@ -1460,11 +1588,9 @@ private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
                     Icon(Icons.Default.Info, null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "Ningún local cargó su ubicación todavía",
+                    Text("Ningún local cargó su ubicación todavía",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

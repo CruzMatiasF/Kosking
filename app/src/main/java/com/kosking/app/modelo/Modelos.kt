@@ -10,6 +10,15 @@ data class Permisos(
     val verTotal: Boolean = false
 )
 
+// "HH:mm" o "" si está cerrado ese día
+@Immutable
+data class HorarioDia(
+    val apertura: String = "",
+    val cierre: String = ""
+) {
+    val tieneCarga: Boolean get() = apertura.isNotBlank() && cierre.isNotBlank()
+}
+
 @Immutable
 data class Local(
     val id: String = "",
@@ -24,7 +33,8 @@ data class Local(
     val imagenUrl: String = "",
     val descripcion: String = "",
     val lat: Double = 0.0,
-    val lng: Double = 0.0
+    val lng: Double = 0.0,
+    val horarios: Map<String, HorarioDia> = emptyMap()
 )
 
 @Immutable

@@ -92,6 +92,7 @@ class DuenoViewModel : ViewModel() {
         abierto: Boolean,
         lat: Double? = null,
         lng: Double? = null,
+        horarios: Map<String, com.kosking.app.modelo.HorarioDia>? = null,
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
@@ -107,7 +108,8 @@ class DuenoViewModel : ViewModel() {
                     descripcion = descripcion,
                     abierto = abierto,
                     lat = lat ?: local.lat,
-                    lng = lng ?: local.lng
+                    lng = lng ?: local.lng,
+                    horarios = horarios ?: local.horarios
                 )
                 FiadoRepository.actualizarLocal(actualizado)
                 _nombreLocal.value = nombre

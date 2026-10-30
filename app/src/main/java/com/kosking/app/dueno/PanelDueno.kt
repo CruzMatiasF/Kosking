@@ -34,6 +34,8 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
+import com.kosking.app.modelo.HorarioDia
+import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
 import java.text.SimpleDateFormat
@@ -52,7 +54,8 @@ private val tabs = listOf(
     TabItem("Resumen", Icons.Default.Home),
     TabItem("Clientes", Icons.Default.Person),
     TabItem("Productos", Icons.Default.ShoppingCart),
-    TabItem("Equipo", Icons.Default.People)
+    TabItem("Equipo", Icons.Default.People),
+    TabItem("Mi local", Icons.Default.Store)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,18 +80,6 @@ fun PanelDueno(
     var tabSeleccionado by remember { mutableStateOf(0) }
     var subPantalla by remember { mutableStateOf<SubPantalla?>(null) }
     var mostrarMenuSesion by remember { mutableStateOf(false) }
-    var mostrarEditarLocal by remember { mutableStateOf(false) }
-
-    if (mostrarEditarLocal) {
-        PantallaEditarLocal(onVolver = { mostrarEditarLocal = false }, vm = vm)
-        return
-    }
-
-    val fotoLocalLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) vm.subirFotoLocal(uri) {}
-    }
 
     BackHandler(enabled = subPantalla != null) { subPantalla = null }
 
@@ -141,35 +132,11 @@ fun PanelDueno(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { fotoLocalLauncher.launch("image/*") }) {
-                        Icon(Icons.Default.AddAPhoto, "Foto del local")
-                    }
-                    Box {
-                        IconButton(onClick = { mostrarMenuSesion = true }) {
-                            Icon(Icons.Default.MoreVert, "Más opciones")
-                        }
-                        DropdownMenu(
-                            expanded = mostrarMenuSesion,
-                            onDismissRequest = { mostrarMenuSesion = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Editar local") },
-                                leadingIcon = { Icon(Icons.Default.Edit, null) },
-                                onClick = {
-                                    mostrarMenuSesion = false
-                                    mostrarEditarLocal = true
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Cerrar sesión") },
-                                onClick = {
-                                    mostrarMenuSesion = false
-                                    vm.cerrarSesion()
-                                    onCerrarSesion()
-                                }
-                            )
-                        }
+                    IconButton(onClick = {
+                        vm.cerrarSesion()
+                        onCerrarSesion()
+                    }) {
+                        Icon(Icons.Default.Logout, "Cerrar sesión")
                     }
                 }
             )
@@ -194,7 +161,6 @@ fun PanelDueno(
                     movimientos = movimientosLocal,
                     onIrAClientes = { tabSeleccionado = 1 },
                     onVerMovimiento = { subPantalla = SubPantalla.DetalleMovimiento(it) },
-                    onEditarLocal = { mostrarEditarLocal = true },
                     nombreLocal = nombreLocal,
                     nombreUsuario = nombreUsuario,
                     totalDeuda = totalDeuda,
@@ -216,6 +182,7 @@ fun PanelDueno(
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                     vm = vm
                 )
+                4 -> TabMiLocal(vm = vm)
             }
         }
     }
@@ -240,7 +207,6 @@ private fun TabResumen(
     movimientos: List<Movimiento>,
     onIrAClientes: () -> Unit,
     onVerMovimiento: (String) -> Unit,
-    onEditarLocal: () -> Unit = {},
     nombreLocal: String = "",
     nombreUsuario: String = "",
     totalDeuda: Double = 0.0,
@@ -320,17 +286,6 @@ private fun TabResumen(
             }
         }
 
-        // Acceso rápido a editar local
-        item {
-            OutlinedButton(
-                onClick = onEditarLocal,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Editar mi local (horarios, ubicación, foto...)")
-            }
-        }
 
         // Alertas
         if (alertaTotal > 0) {
@@ -1261,6 +1216,224 @@ fun PanelDuenoEmbedido(
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                     vm = vm
                 )
+            }
+        }
+    }
+}
+
+// ── Tab Mi Local ──────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TabMiLocal(vm: DuenoViewModel) {
+    val cargando by vm.cargando.collectAsState()
+    val error by vm.error.collectAsState()
+    val localActual by vm.localData.collectAsState()
+
+    var nombre by remember(localActual) { mutableStateOf(localActual?.nombre ?: "") }
+    var tipo by remember(localActual) { mutableStateOf(localActual?.tipo ?: "Kiosco") }
+    var direccion by remember(localActual) { mutableStateOf(localActual?.direccion ?: "") }
+    var telefono by remember(localActual) { mutableStateOf(localActual?.telefono ?: "") }
+    var descripcion by remember(localActual) { mutableStateOf(localActual?.descripcion ?: "") }
+    var abierto by remember(localActual) { mutableStateOf(localActual?.abierto ?: true) }
+    var expandirTipo by remember { mutableStateOf(false) }
+
+    var latGuardada by remember(localActual) { mutableStateOf(localActual?.lat ?: 0.0) }
+    var lngGuardada by remember(localActual) { mutableStateOf(localActual?.lng ?: 0.0) }
+    var obteniendoUbicacion by remember { mutableStateOf(false) }
+    var errorUbicacion by remember { mutableStateOf<String?>(null) }
+    var guardado by remember { mutableStateOf(false) }
+
+    val horarios = remember(localActual) {
+        mutableStateMapOf<String, HorarioDia>().also { map ->
+            localActual?.horarios?.forEach { (k, v) -> map[k] = v }
+        }
+    }
+
+    val fotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) vm.subirFotoLocal(uri) {}
+    }
+
+    val lanzarUbicacion = rememberUbicacionLauncher(
+        onUbicacion = { lat, lng -> latGuardada = lat; lngGuardada = lng; obteniendoUbicacion = false; errorUbicacion = null },
+        onError = { msg -> errorUbicacion = msg; obteniendoUbicacion = false }
+    )
+
+    LaunchedEffect(Unit) { vm.cargarDatosLocal() }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Foto del local
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Foto del local", style = MaterialTheme.typography.titleSmall)
+                    if (localActual?.imagenUrl?.isNotBlank() == true) {
+                        AsyncImage(
+                            model = localActual!!.imagenUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxWidth().height(160.dp).clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = { fotoLauncher.launch("image/*") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (localActual?.imagenUrl?.isNotBlank() == true) "Cambiar foto" else "Agregar foto")
+                    }
+                }
+            }
+        }
+
+        // Datos basicos
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Datos del local", style = MaterialTheme.typography.titleSmall)
+
+                    OutlinedTextField(value = nombre, onValueChange = { nombre = it; guardado = false },
+                        label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                    ExposedDropdownMenuBox(expanded = expandirTipo, onExpandedChange = { expandirTipo = it }) {
+                        OutlinedTextField(value = tipo, onValueChange = {}, readOnly = true,
+                            label = { Text("Tipo") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirTipo) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor())
+                        ExposedDropdownMenu(expanded = expandirTipo, onDismissRequest = { expandirTipo = false }) {
+                            listOf("Kiosco","Almacen","Maxikiosco","Ropa","Corralon","Farmacia","Verduleria","Otro").forEach { t ->
+                                DropdownMenuItem(text = { Text(t) }, onClick = { tipo = t; expandirTipo = false; guardado = false })
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(value = telefono, onValueChange = { telefono = it; guardado = false },
+                        label = { Text("Telefono / WhatsApp") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                    OutlinedTextField(value = direccion, onValueChange = { direccion = it; guardado = false },
+                        label = { Text("Direccion") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                    OutlinedTextField(value = descripcion, onValueChange = { descripcion = it; guardado = false },
+                        label = { Text("Descripcion (opcional)") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
+                }
+            }
+        }
+
+        // Horarios
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Horarios de atencion", style = MaterialTheme.typography.titleSmall)
+                    Text("El mapa muestra automaticamente si estas abierto ahora.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf("lunes" to "Lunes","martes" to "Martes","miercoles" to "Miercoles",
+                        "jueves" to "Jueves","viernes" to "Viernes","sabado" to "Sabado","domingo" to "Domingo"
+                    ).forEach { (clave, etiqueta) ->
+                        val h = horarios[clave] ?: HorarioDia()
+                        FilaHorarioPanelDueno(dia = etiqueta, horario = h, onCambio = { nuevo -> horarios[clave] = nuevo; guardado = false })
+                    }
+                }
+            }
+        }
+
+        // Ubicacion GPS
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Ubicacion en el mapa", style = MaterialTheme.typography.titleSmall)
+                    if (latGuardada != 0.0 && lngGuardada != 0.0) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Text("%.5f, %.5f".format(latGuardada, lngGuardada),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    } else {
+                        Text("Sin ubicacion, tu local no aparece en el mapa.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    errorUbicacion?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    OutlinedButton(onClick = { obteniendoUbicacion = true; lanzarUbicacion() },
+                        enabled = !obteniendoUbicacion, modifier = Modifier.fillMaxWidth()) {
+                        if (obteniendoUbicacion) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Obteniendo ubicacion...")
+                        } else {
+                            Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (latGuardada != 0.0) "Actualizar ubicacion" else "Usar mi ubicacion actual")
+                        }
+                    }
+                }
+            }
+        }
+
+        // Estado abierto/cerrado
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = { Text("Local abierto ahora") },
+                    supportingContent = { Text(if (abierto) "Visible como abierto" else "Visible como cerrado") },
+                    trailingContent = { Switch(checked = abierto, onCheckedChange = { abierto = it; guardado = false }) }
+                )
+            }
+        }
+
+        // Error y boton guardar
+        item {
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            if (guardado) {
+                Text("Cambios guardados", color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(4.dp))
+            Button(
+                onClick = {
+                    vm.actualizarLocal(
+                        nombre = nombre.trim(), tipo = tipo, direccion = direccion.trim(),
+                        telefono = telefono.trim(), descripcion = descripcion.trim(), abierto = abierto,
+                        lat = latGuardada.takeIf { it != 0.0 }, lng = lngGuardada.takeIf { it != 0.0 },
+                        horarios = horarios.toMap().ifEmpty { null },
+                        onExito = { guardado = true }
+                    )
+                },
+                enabled = !cargando && nombre.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                else Text("Guardar cambios")
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun FilaHorarioPanelDueno(dia: String, horario: HorarioDia, onCambio: (HorarioDia) -> Unit) {
+    var activo by remember(horario) { mutableStateOf(horario.tieneCarga) }
+    var apertura by remember(horario) { mutableStateOf(if (horario.tieneCarga) horario.apertura else "08:00") }
+    var cierre by remember(horario) { mutableStateOf(if (horario.tieneCarga) horario.cierre else "20:00") }
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(dia, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Switch(checked = activo, onCheckedChange = { nuevo ->
+                activo = nuevo
+                onCambio(if (nuevo) HorarioDia(apertura, cierre) else HorarioDia())
+            })
+        }
+        if (activo) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = apertura, onValueChange = { v -> apertura = v; onCambio(HorarioDia(v, cierre)) },
+                    label = { Text("Abre") }, placeholder = { Text("08:00") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+                OutlinedTextField(value = cierre, onValueChange = { v -> cierre = v; onCambio(HorarioDia(apertura, v)) },
+                    label = { Text("Cierra") }, placeholder = { Text("20:00") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
             }
         }
     }

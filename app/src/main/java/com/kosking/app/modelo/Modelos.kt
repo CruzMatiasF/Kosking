@@ -2,6 +2,7 @@ package com.kosking.app.modelo
 
 import androidx.compose.runtime.Immutable
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Exclude
 
 @Immutable
 data class Permisos(
@@ -16,6 +17,7 @@ data class HorarioDia(
     val apertura: String = "",
     val cierre: String = ""
 ) {
+    @get:Exclude
     val tieneCarga: Boolean get() = apertura.isNotBlank() && cierre.isNotBlank()
 }
 

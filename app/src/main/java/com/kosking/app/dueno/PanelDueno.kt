@@ -1216,6 +1216,7 @@ fun PanelDuenoEmbedido(
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                     vm = vm
                 )
+                4 -> TabMiLocal(vm = vm)
             }
         }
     }

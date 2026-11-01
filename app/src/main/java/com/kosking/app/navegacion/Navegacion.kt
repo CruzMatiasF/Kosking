@@ -88,8 +88,34 @@ fun KoskingNavHost() {
     val esDueno by duenoVm.localId.collectAsState()
     val esEmpleado by empleadoVm.tieneSession.collectAsState()
 
-    // EXPLORAR siempre es la raíz — se redirige desde ahí si hay sesión activa
-    NavHost(navController = nav, startDestination = Rutas.EXPLORAR) {
+    val context = LocalContext.current
+    val startDestination = if (PreferenciasRepository.isOnboardingVisto(context))
+        Rutas.EXPLORAR else Rutas.ONBOARDING
+
+    NavHost(navController = nav, startDestination = startDestination) {
+
+        // ── Onboarding (primera vez) ──────────────────────────────────────────
+        composable(Rutas.ONBOARDING) {
+            val ctx = LocalContext.current
+            PantallaOnboarding(
+                onSoyCliente = {
+                    PreferenciasRepository.marcarOnboardingVisto(ctx)
+                    PreferenciasRepository.setPantallaInicio(ctx, PreferenciasRepository.PANTALLA_EXPLORAR)
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(Rutas.ONBOARDING) { inclusive = true } }
+                },
+                onTengoUnLocal = {
+                    PreferenciasRepository.marcarOnboardingVisto(ctx)
+                    PreferenciasRepository.setPantallaInicio(ctx, PreferenciasRepository.PANTALLA_DUENO)
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(Rutas.ONBOARDING) { inclusive = true } }
+                },
+                onSoyEmpleado = {
+                    PreferenciasRepository.marcarOnboardingVisto(ctx)
+                    PreferenciasRepository.setPantallaInicio(ctx, PreferenciasRepository.PANTALLA_EMPLEADO)
+                    nav.navigate(Rutas.INGRESAR_CODIGO) { popUpTo(Rutas.ONBOARDING) { inclusive = true } }
+                }
+            )
+        }
+
 
         // ── Explorar (raíz) ───────────────────────────────────────────────────
 

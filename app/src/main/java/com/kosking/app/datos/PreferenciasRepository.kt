@@ -32,4 +32,12 @@ object PreferenciasRepository {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putBoolean(KEY_ONBOARDING_VISTO, true).apply()
     }
+
+    fun resetOnboarding(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_ONBOARDING_VISTO, false)
+            .putString(KEY_PANTALLA_INICIO, PANTALLA_EXPLORAR)
+            .apply()
+    }
 }

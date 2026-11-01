@@ -338,6 +338,7 @@ class DuenoViewModel : ViewModel() {
                 set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }.timeInMillis
+            // movimientosLocal ya viene filtrado por los últimos 90 días desde Firestore
             val hoy = movs.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
             val fiado = hoy.filter { it.tipo == "cargo" }.sumOf { it.monto }
             val cobrado = hoy.filter { it.tipo == "pago" }.sumOf { it.monto }

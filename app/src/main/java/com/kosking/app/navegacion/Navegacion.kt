@@ -219,6 +219,8 @@ fun KoskingNavHost() {
                     empleadoVm.cerrarSesion()
                     duenoVm.cerrarSesion()
                     mostrarPanelDueno = false
+                    PreferenciasRepository.resetOnboarding(context)
+                    nav.navigate(Rutas.ONBOARDING) { popUpTo(0) { inclusive = true } }
                 },
                 estaLogueado = estaLogueado,
                 nombreUsuario = nombreUsuario,
@@ -309,7 +311,9 @@ fun KoskingNavHost() {
         composable(Rutas.PANEL_DUENO) {
             PanelDueno(
                 onCerrarSesion = {
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                    duenoVm.cerrarSesion()
+                    PreferenciasRepository.resetOnboarding(context)
+                    nav.navigate(Rutas.ONBOARDING) { popUpTo(0) { inclusive = true } }
                 },
                 onVolver = { nav.popBackStack() },
                 vm = duenoVm
@@ -335,7 +339,8 @@ fun KoskingNavHost() {
                 onVerCliente = { id -> nav.navigate(Rutas.agregarFiadoEmpleado(id)) },
                 onCerrarSesion = {
                     empleadoVm.cerrarSesion()
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                    PreferenciasRepository.resetOnboarding(context)
+                    nav.navigate(Rutas.ONBOARDING) { popUpTo(0) { inclusive = true } }
                 },
                 onVolver = { nav.popBackStack() },
                 tabInicial = tabInicialEmpleado,

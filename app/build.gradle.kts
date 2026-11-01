@@ -20,8 +20,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += setOf("es", "en")
 
-        val mapsApiKey = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        val mapsKey = rootProject.file("local.properties")
+            .takeIf { it.exists() }
+            ?.readLines()
+            ?.firstOrNull { it.startsWith("MAPS_API_KEY=") }
+            ?.substringAfter("=") ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsKey
     }
 
     buildTypes {

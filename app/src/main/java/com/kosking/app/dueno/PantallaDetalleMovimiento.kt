@@ -132,17 +132,16 @@ fun PantallaDetalleMovimiento(
 
             if (!movActual.anulado) {
                 Spacer(Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = { vm.marcarDisputado(movActual.id, !movActual.disputado) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = if (movActual.disputado)
-                        ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                    else
-                        ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(if (movActual.disputado) "Quitar disputa" else "Marcar como disputado")
+                if (movActual.disputado) {
+                    OutlinedButton(
+                        onClick = { vm.marcarDisputado(movActual.id, false) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Quitar disputa")
+                    }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { mostrarDialogAnular = true }, modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                     Text("Anular movimiento")

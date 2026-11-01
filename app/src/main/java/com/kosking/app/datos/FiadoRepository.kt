@@ -51,7 +51,7 @@ object FiadoRepository {
         db.collection("locales").document(local.id).set(local).await()
     }
 
-    fun localesFlow(limite: Int = 100): Flow<List<Local>> = callbackFlow {
+    fun localesFlow(limite: Int = 30): Flow<List<Local>> = callbackFlow {
         val sub = db.collection("locales")
             .limit(limite.toLong())
             .addSnapshotListener { snap, _ ->
@@ -172,31 +172,27 @@ object FiadoRepository {
     // ── Movimientos ──────────────────────────────────────────────────────────
 
     fun movimientosLocalFlow(localId: String, diasAtras: Int = 90): Flow<List<Movimiento>> = callbackFlow {
-        val desdeSec = System.currentTimeMillis() / 1000 - diasAtras * 86400L
+        val desdeTs = com.google.firebase.Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
         val sub = db.collection("movimientos")
             .whereEqualTo("localId", localId)
+            .whereGreaterThan("fecha", desdeTs)
+            .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(300)
             .addSnapshotListener { snap, _ ->
-                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
-                trySend(
-                    lista
-                        .filter { it.fecha.seconds >= desdeSec }
-                        .sortedByDescending { it.fecha.seconds }
-                )
+                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
             }
         awaitClose { sub.remove() }
     }
 
     fun movimientosFlow(clienteId: String, diasAtras: Int = 60): Flow<List<Movimiento>> = callbackFlow {
-        val desdeSec = System.currentTimeMillis() / 1000 - diasAtras * 86400L
+        val desdeTs = com.google.firebase.Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
+            .whereGreaterThan("fecha", desdeTs)
+            .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(200)
             .addSnapshotListener { snap, _ ->
-                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
-                trySend(
-                    lista
-                        .filter { it.fecha.seconds >= desdeSec }
-                        .sortedByDescending { it.fecha.seconds }
-                )
+                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
             }
         awaitClose { sub.remove() }
     }
@@ -207,9 +203,10 @@ object FiadoRepository {
     fun movimentosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
+            .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(200)
             .addSnapshotListener { snap, _ ->
-                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
-                trySend(lista.sortedByDescending { it.fecha.seconds })
+                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
             }
         awaitClose { sub.remove() }
     }

@@ -139,10 +139,19 @@ fun KoskingNavHost() {
                         }
                     }
                     else -> {
-                        // PANTALLA_EXPLORAR o cualquier default: no redirigir
-                        // pero si el empleado tiene sesión activa, igual redirigir (comportamiento anterior)
-                        if (empleadoVm.tieneSession.value) {
-                            nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                        // Sin preferencia guardada: redirigir automáticamente según rol
+                        when {
+                            empleadoVm.tieneSession.value -> {
+                                nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                            }
+                            else -> {
+                                val localId = withTimeoutOrNull(3000L) {
+                                    duenoVm.localId.filter { it.isNotBlank() }.first()
+                                }
+                                if (localId != null && FirebaseAuth.getInstance().currentUser != null) {
+                                    mostrarPanelDueno = true
+                                }
+                            }
                         }
                     }
                 }

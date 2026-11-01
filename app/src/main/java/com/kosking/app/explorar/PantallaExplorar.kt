@@ -70,7 +70,7 @@ private val tiposLocales = listOf(
     "Todos", "Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería"
 )
 
-private enum class TabExplorar { INICIO, FAVORITOS, MAPA, OFERTAS, MAS }
+private enum class TabExplorar { INICIO, TIENDAS, MAPA, OFERTAS, MAS }
 
 private sealed class VistaDueno {
     object Panel : VistaDueno()
@@ -409,7 +409,7 @@ fun PantallaExplorar(
                         }
                     }
                 )
-                TabExplorar.FAVORITOS -> TopAppBar(title = { Text("Favoritos") })
+                TabExplorar.TIENDAS -> TopAppBar(title = { Text("Tiendas") })
                 TabExplorar.MAPA -> TopAppBar(title = { Text("Mapa") })
                 TabExplorar.OFERTAS -> TopAppBar(title = { Text("Ofertas") })
                 TabExplorar.MAS -> if (panelActivoEnMas) {
@@ -444,15 +444,15 @@ fun PantallaExplorar(
                     label = { Text("Inicio") }
                 )
                 NavigationBarItem(
-                    selected = tabActual == TabExplorar.FAVORITOS,
+                    selected = tabActual == TabExplorar.TIENDAS,
                     onClick = {
-                        if (tabActual != TabExplorar.FAVORITOS) {
+                        if (tabActual != TabExplorar.TIENDAS) {
                             tabHistory.add(tabActual)
-                            tabActual = TabExplorar.FAVORITOS
+                            tabActual = TabExplorar.TIENDAS
                         }
                     },
-                    icon = { Icon(Icons.Default.Favorite, null) },
-                    label = { Text("Favoritos") }
+                    icon = { Icon(Icons.Default.Store, null) },
+                    label = { Text("Tiendas") }
                 )
                 NavigationBarItem(
                     selected = tabActual == TabExplorar.MAPA,
@@ -522,12 +522,9 @@ fun PantallaExplorar(
                     onVerOfertas = { tabActual = TabExplorar.OFERTAS },
                     onCargarMas = { vm.cargarMasProductos() }
                 )
-                TabExplorar.FAVORITOS -> TabFavoritos(
-                    localesGuardados = localesGuardados.map { lg ->
-                        todosLocales.find { it.id == lg.localId }
-                    }.filterNotNull(),
-                    onVerLocal = onVerLocal,
-                    onVerMisFiados = onVerMisLocales
+                TabExplorar.TIENDAS -> TabTiendas(
+                    todosLocales = todosLocales,
+                    onVerLocal = onVerLocal
                 )
                 TabExplorar.MAPA -> TabMapa(locales = todosLocales, onVerLocal = onVerLocal)
                 TabExplorar.OFERTAS -> TabOfertas(
@@ -754,24 +751,55 @@ private fun TabInicio(
             }
         }
 
-        // Categorías — solo visibles en modo normal (no durante búsqueda)
+        // Grilla de categorías estilo PedidosYa — solo en modo normal
         if (busqueda.isBlank()) {
             item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(tiposLocales) { tipo ->
-                        val sel = tipo == tipoFiltro
-                        val icono = if (tipo == "Todos") Icons.Default.Apps else iconParaTipo(tipo)
-                        FilterChip(
-                            selected = sel,
-                            onClick = { tipoFiltro = tipo },
-                            label = { Text(tipo) },
-                            leadingIcon = {
-                                Icon(icono, null, modifier = Modifier.size(16.dp))
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    val categorias = listOf(
+                        Triple("Todos", Icons.Default.Apps, MaterialTheme.colorScheme.primaryContainer),
+                        Triple("Kiosco", Icons.Default.Store, MaterialTheme.colorScheme.secondaryContainer),
+                        Triple("Almacén", Icons.Default.ShoppingCart, MaterialTheme.colorScheme.tertiaryContainer),
+                        Triple("Farmacia", Icons.Default.MedicalServices, MaterialTheme.colorScheme.errorContainer),
+                        Triple("Maxikiosco", Icons.Default.Storefront, MaterialTheme.colorScheme.secondaryContainer),
+                        Triple("Verdulería", Icons.Default.Eco, MaterialTheme.colorScheme.primaryContainer),
+                        Triple("Panadería", Icons.Default.BakeryDining, MaterialTheme.colorScheme.tertiaryContainer),
+                        Triple("Otro", Icons.Default.Category, MaterialTheme.colorScheme.surfaceVariant),
+                    )
+                    val pares = categorias.chunked(4)
+                    pares.forEach { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            fila.forEach { (tipo, icono, color) ->
+                                val sel = tipo == tipoFiltro
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (sel) MaterialTheme.colorScheme.primary else color)
+                                        .clickable { tipoFiltro = tipo }
+                                        .padding(vertical = 12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        icono, null,
+                                        modifier = Modifier.size(26.dp),
+                                        tint = if (sel) MaterialTheme.colorScheme.onPrimary
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        tipo,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (sel) MaterialTheme.colorScheme.onPrimary
+                                                else MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
+                                    )
+                                }
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -1282,93 +1310,132 @@ private fun FilaLocalPlana(local: Local, onClick: () -> Unit) {
     }
 }
 
-// ── Tab Favoritos ─────────────────────────────────────────────────────────────
+// ── Tab Tiendas ───────────────────────────────────────────────────────────────
+
+private val TIPOS_TIENDAS = listOf("Todos", "Kiosco", "Almacén", "Maxikiosco", "Farmacia", "Verdulería", "Panadería")
 
 @Composable
-private fun TabFavoritos(
-    localesGuardados: List<Local>,
+private fun TabTiendas(
+    todosLocales: List<Local>,
     onVerLocal: (String) -> Unit,
-    onVerMisFiados: () -> Unit
 ) {
-    if (localesGuardados.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.FavoriteBorder, null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.outlineVariant)
-                Text("Todavía no tenés locales guardados",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Buscá un local y pedile tu PIN al dueño",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        return
+    var tipoFiltro by remember { mutableStateOf("Todos") }
+    var soloAbiertos by remember { mutableStateOf(false) }
+
+    val localesFiltrados = remember(todosLocales, tipoFiltro, soloAbiertos) {
+        todosLocales
+            .filter { if (tipoFiltro != "Todos") it.tipo == tipoFiltro else true }
+            .filter { if (soloAbiertos) estaAbiertoAhora(it) else true }
+            .sortedWith(compareByDescending<Local> { estaAbiertoAhora(it) }.thenBy { it.nombre })
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                onClick = onVerMisFiados
-            ) {
-                Row(modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Receipt, null,
-                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Ver todos mis fiados",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold)
-                        Text("${localesGuardados.size} local${if (localesGuardados.size != 1) "es" else ""} guardado${if (localesGuardados.size != 1) "s" else ""}",
-                            style = MaterialTheme.typography.bodySmall)
-                    }
-                    Icon(Icons.Default.ChevronRight, null)
-                }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Chips de tipo + abiertos
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item {
+                FilterChip(
+                    selected = soloAbiertos,
+                    onClick = { soloAbiertos = !soloAbiertos },
+                    label = { Text("Abiertos ahora") },
+                    leadingIcon = if (soloAbiertos) ({ Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }) else null
+                )
+            }
+            items(TIPOS_TIENDAS) { tipo ->
+                FilterChip(
+                    selected = tipoFiltro == tipo,
+                    onClick = { tipoFiltro = tipo },
+                    label = { Text(tipo) },
+                    leadingIcon = { Icon(if (tipo == "Todos") Icons.Default.Apps else iconParaTipo(tipo), null, modifier = Modifier.size(16.dp)) }
+                )
             }
         }
 
-        item {
-            Text("Mis locales", style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold)
+        if (localesFiltrados.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.StoreMallDirectory, null,
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.outlineVariant)
+                    Text(if (soloAbiertos) "No hay locales abiertos ahora" else "No hay locales de este tipo",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            return@Column
         }
 
-        items(localesGuardados, key = { it.id }) { local ->
-            Card(modifier = Modifier.fillMaxWidth(),
-                onClick = { onVerLocal(local.id) }) {
-                ListItem(
-                    headlineContent = { Text(local.nombre, fontWeight = FontWeight.Medium) },
-                    supportingContent = {
-                        if (local.direccion.isNotBlank()) Text(local.direccion)
-                    },
-                    leadingContent = {
-                        Box(modifier = Modifier.size(40.dp).clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center) {
-                            Icon(iconParaTipo(local.tipo), null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp))
-                        }
-                    },
-                    trailingContent = {
-                        Box(modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                            .background(if (local.abierto) MaterialTheme.colorScheme.onSurface
-                                        else MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 8.dp, vertical = 4.dp)) {
-                            Text(if (local.abierto) "Abierto" else "Cerrado",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (local.abierto) MaterialTheme.colorScheme.surface
-                                        else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                )
+        LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+            items(localesFiltrados, key = { it.id }) { local ->
+                TarjetaLocalTiendas(local = local, onClick = { onVerLocal(local.id) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaLocalTiendas(local: Local, onClick: () -> Unit) {
+    val abierto = estaAbiertoAhora(local)
+    val horarioTexto = textoHorarioHoy(local)
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Logo / imagen del local
+            Box(
+                modifier = Modifier.size(60.dp).clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (local.imagenUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = local.imagenUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(iconParaTipo(local.tipo), null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(local.nombre, style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Text(local.tipo, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (local.direccion.isNotBlank()) {
+                    Text(local.direccion, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (horarioTexto.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(horarioTexto, style = MaterialTheme.typography.labelSmall,
+                        color = if (abierto) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error)
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (abierto) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            ) {
+                Text(if (abierto) "Abierto" else "Cerrado",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (abierto) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

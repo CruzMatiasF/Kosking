@@ -13,6 +13,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+private val EMAIL_REGEX = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRegistro(
@@ -26,6 +28,12 @@ fun PantallaRegistro(
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var tocadoEmail by remember { mutableStateOf(false) }
+    var tocadoPassword by remember { mutableStateOf(false) }
+
+    val emailValido = EMAIL_REGEX.matches(email.trim())
+    val passwordValida = password.length >= 6
+    val formularioValido = nombre.isNotBlank() && emailValido && passwordValida
 
     Scaffold(
         topBar = {
@@ -55,9 +63,13 @@ fun PantallaRegistro(
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { email = it; tocadoEmail = true },
                 label = { Text("Email") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                isError = tocadoEmail && !emailValido,
+                supportingText = if (tocadoEmail && !emailValido) {
+                    { Text("Ingresá un email válido") }
+                } else null,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -65,10 +77,16 @@ fun PantallaRegistro(
 
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { password = it; tocadoPassword = true },
                 label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                isError = tocadoPassword && !passwordValida,
+                supportingText = if (tocadoPassword && !passwordValida) {
+                    { Text("Mínimo 6 caracteres") }
+                } else {
+                    { Text("Mínimo 6 caracteres", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -81,8 +99,8 @@ fun PantallaRegistro(
             Spacer(Modifier.height(24.dp))
 
             Button(
-                onClick = { vm.registrar(nombre, email, password, onRegistroExitoso) },
-                enabled = !cargando && nombre.isNotBlank() && email.isNotBlank() && password.length >= 6,
+                onClick = { vm.registrar(nombre, email.trim(), password, onRegistroExitoso) },
+                enabled = !cargando && formularioValido,
                 modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)

@@ -53,6 +53,17 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun recuperarPassword(email: String, onExito: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                auth.sendPasswordResetEmail(email).await()
+                onExito()
+            } catch (e: Exception) {
+                onError("No encontramos una cuenta con ese email")
+            }
+        }
+    }
+
     private suspend fun guardarTokenFcm(uid: String) {
         try {
             val token = FirebaseMessaging.getInstance().token.await()

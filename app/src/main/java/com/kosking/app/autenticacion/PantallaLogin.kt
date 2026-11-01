@@ -22,6 +22,7 @@ fun PantallaLogin(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var mostrarRecuperar by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -59,7 +60,14 @@ fun PantallaLogin(
                 style = MaterialTheme.typography.bodySmall)
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { mostrarRecuperar = true }) {
+                Text("Olvidé mi contraseña", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         Button(
             onClick = { vm.login(email, password) { onLoginExitoso() } },
@@ -76,4 +84,68 @@ fun PantallaLogin(
             Text("¿No tenés cuenta? Registrate")
         }
     }
+
+    if (mostrarRecuperar) {
+        DialogRecuperarPassword(
+            emailInicial = email,
+            vm = vm,
+            onDismiss = { mostrarRecuperar = false }
+        )
+    }
+}
+
+@Composable
+private fun DialogRecuperarPassword(
+    emailInicial: String,
+    vm: AuthViewModel,
+    onDismiss: () -> Unit
+) {
+    var emailRecuperar by remember { mutableStateOf(emailInicial) }
+    var enviado by remember { mutableStateOf(false) }
+    var errorLocal by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (enviado) "Email enviado" else "Recuperar contraseña") },
+        text = {
+            if (enviado) {
+                Text("Te mandamos un email a $emailRecuperar con las instrucciones para restablecer tu contraseña.")
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Ingresá tu email y te mandamos un link para restablecer la contraseña.",
+                        style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(
+                        value = emailRecuperar,
+                        onValueChange = { emailRecuperar = it; errorLocal = null },
+                        label = { Text("Email") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        isError = errorLocal != null,
+                        supportingText = errorLocal?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (enviado) {
+                TextButton(onClick = onDismiss) { Text("Listo") }
+            } else {
+                TextButton(
+                    onClick = {
+                        vm.recuperarPassword(
+                            emailRecuperar.trim(),
+                            onExito = { enviado = true },
+                            onError = { errorLocal = it }
+                        )
+                    },
+                    enabled = emailRecuperar.isNotBlank()
+                ) { Text("Enviar") }
+            }
+        },
+        dismissButton = {
+            if (!enviado) {
+                TextButton(onClick = onDismiss) { Text("Cancelar") }
+            }
+        }
+    )
 }

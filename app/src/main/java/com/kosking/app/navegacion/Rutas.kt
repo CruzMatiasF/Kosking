@@ -1,9 +1,6 @@
 package com.kosking.app.navegacion
 
 object Rutas {
-    // Onboarding (primera vez)
-    const val ONBOARDING = "onboarding"
-
     // Entrada pública
     const val EXPLORAR = "explorar"
 

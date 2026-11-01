@@ -89,33 +89,8 @@ fun KoskingNavHost() {
     val esEmpleado by empleadoVm.tieneSession.collectAsState()
 
     val context = LocalContext.current
-    val startDestination = if (PreferenciasRepository.isOnboardingVisto(context))
-        Rutas.EXPLORAR else Rutas.ONBOARDING
 
-    NavHost(navController = nav, startDestination = startDestination) {
-
-        // ── Onboarding (primera vez) ──────────────────────────────────────────
-        composable(Rutas.ONBOARDING) {
-            val ctx = LocalContext.current
-            PantallaOnboarding(
-                onSoyCliente = {
-                    PreferenciasRepository.marcarOnboardingVisto(ctx)
-                    PreferenciasRepository.setPantallaInicio(ctx, PreferenciasRepository.PANTALLA_EXPLORAR)
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(Rutas.ONBOARDING) { inclusive = true } }
-                },
-                onTengoUnLocal = {
-                    PreferenciasRepository.marcarOnboardingVisto(ctx)
-                    PreferenciasRepository.setPantallaInicio(ctx, PreferenciasRepository.PANTALLA_DUENO)
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(Rutas.ONBOARDING) { inclusive = true } }
-                },
-                onSoyEmpleado = {
-                    PreferenciasRepository.marcarOnboardingVisto(ctx)
-                    PreferenciasRepository.setPantallaInicio(ctx, PreferenciasRepository.PANTALLA_EMPLEADO)
-                    nav.navigate(Rutas.INGRESAR_CODIGO) { popUpTo(Rutas.ONBOARDING) { inclusive = true } }
-                }
-            )
-        }
-
+    NavHost(navController = nav, startDestination = Rutas.EXPLORAR) {
 
         // ── Explorar (raíz) ───────────────────────────────────────────────────
 
@@ -219,8 +194,7 @@ fun KoskingNavHost() {
                     empleadoVm.cerrarSesion()
                     duenoVm.cerrarSesion()
                     mostrarPanelDueno = false
-                    PreferenciasRepository.resetOnboarding(context)
-                    nav.navigate(Rutas.ONBOARDING) { popUpTo(0) { inclusive = true } }
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
                 estaLogueado = estaLogueado,
                 nombreUsuario = nombreUsuario,
@@ -312,8 +286,7 @@ fun KoskingNavHost() {
             PanelDueno(
                 onCerrarSesion = {
                     duenoVm.cerrarSesion()
-                    PreferenciasRepository.resetOnboarding(context)
-                    nav.navigate(Rutas.ONBOARDING) { popUpTo(0) { inclusive = true } }
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
                 onVolver = { nav.popBackStack() },
                 vm = duenoVm
@@ -339,8 +312,7 @@ fun KoskingNavHost() {
                 onVerCliente = { id -> nav.navigate(Rutas.agregarFiadoEmpleado(id)) },
                 onCerrarSesion = {
                     empleadoVm.cerrarSesion()
-                    PreferenciasRepository.resetOnboarding(context)
-                    nav.navigate(Rutas.ONBOARDING) { popUpTo(0) { inclusive = true } }
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
                 onVolver = { nav.popBackStack() },
                 tabInicial = tabInicialEmpleado,

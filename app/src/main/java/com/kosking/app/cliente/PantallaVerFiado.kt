@@ -101,21 +101,30 @@ private fun ListaLocales(
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.padding(32.dp)
                         ) {
-                            Text(
-                                "No estás conectado a ningún local",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icon(
+                                Icons.Default.Store,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                "Pedile el código al dueño del local para conectarte",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                "Todavía no tenés locales conectados",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(Modifier.height(4.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                PasoConectarse(numero = "1", texto = "Andá al kiosco")
+                                PasoConectarse(numero = "2", texto = "Pedile al dueño que te agregue como cliente y te dé tu PIN")
+                                PasoConectarse(numero = "3", texto = "Volvé acá y tocá \"Conectarme\"")
+                            }
+                            Spacer(Modifier.height(8.dp))
                             Button(onClick = onConectarme) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text("Conectarme a un local")
                             }
                         }
@@ -668,6 +677,36 @@ private fun ItemMovimientoCliente(mov: Movimiento, onNoReconozco: () -> Unit) {
                 esCargo -> MaterialTheme.colorScheme.error
                 else -> Color(0xFF2E7D32)
             }
+        )
+    }
+}
+
+
+@Composable
+private fun PasoConectarse(numero: String, texto: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(28.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    numero,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        Text(
+            texto,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
         )
     }
 }

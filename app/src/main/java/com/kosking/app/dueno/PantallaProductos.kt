@@ -1,22 +1,29 @@
 package com.kosking.app.dueno
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +37,17 @@ fun PantallaProductos(
     var mostrarDialogo by remember { mutableStateOf(false) }
     var productoEditar by remember { mutableStateOf<Producto?>(null) }
     var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
+    var productoParaFoto by remember { mutableStateOf<Producto?>(null) }
+
+    val fotoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        val prod = productoParaFoto
+        if (uri != null && prod != null) {
+            vm.subirFotoProducto(prod, uri) {}
+        }
+        productoParaFoto = null
+    }
 
     Scaffold(
         topBar = {
@@ -69,6 +87,35 @@ fun PantallaProductos(
                 }
                 items(productos) { prod ->
                     ListItem(
+                        leadingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (prod.imagenUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = prod.imagenUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else if (esDueno) {
+                                    IconButton(onClick = {
+                                        productoParaFoto = prod
+                                        fotoLauncher.launch("image/*")
+                                    }) {
+                                        Icon(
+                                            Icons.Default.AddAPhoto,
+                                            contentDescription = "Agregar foto",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        },
                         headlineContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(prod.nombre, fontWeight = FontWeight.Medium)

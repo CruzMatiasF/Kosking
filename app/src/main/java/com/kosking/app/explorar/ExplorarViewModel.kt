@@ -8,6 +8,7 @@ import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Notificacion
 import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +65,18 @@ class ExplorarViewModel : ViewModel() {
             cargandoMas.value = true
             _limite.value += 20
             cargandoMas.value = false
+        }
+    }
+
+    val refrescando = MutableStateFlow(false)
+
+    fun refrescar() {
+        if (refrescando.value) return
+        viewModelScope.launch {
+            refrescando.value = true
+            _limite.value = 20
+            delay(800)
+            refrescando.value = false
         }
     }
 

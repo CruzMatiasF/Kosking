@@ -122,7 +122,20 @@ object FiadoRepository {
     }
 
     suspend fun actualizarCliente(cliente: Cliente) {
-        db.collection("clientes").document(cliente.id).set(cliente).await()
+        // .update() en lugar de .set() para no pisar deudaTotal (gestionado por transacción)
+        db.collection("clientes").document(cliente.id).update(
+            mapOf(
+                "nombre" to cliente.nombre,
+                "telefono" to cliente.telefono,
+                "domicilio" to cliente.domicilio,
+                "habilitado" to cliente.habilitado,
+                "limiteCredito" to cliente.limiteCredito,
+                "fechaPago" to cliente.fechaPago,
+                "notaInterna" to cliente.notaInterna,
+                "visitantesConocidos" to cliente.visitantesConocidos,
+                "pin" to cliente.pin
+            )
+        ).await()
     }
 
     suspend fun eliminarCliente(clienteId: String, codigoAcceso: String) {

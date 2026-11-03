@@ -12,7 +12,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
+import com.kosking.app.autenticacion.AuthViewModel
 import com.kosking.app.cliente.ClienteViewModel
+import com.kosking.app.cliente.PantallaEntradaCliente
 import com.kosking.app.cliente.PantallaIngresarPIN
 import com.kosking.app.dueno.PantallaCrearLocal
 import com.kosking.app.dueno.DuenoViewModel
@@ -51,6 +53,7 @@ private sealed class DestinoPostLogin {
 @Composable
 fun KoskingNavHost() {
     val nav = rememberNavController()
+    val authVm: AuthViewModel = viewModel()
     val duenoVm: DuenoViewModel = viewModel()
     val empleadoVm: EmpleadoViewModel = viewModel()
     val clienteVm: ClienteViewModel = viewModel()
@@ -181,7 +184,13 @@ fun KoskingNavHost() {
                         nav.navigate(Rutas.INGRESAR_CODIGO)
                     }
                 },
-                onVerMisLocales = { nav.navigate(Rutas.VER_FIADO) },
+                onVerMisLocales = {
+                    if (FirebaseAuth.getInstance().currentUser == null) {
+                        nav.navigate(Rutas.ENTRADA_CLIENTE)
+                    } else {
+                        nav.navigate(Rutas.VER_FIADO)
+                    }
+                },
                 onConfiguracion = { nav.navigate(Rutas.CONFIGURACION) },
                 onNotificaciones = { nav.navigate(Rutas.NOTIFICACIONES) },
                 onAcercaDe = { nav.navigate(Rutas.ACERCA_DE) },
@@ -332,7 +341,6 @@ fun KoskingNavHost() {
             val clientes by empleadoVm.clientesHabilitados.collectAsState()
             val cliente = remember(clientes, clienteId) { clientes.find { it.id == clienteId } }
             com.kosking.app.dueno.PantallaAgregarFiadoConLambda(
-                onGuardado = { nav.popBackStack() },
                 onVolver = { nav.popBackStack() },
                 cargando = cargando,
                 error = error,
@@ -341,15 +349,30 @@ fun KoskingNavHost() {
                 limiteCredito = cliente?.limiteCredito ?: 0.0,
                 nombreCliente = cliente?.nombre ?: "",
                 nombreEmpleado = nombreEmpleado,
-                onAgregar = { producto, cantidad, monto, tipo ->
-                    empleadoVm.agregarMovimiento(clienteId, producto, cantidad, monto, tipo) {
-                        nav.popBackStack()
-                    }
+                visitantesConocidos = cliente?.visitantesConocidos ?: emptyList(),
+                onConfirmar = { items, tipo, visitante ->
+                    empleadoVm.agregarMovimientos(clienteId, items, tipo, visitante) { nav.popBackStack() }
                 }
             )
         }
 
         // ── Cliente ───────────────────────────────────────────────────────────
+
+        composable(Rutas.ENTRADA_CLIENTE) {
+            PantallaEntradaCliente(
+                onEntradaAnonima = {
+                    nav.navigate(Rutas.VER_FIADO) {
+                        popUpTo(Rutas.EXPLORAR)
+                    }
+                },
+                onIrALogin = {
+                    destinoPostLogin = null
+                    nav.navigate(Rutas.LOGIN)
+                },
+                onVolver = { nav.popBackStack() },
+                authVm = authVm
+            )
+        }
 
         composable(
             Rutas.INGRESAR_PIN,

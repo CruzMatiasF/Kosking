@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +46,8 @@ fun PantallaVerFiado(
         localAbiertoId = null
     }
 
+    val refrescando by vm.refrescando.collectAsState()
+
     if (localAbierto != null) {
         LaunchedEffect(localAbierto.localId) { vm.seleccionarLocal(localAbierto.localId) }
         DetalleFiado(
@@ -59,7 +62,9 @@ fun PantallaVerFiado(
             onSeleccionar = { localAbiertoId = it.localId },
             onQuitarLocal = { vm.quitarLocal(it.localId) },
             onVolver = onVolver,
-            onConectarme = { mostrarDialogConectar = true }
+            onConectarme = { mostrarDialogConectar = true },
+            isRefrescando = refrescando,
+            onRefrescar = { vm.refrescar() }
         )
     }
 
@@ -80,7 +85,9 @@ private fun ListaLocales(
     onSeleccionar: (LocalGuardado) -> Unit,
     onQuitarLocal: (LocalGuardado) -> Unit,
     onVolver: () -> Unit,
-    onConectarme: () -> Unit
+    onConectarme: () -> Unit,
+    isRefrescando: Boolean = false,
+    onRefrescar: () -> Unit = {}
 ) {
     var localAConfirmarQuitar by remember { mutableStateOf<LocalGuardado?>(null) }
 
@@ -89,8 +96,13 @@ private fun ListaLocales(
             TopAppBar(title = { Text("Ver mi fiado") })
         }
     ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isRefrescando,
+            onRefresh = onRefrescar,
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             if (locales.isEmpty()) {
@@ -158,6 +170,7 @@ private fun ListaLocales(
                 }
             }
         }
+        } // PullToRefreshBox
     }
 
     localAConfirmarQuitar?.let { local ->

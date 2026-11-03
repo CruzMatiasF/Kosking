@@ -53,6 +53,21 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun loginAnonimo(onExito: () -> Unit) {
+        viewModelScope.launch {
+            cargando.value = true
+            error.value = null
+            try {
+                auth.signInAnonymously().await()
+                onExito()
+            } catch (e: Exception) {
+                error.value = "No se pudo conectar. Revisá tu conexión"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
     fun recuperarPassword(email: String, onExito: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {

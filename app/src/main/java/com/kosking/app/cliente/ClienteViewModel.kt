@@ -9,6 +9,7 @@ import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.LocalGuardado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,7 @@ class ClienteViewModel : ViewModel() {
     val cargando = MutableStateFlow(false)
 
     private val _uid = MutableStateFlow(
-        auth.currentUser?.takeIf { !it.isAnonymous }?.uid ?: ""
+        auth.currentUser?.uid ?: ""
     )
 
     // Declarado ANTES del init para que esté inicializado cuando init corra
@@ -46,7 +47,7 @@ class ClienteViewModel : ViewModel() {
     var startupRedirectDone = false
 
     private val authListener = FirebaseAuth.AuthStateListener { fa ->
-        _uid.value = fa.currentUser?.takeIf { !it.isAnonymous }?.uid ?: ""
+        _uid.value = fa.currentUser?.uid ?: ""
     }
 
     init {
@@ -176,6 +177,17 @@ class ClienteViewModel : ViewModel() {
             if (lg != null) FiadoRepository.localFlow(lg.localId) else flowOf(null)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val refrescando = MutableStateFlow(false)
+
+    fun refrescar() {
+        if (refrescando.value) return
+        viewModelScope.launch {
+            refrescando.value = true
+            delay(800)
+            refrescando.value = false
+        }
+    }
 
     fun marcarDisputado(movimientoId: String) {
         viewModelScope.launch {

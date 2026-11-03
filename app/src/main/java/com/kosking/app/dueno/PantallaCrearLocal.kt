@@ -1,20 +1,19 @@
 package com.kosking.app.dueno
 
+import android.location.Geocoder
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kosking.app.modelo.HorarioDia
+import java.util.Locale
 
 private val tiposLocales = listOf(
     "Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro"
@@ -36,32 +35,14 @@ fun PantallaCrearLocal(
     onLocalCreado: () -> Unit,
     vm: DuenoViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
     var nombre by remember { mutableStateOf("") }
     var tipo by remember { mutableStateOf("Kiosco") }
     var direccion by remember { mutableStateOf("") }
     var expandirTipo by remember { mutableStateOf(false) }
-
-    var lat by remember { mutableStateOf(0.0) }
-    var lng by remember { mutableStateOf(0.0) }
-    var obteniendoUbicacion by remember { mutableStateOf(false) }
-    var errorUbicacion by remember { mutableStateOf<String?>(null) }
-
     val horarios = remember { mutableStateMapOf<String, HorarioDia>() }
-
-    val lanzarUbicacion = rememberUbicacionLauncher(
-        onUbicacion = { latObt, lngObt ->
-            lat = latObt
-            lng = lngObt
-            obteniendoUbicacion = false
-            errorUbicacion = null
-        },
-        onError = { msg ->
-            errorUbicacion = msg
-            obteniendoUbicacion = false
-        }
-    )
 
     Column(
         modifier = Modifier
@@ -114,8 +95,9 @@ fun PantallaCrearLocal(
         OutlinedTextField(
             value = direccion,
             onValueChange = { direccion = it },
-            label = { Text("Dirección (opcional)") },
-            placeholder = { Text("Ej: Av. Corrientes 1234") },
+            label = { Text("Dirección") },
+            placeholder = { Text("Ej: Av. Corrientes 1234, Buenos Aires") },
+            supportingText = { Text("Tus clientes verán esto para encontrarte. También se usa para ubicarte en el mapa.") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -139,49 +121,6 @@ fun PantallaCrearLocal(
             }
         }
 
-        // ── GPS ───────────────────────────────────────────────────────────────
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Ubicación en el mapa", style = MaterialTheme.typography.titleSmall)
-                if (lat != 0.0 && lng != 0.0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.LocationOn, null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp))
-                        Text("%.5f, %.5f".format(lat, lng),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else {
-                    Text("Opcional — permite que aparezcas en el mapa.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                errorUbicacion?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall)
-                }
-                OutlinedButton(
-                    onClick = { obteniendoUbicacion = true; lanzarUbicacion() },
-                    enabled = !obteniendoUbicacion,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (obteniendoUbicacion) {
-                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Obteniendo...")
-                    } else {
-                        Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (lat != 0.0) "Ubicación obtenida ✓" else "Usar mi ubicación")
-                    }
-                }
-            }
-        }
-
         error?.let {
             Text(it, color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall)
@@ -191,6 +130,21 @@ fun PantallaCrearLocal(
 
         Button(
             onClick = {
+                // Geocodificar la dirección para obtener lat/lng
+                var lat = 0.0
+                var lng = 0.0
+                if (direccion.isNotBlank()) {
+                    try {
+                        @Suppress("DEPRECATION")
+                        val results = Geocoder(context, Locale("es", "AR"))
+                            .getFromLocationName(direccion, 1)
+                        val addr = results?.firstOrNull()
+                        if (addr != null) {
+                            lat = addr.latitude
+                            lng = addr.longitude
+                        }
+                    } catch (_: Exception) {}
+                }
                 vm.crearLocal(
                     nombre = nombre,
                     tipo = tipo,
@@ -223,7 +177,7 @@ private fun FilaHorarioCrear(
     var cierre by remember(horario) { mutableStateOf(if (horario.tieneCarga) horario.cierre else "20:00") }
 
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(dia, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(
                 checked = activo,

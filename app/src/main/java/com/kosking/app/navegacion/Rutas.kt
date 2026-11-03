@@ -18,6 +18,7 @@ object Rutas {
     const val AGREGAR_FIADO_EMPLEADO = "agregar_fiado_empleado/{clienteId}"
 
     // Cliente
+    const val ENTRADA_CLIENTE = "entrada_cliente"
     const val INGRESAR_PIN = "ingresar_pin/{localId}/{nombreLocal}"
     const val VER_FIADO = "ver_fiado"
 

@@ -50,7 +50,10 @@ data class Cliente(
     val habilitado: Boolean = true,
     val deudaTotal: Double = 0.0,
     val codigoAcceso: String = "",
-    val limiteCredito: Double = 0.0
+    val limiteCredito: Double = 0.0,
+    val fechaPago: Timestamp? = null,
+    val notaInterna: String = "",
+    val visitantesConocidos: List<String> = emptyList()
 )
 
 @Immutable
@@ -67,7 +70,9 @@ data class Movimiento(
     val anotadoPorNombre: String = "",
     val anulado: Boolean = false,
     val motivoAnulacion: String = "",
-    val disputado: Boolean = false
+    val disputado: Boolean = false,
+    val grupoId: String = "",
+    val visitante: String = ""
 )
 
 @Immutable

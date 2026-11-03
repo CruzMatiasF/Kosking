@@ -1,21 +1,22 @@
 package com.kosking.app.dueno
 
+import android.location.Geocoder
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kosking.app.modelo.HorarioDia
+import java.util.Locale
 
 private val tiposLocalesEditar = listOf(
     "Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro"
@@ -37,6 +38,7 @@ fun PantallaEditarLocal(
     onVolver: () -> Unit,
     vm: DuenoViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
     val nombreLocalActual by vm.nombreLocal.collectAsState()
@@ -50,30 +52,12 @@ fun PantallaEditarLocal(
     var abierto by remember(localActual) { mutableStateOf(localActual?.abierto ?: true) }
     var expandirTipo by remember { mutableStateOf(false) }
 
-    var latGuardada by remember(localActual) { mutableStateOf(localActual?.lat ?: 0.0) }
-    var lngGuardada by remember(localActual) { mutableStateOf(localActual?.lng ?: 0.0) }
-    var errorUbicacion by remember { mutableStateOf<String?>(null) }
-    var obteniendoUbicacion by remember { mutableStateOf(false) }
-
     // Horarios: mapa mutable día → HorarioDia
     val horarios = remember(localActual) {
         mutableStateMapOf<String, HorarioDia>().also { map ->
             localActual?.horarios?.forEach { (k, v) -> map[k] = v }
         }
     }
-
-    val lanzarUbicacion = rememberUbicacionLauncher(
-        onUbicacion = { lat, lng ->
-            latGuardada = lat
-            lngGuardada = lng
-            obteniendoUbicacion = false
-            errorUbicacion = null
-        },
-        onError = { msg ->
-            errorUbicacion = msg
-            obteniendoUbicacion = false
-        }
-    )
 
     LaunchedEffect(Unit) { vm.cargarDatosLocal() }
 
@@ -149,7 +133,8 @@ fun PantallaEditarLocal(
                 value = direccion,
                 onValueChange = { direccion = it },
                 label = { Text("Dirección") },
-                placeholder = { Text("Ej: Av. Corrientes 1234") },
+                placeholder = { Text("Ej: Av. Corrientes 1234, Buenos Aires") },
+                supportingText = { Text("Tus clientes verán esto para encontrarte. También se usa para ubicarte en el mapa.") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -184,49 +169,6 @@ fun PantallaEditarLocal(
                 }
             }
 
-            // ── GPS ───────────────────────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Ubicación en el mapa", style = MaterialTheme.typography.titleSmall)
-                    if (latGuardada != 0.0 && lngGuardada != 0.0) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Default.LocationOn, null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp))
-                            Text("%.5f, %.5f".format(latGuardada, lngGuardada),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        Text("Sin ubicación — tu local no aparecerá en el mapa.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    errorUbicacion?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall)
-                    }
-                    OutlinedButton(
-                        onClick = { obteniendoUbicacion = true; lanzarUbicacion() },
-                        enabled = !obteniendoUbicacion,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (obteniendoUbicacion) {
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Obteniendo ubicación...")
-                        } else {
-                            Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(if (latGuardada != 0.0) "Actualizar ubicación" else "Usar mi ubicación actual")
-                        }
-                    }
-                }
-            }
-
             Card(modifier = Modifier.fillMaxWidth()) {
                 ListItem(
                     headlineContent = { Text("Local abierto") },
@@ -244,15 +186,31 @@ fun PantallaEditarLocal(
 
             Button(
                 onClick = {
+                    var lat: Double? = localActual?.lat?.takeIf { it != 0.0 }
+                    var lng: Double? = localActual?.lng?.takeIf { it != 0.0 }
+                    val dirTrim = direccion.trim()
+                    // Geocodificar si la dirección cambió o no hay coordenadas aún
+                    if (dirTrim.isNotBlank() && dirTrim != (localActual?.direccion ?: "")) {
+                        try {
+                            @Suppress("DEPRECATION")
+                            val results = Geocoder(context, Locale("es", "AR"))
+                                .getFromLocationName(dirTrim, 1)
+                            val addr = results?.firstOrNull()
+                            if (addr != null) {
+                                lat = addr.latitude
+                                lng = addr.longitude
+                            }
+                        } catch (_: Exception) {}
+                    }
                     vm.actualizarLocal(
                         nombre = nombre.trim(),
                         tipo = tipo,
-                        direccion = direccion.trim(),
+                        direccion = dirTrim,
                         telefono = telefono.trim(),
                         descripcion = descripcion.trim(),
                         abierto = abierto,
-                        lat = latGuardada.takeIf { it != 0.0 },
-                        lng = lngGuardada.takeIf { it != 0.0 },
+                        lat = lat,
+                        lng = lng,
                         horarios = horarios.toMap().ifEmpty { null },
                         onExito = onVolver
                     )

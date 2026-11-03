@@ -66,7 +66,7 @@ import kotlinx.coroutines.launch
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Producto
 
-private enum class TabExplorar { INICIO, TIENDAS, MAPA, OFERTAS, MAS }
+private enum class TabExplorar { INICIO, TIENDAS, MAPA, MAS }
 
 private sealed class VistaDueno {
     object Panel : VistaDueno()
@@ -413,7 +413,6 @@ fun PantallaExplorar(
                 )
                 TabExplorar.TIENDAS -> TopAppBar(title = { Text("Tiendas") })
                 TabExplorar.MAPA -> TopAppBar(title = { Text("Mapa") })
-                TabExplorar.OFERTAS -> TopAppBar(title = { Text("Ofertas") })
                 TabExplorar.MAS -> if (panelActivoEnMas) {
                     val vistaActual = vistaDueno
                     when {
@@ -490,17 +489,6 @@ fun PantallaExplorar(
                     label = { Text("Mapa") }
                 )
                 NavigationBarItem(
-                    selected = tabActual == TabExplorar.OFERTAS,
-                    onClick = {
-                        if (tabActual != TabExplorar.OFERTAS) {
-                            tabHistory.add(tabActual)
-                            tabActual = TabExplorar.OFERTAS
-                        }
-                    },
-                    icon = { Icon(Icons.Default.LocalOffer, null) },
-                    label = { Text("Ofertas") }
-                )
-                NavigationBarItem(
                     selected = tabActual == TabExplorar.MAS,
                     onClick = {
                         when {
@@ -543,7 +531,7 @@ fun PantallaExplorar(
                     cargando = cargandoInicio,
                     onVerLocal = onVerLocal,
                     onVerMisLocales = onVerMisLocales,
-                    onVerOfertas = { tabActual = TabExplorar.OFERTAS },
+                    onVerOfertas = { tabActual = TabExplorar.TIENDAS },
                     onCargarMas = { vm.cargarMasProductos() },
                     isRefrescando = refrescando,
                     onRefrescar = { vm.refrescar() }
@@ -556,11 +544,6 @@ fun PantallaExplorar(
                     onRefrescar = { vm.refrescar() }
                 )
                 TabExplorar.MAPA -> TabMapa(locales = todosLocales, onVerLocal = onVerLocal)
-                TabExplorar.OFERTAS -> TabOfertas(
-                    productos = productosOferta,
-                    locales = todosLocales,
-                    onVerLocal = onVerLocal
-                )
                 TabExplorar.MAS -> if (panelActivoEnMas) {
                     when (val vista = vistaDueno) {
                         is VistaDueno.Panel -> PanelDuenoEmbedido(
@@ -1879,64 +1862,6 @@ private fun TabMapa(locales: List<Local>, onVerLocal: (String) -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        }
-    }
-}
-
-// ── Tab Ofertas ───────────────────────────────────────────────────────────────
-
-@Composable
-private fun TabOfertas(
-    productos: List<Producto>,
-    locales: List<Local>,
-    onVerLocal: (String) -> Unit
-) {
-    val localMap = remember(locales) { locales.associateBy { it.id } }
-
-    if (productos.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.LocalOffer, null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.outlineVariant)
-                Text("Sin ofertas por el momento",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Cuando un kiosco publique ofertas\naparecen acá",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        return
-    }
-
-    LazyColumn(modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp)) {
-
-        item {
-            SeccionLabel(
-                texto = "Ofertas",
-                conteo = "${productos.size} disponible${if (productos.size != 1) "s" else ""}"
-            )
-        }
-
-        val pares = productos.chunked(2)
-        items(pares) { par ->
-            Row(
-                Modifier.fillMaxWidth().height(IntrinsicSize.Max).padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                par.forEach { prod ->
-                    CardOferta(
-                        producto = prod,
-                        nombreLocal = localMap[prod.localId]?.nombre ?: "",
-                        onClick = { localMap[prod.localId]?.id?.let { onVerLocal(it) } },
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                    )
-                }
-                if (par.size == 1) Spacer(Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(10.dp))
         }
     }
 }

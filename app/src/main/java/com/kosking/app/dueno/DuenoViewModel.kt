@@ -30,7 +30,9 @@ class DuenoViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
-    val error = MutableStateFlow<String?>(null)
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+    fun clearError() { _error.value = null }
     val cargando = MutableStateFlow(false)
 
     private val _localId = MutableStateFlow("")
@@ -95,7 +97,7 @@ class DuenoViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val local = localData.value ?: return@launch
                 val actualizado = local.copy(
@@ -113,7 +115,7 @@ class DuenoViewModel : ViewModel() {
                 _nombreLocal.value = nombre
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo guardar"
+                _error.value = "No se pudo guardar"
             } finally {
                 cargando.value = false
             }
@@ -131,7 +133,7 @@ class DuenoViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
                 val ref = db.collection("locales").document()
@@ -145,7 +147,7 @@ class DuenoViewModel : ViewModel() {
                 _codigoLocal.value = codigo
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo crear el local"
+                _error.value = "No se pudo crear el local"
             } finally {
                 cargando.value = false
             }
@@ -159,10 +161,10 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarCliente(nombre: String, telefono: String, domicilio: String, onExito: (pin: String, codigoAcceso: String) -> Unit) {
+    fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: (pin: String, codigoAcceso: String) -> Unit) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val pin = (1000..9999).random().toString()
                 val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -173,13 +175,14 @@ class DuenoViewModel : ViewModel() {
                     telefono = telefono,
                     domicilio = domicilio,
                     pin = pin,
-                    codigoAcceso = codigoAcceso
+                    codigoAcceso = codigoAcceso,
+                    limiteCredito = limiteCredito
                 )
                 val clienteId = FiadoRepository.agregarCliente(cliente)
                 FiadoRepository.guardarCodigoCliente(codigoAcceso, clienteId, _localId.value)
                 onExito(pin, codigoAcceso)
             } catch (e: Exception) {
-                error.value = "No se pudo agregar el cliente"
+                _error.value = "No se pudo agregar el cliente"
             } finally {
                 cargando.value = false
             }
@@ -207,7 +210,13 @@ class DuenoViewModel : ViewModel() {
             ?: movimientosDetalle.value.find { it.id == id }
         viewModelScope.launch {
             if (_movimientoSeleccionado.value == null) {
-                _movimientoSeleccionado.value = FiadoRepository.obtenerMovimiento(id)
+                try {
+                    val mov = FiadoRepository.obtenerMovimiento(id)
+                    _movimientoSeleccionado.value = mov
+                    if (mov == null) _error.value = "No se encontró el movimiento"
+                } catch (e: Exception) {
+                    _error.value = "No se pudo cargar el movimiento"
+                }
             }
         }
     }
@@ -215,17 +224,17 @@ class DuenoViewModel : ViewModel() {
     fun eliminarCliente(cliente: Cliente, onExito: () -> Unit) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val tieneMov = FiadoRepository.tieneMovimientos(cliente.id)
                 if (tieneMov) {
-                    error.value = "No se puede eliminar: el cliente tiene movimientos registrados"
+                    _error.value = "No se puede eliminar: el cliente tiene movimientos registrados"
                     return@launch
                 }
                 FiadoRepository.eliminarCliente(cliente.id, cliente.codigoAcceso)
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo eliminar el cliente"
+                _error.value = "No se pudo eliminar el cliente"
             } finally {
                 cargando.value = false
             }
@@ -246,66 +255,45 @@ class DuenoViewModel : ViewModel() {
         _detalleClienteId.value = clienteId
     }
 
-    fun agregarMovimiento(
-        clienteId: String,
-        producto: String,
-        cantidad: Int,
-        monto: Double,
-        tipo: String,
-        onExito: () -> Unit
-    ) {
-        viewModelScope.launch {
-            cargando.value = true
-            error.value = null
-            try {
-                val uid = auth.currentUser?.uid ?: return@launch
-                val mov = Movimiento(
-                    localId = _localId.value,
-                    clienteId = clienteId,
-                    tipo = tipo,
-                    producto = producto,
-                    cantidad = cantidad,
-                    monto = monto,
-                    anotadoPorUid = uid,
-                    anotadoPorNombre = _nombreUsuario.value
-                )
-                FiadoRepository.agregarMovimiento(mov)
-                onExito()
-            } catch (e: Exception) {
-                error.value = "No se pudo guardar"
-            } finally {
-                cargando.value = false
-            }
-        }
-    }
-
     fun agregarMovimientos(
         clienteId: String,
-        items: List<Pair<String, Double>>, // producto → monto
+        items: List<Triple<String, Int, Double>>, // producto, cantidad, monto
         tipo: String,
+        visitante: String = "",
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
-                val movs = items.map { (producto, monto) ->
+                val grupoId = java.util.UUID.randomUUID().toString()
+                val movs = items.map { (producto, cantidad, monto) ->
                     Movimiento(
                         localId = _localId.value,
                         clienteId = clienteId,
                         tipo = tipo,
                         producto = producto,
-                        cantidad = 1,
+                        cantidad = cantidad,
                         monto = monto,
                         anotadoPorUid = uid,
-                        anotadoPorNombre = _nombreUsuario.value
+                        anotadoPorNombre = _nombreUsuario.value,
+                        grupoId = grupoId,
+                        visitante = visitante
                     )
                 }
                 FiadoRepository.agregarMovimientos(movs)
+                // Actualizar visitantesConocidos si hay visitante nuevo
+                if (visitante.isNotBlank()) {
+                    val cliente = clientes.value.find { it.id == clienteId }
+                    if (cliente != null && !cliente.visitantesConocidos.contains(visitante)) {
+                        val nuevosVisitantes = (cliente.visitantesConocidos + visitante).takeLast(20)
+                        FiadoRepository.actualizarCliente(cliente.copy(visitantesConocidos = nuevosVisitantes))
+                    }
+                }
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo guardar"
+                _error.value = "No se pudo guardar"
             } finally {
                 cargando.value = false
             }
@@ -353,7 +341,7 @@ class DuenoViewModel : ViewModel() {
     fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String, onExito: () -> Unit = {}) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 FiadoRepository.anularMovimiento(movimientoId, clienteId, monto, tipo, motivo)
                 if (_movimientoSeleccionado.value?.id == movimientoId) {
@@ -361,7 +349,7 @@ class DuenoViewModel : ViewModel() {
                 }
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo anular el movimiento"
+                _error.value = "No se pudo anular el movimiento"
             } finally {
                 cargando.value = false
             }
@@ -376,7 +364,7 @@ class DuenoViewModel : ViewModel() {
                     _movimientoSeleccionado.value = _movimientoSeleccionado.value?.copy(disputado = disputado)
                 }
             } catch (e: Exception) {
-                error.value = "No se pudo actualizar el movimiento"
+                _error.value = "No se pudo actualizar el movimiento"
             }
         }
     }
@@ -392,7 +380,7 @@ class DuenoViewModel : ViewModel() {
             try {
                 FiadoRepository.eliminarEmpleado(empleadoId)
             } catch (e: Exception) {
-                error.value = "No se pudo eliminar el empleado"
+                _error.value = "No se pudo eliminar el empleado"
             }
         }
     }
@@ -400,22 +388,22 @@ class DuenoViewModel : ViewModel() {
     fun generarCodigoEmpleado(nombre: String, onExito: (String) -> Unit) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 // Si _localId está vacío, intentar recargarlo
                 val localId = if (_localId.value.isNotBlank()) {
                     _localId.value
                 } else {
                     val uid = auth.currentUser?.uid ?: run {
-                        error.value = "Sesión no válida"
+                        _error.value = "Sesión no válida"
                         return@launch
                     }
                     val usuario = FiadoRepository.obtenerUsuario(uid) ?: run {
-                        error.value = "No se encontró el usuario"
+                        _error.value = "No se encontró el usuario"
                         return@launch
                     }
                     if (usuario.localId.isBlank()) {
-                        error.value = "No tenés un local creado"
+                        _error.value = "No tenés un local creado"
                         return@launch
                     }
                     _localId.value = usuario.localId
@@ -428,7 +416,7 @@ class DuenoViewModel : ViewModel() {
                 FiadoRepository.guardarCodigoEmpleado(localId, _nombreLocal.value, nombre, codigo)
                 onExito(codigo)
             } catch (e: Exception) {
-                error.value = "No se pudo generar el código"
+                _error.value = "No se pudo generar el código"
             } finally {
                 cargando.value = false
             }
@@ -457,7 +445,7 @@ class DuenoViewModel : ViewModel() {
                 )
                 FiadoRepository.agregarProducto(producto)
             } catch (e: Exception) {
-                error.value = "No se pudo agregar el producto"
+                _error.value = "No se pudo agregar el producto"
             }
         }
     }
@@ -467,7 +455,7 @@ class DuenoViewModel : ViewModel() {
             try {
                 FiadoRepository.actualizarProducto(producto)
             } catch (e: Exception) {
-                error.value = "No se pudo actualizar el producto"
+                _error.value = "No se pudo actualizar el producto"
             }
         }
     }
@@ -477,7 +465,7 @@ class DuenoViewModel : ViewModel() {
             try {
                 FiadoRepository.eliminarProducto(productoId)
             } catch (e: Exception) {
-                error.value = "No se pudo eliminar el producto"
+                _error.value = "No se pudo eliminar el producto"
             }
         }
     }
@@ -485,13 +473,13 @@ class DuenoViewModel : ViewModel() {
     fun subirFotoLocal(uri: Uri, onExito: (String) -> Unit) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val url = FiadoRepository.subirImagenLocal(_localId.value, uri)
                 FiadoRepository.actualizarImagenLocal(_localId.value, url)
                 onExito(url)
             } catch (e: Exception) {
-                error.value = "No se pudo subir la foto"
+                _error.value = "No se pudo subir la foto"
             } finally {
                 cargando.value = false
             }
@@ -501,13 +489,13 @@ class DuenoViewModel : ViewModel() {
     fun subirFotoProducto(producto: Producto, uri: Uri, onExito: (String) -> Unit) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val url = FiadoRepository.subirImagenProducto(_localId.value, producto.id, uri)
                 FiadoRepository.actualizarImagenProducto(producto.id, url)
                 onExito(url)
             } catch (e: Exception) {
-                error.value = "No se pudo subir la foto"
+                _error.value = "No se pudo subir la foto"
             } finally {
                 cargando.value = false
             }

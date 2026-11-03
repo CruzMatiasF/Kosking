@@ -24,7 +24,9 @@ class EmpleadoViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    val error = MutableStateFlow<String?>(null)
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+    fun clearError() { _error.value = null }
     val cargando = MutableStateFlow(false)
 
     private val _localId = MutableStateFlow("")
@@ -75,11 +77,11 @@ class EmpleadoViewModel : ViewModel() {
     fun verificarCodigo(codigo: String, onExito: () -> Unit) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 val user = auth.currentUser
                 if (user == null || user.isAnonymous) {
-                    error.value = "Necesitás iniciar sesión para ser empleado"
+                    _error.value = "Necesitás iniciar sesión para ser empleado"
                     return@launch
                 }
                 val uid = user.uid
@@ -90,13 +92,13 @@ class EmpleadoViewModel : ViewModel() {
 
                 val doc = snap.documents.firstOrNull { it.getBoolean("usado") == false }
                 if (doc == null) {
-                    error.value = "Código incorrecto o ya usado"
+                    _error.value = "Código incorrecto o ya usado"
                     return@launch
                 }
 
                 val localId = doc.getString("localId") ?: ""
                 if (localId.isBlank()) {
-                    error.value = "Código inválido. Pedile uno nuevo al dueño"
+                    _error.value = "Código inválido. Pedile uno nuevo al dueño"
                     return@launch
                 }
 
@@ -114,7 +116,7 @@ class EmpleadoViewModel : ViewModel() {
 
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo verificar el código. Intentá de nuevo"
+                _error.value = "No se pudo verificar el código. Intentá de nuevo"
             } finally {
                 cargando.value = false
             }
@@ -154,7 +156,7 @@ class EmpleadoViewModel : ViewModel() {
     fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 FiadoRepository.agregarProducto(
                     Producto(localId = _localId.value, nombre = nombre, precio = precio,
@@ -162,7 +164,7 @@ class EmpleadoViewModel : ViewModel() {
                         esOferta = esOferta, precioAnterior = precioAnterior)
                 )
             } catch (e: Exception) {
-                error.value = "No se pudo agregar el producto"
+                _error.value = "No se pudo agregar el producto"
             } finally { cargando.value = false }
         }
     }
@@ -170,40 +172,44 @@ class EmpleadoViewModel : ViewModel() {
     fun actualizarProducto(producto: Producto) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
                 FiadoRepository.actualizarProducto(producto)
             } catch (e: Exception) {
-                error.value = "No se pudo actualizar el producto"
+                _error.value = "No se pudo actualizar el producto"
             } finally { cargando.value = false }
         }
     }
 
-    fun agregarMovimiento(
+    fun agregarMovimientos(
         clienteId: String,
-        producto: String,
-        cantidad: Int,
-        monto: Double,
+        items: List<Triple<String, Int, Double>>, // producto, cantidad, monto
         tipo: String,
+        visitante: String = "",
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
             cargando.value = true
-            error.value = null
+            _error.value = null
             try {
-                val mov = Movimiento(
-                    localId = _localId.value,
-                    clienteId = clienteId,
-                    tipo = tipo,
-                    producto = producto,
-                    cantidad = cantidad,
-                    monto = monto,
-                    anotadoPorNombre = _nombreEmpleado.value
-                )
-                FiadoRepository.agregarMovimiento(mov)
+                val grupoId = java.util.UUID.randomUUID().toString()
+                val movs = items.map { (producto, cantidad, monto) ->
+                    Movimiento(
+                        localId = _localId.value,
+                        clienteId = clienteId,
+                        tipo = tipo,
+                        producto = producto,
+                        cantidad = cantidad,
+                        monto = monto,
+                        anotadoPorNombre = _nombreEmpleado.value,
+                        grupoId = grupoId,
+                        visitante = visitante
+                    )
+                }
+                FiadoRepository.agregarMovimientos(movs)
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo guardar"
+                _error.value = "No se pudo guardar"
             } finally {
                 cargando.value = false
             }

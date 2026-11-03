@@ -10,9 +10,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -60,17 +65,13 @@ private sealed class SubPantalla {
     ) : SubPantalla()
     data class SeleccionarCliente(val tipo: String) : SubPantalla()
     data class DetalleMovimiento(val movimientoId: String, val clienteId: String? = null) : SubPantalla()
+    object Clientes : SubPantalla()
+    object Productos : SubPantalla()
+    object Equipo : SubPantalla()
+    object MiLocal : SubPantalla()
+    object TodasLasVisitas : SubPantalla()
 }
 
-private data class TabItem(val label: String, val icon: ImageVector)
-
-private val tabs = listOf(
-    TabItem("Resumen", Icons.Default.Home),
-    TabItem("Clientes", Icons.Default.Person),
-    TabItem("Productos", Icons.Default.ShoppingCart),
-    TabItem("Equipo", Icons.Default.People),
-    TabItem("Mi local", Icons.Default.Store)
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,10 +91,9 @@ fun PanelDueno(
     val fiadoHoy by vm.resumenHoy.collectAsState()
     val disputados by vm.disputados.collectAsState()
     val sobreLimite by vm.sobreLimite.collectAsState()
+    val localData by vm.localData.collectAsState()
 
-    var tabSeleccionado by remember { mutableStateOf(0) }
     var subPantalla by remember { mutableStateOf<SubPantalla?>(null) }
-    var mostrarMenuSesion by remember { mutableStateOf(false) }
 
     BackHandler(enabled = subPantalla != null) { subPantalla = null }
 
@@ -109,6 +109,8 @@ fun PanelDueno(
                 onVerMovimiento = { movId ->
                     subPantalla = SubPantalla.DetalleMovimiento(movId, clienteId = sp.id)
                 },
+                onAnotarFiado = { clienteId -> subPantalla = SubPantalla.AgregarFiado(clienteId, "cargo") },
+                onCobrar = { clienteId -> subPantalla = SubPantalla.AgregarFiado(clienteId, "pago") },
                 vm = vm
             )
             return
@@ -150,77 +152,643 @@ fun PanelDueno(
             )
             return
         }
+        is SubPantalla.Clientes -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Clientes") },
+                        navigationIcon = {
+                            IconButton(onClick = { subPantalla = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    TabClientes(
+                        clientes = clientes,
+                        movimientos = movimientosLocal,
+                        onVerCliente = { subPantalla = SubPantalla.DetalleCliente(it) },
+                        onAgregarCliente = { subPantalla = SubPantalla.AgregarCliente },
+                        onAnotar = { clienteId -> subPantalla = SubPantalla.AgregarFiado(clienteId, "cargo") },
+                        onCobrar = { clienteId -> subPantalla = SubPantalla.AgregarFiado(clienteId, "pago") }
+                    )
+                }
+            }
+            return
+        }
+        is SubPantalla.Productos -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Productos") },
+                        navigationIcon = {
+                            IconButton(onClick = { subPantalla = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    TabProductos(vm = vm, movimientos = movimientosLocal)
+                }
+            }
+            return
+        }
+        is SubPantalla.Equipo -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Equipo") },
+                        navigationIcon = {
+                            IconButton(onClick = { subPantalla = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    TabEquipo(
+                        empleados = empleados,
+                        movimientos = movimientosLocal,
+                        onEliminarEmpleado = { vm.eliminarEmpleado(it) },
+                        vm = vm
+                    )
+                }
+            }
+            return
+        }
+        is SubPantalla.MiLocal -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Mi local") },
+                        navigationIcon = {
+                            IconButton(onClick = { subPantalla = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                Box(Modifier.fillMaxSize().padding(padding)) {
+                    TabMiLocal(vm = vm)
+                }
+            }
+            return
+        }
+        is SubPantalla.TodasLasVisitas -> {
+            val fmtFecha = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+            val fmtDia = remember { SimpleDateFormat("dd 'de' MMMM", Locale("es", "AR")) }
+            val clienteMapTodas = remember(clientes) { clientes.associateBy { it.id } }
+            val todasVisitas = remember(movimientosLocal, clienteMapTodas) {
+                agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMapTodas, fmtFecha)
+            }
+            val visitasPorFecha = remember(todasVisitas) {
+                todasVisitas.groupBy { v ->
+                    val mov = movimientosLocal.firstOrNull { m -> m.clienteId == v.clienteId && fmtFecha.format(m.fecha.toDate()) == v.hora }
+                    mov?.fecha?.toDate()?.let {
+                        val cal = java.util.Calendar.getInstance().apply { time = it }
+                        Triple(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.DAY_OF_YEAR), fmtDia.format(it))
+                    } ?: Triple(0, 0, "")
+                }.entries.sortedByDescending { it.key.first * 1000 + it.key.second }
+            }
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("Actividad") },
+                        navigationIcon = {
+                            IconButton(onClick = { subPantalla = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    visitasPorFecha.forEach { (fechaKey, visitasDelDia) ->
+                        item(key = "fecha_${fechaKey.first}_${fechaKey.second}") {
+                            Text(
+                                fechaKey.third,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        items(visitasDelDia, key = { "all_${it.items.firstOrNull()?.grupoId?.ifBlank { it.items.firstOrNull()?.id } ?: it.hora}" }) { visita ->
+                            FilaVisitaDashboard(visita)
+                        }
+                    }
+                    item { Spacer(Modifier.height(16.dp)) }
+                }
+            }
+            return
+        }
         null -> {}
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(nombreLocal.ifBlank { "Mi local" })
-                        if (codigoLocal.isNotBlank()) {
-                            Text("Código: $codigoLocal",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        vm.cerrarSesion()
-                        onCerrarSesion()
-                    }) {
-                        Icon(Icons.Default.Logout, "Cerrar sesión")
+    // Dashboard principal
+    val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
+    val alertaTotal = disputados.size + sobreLimite.size
+    val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val movimientosRecientes = remember(movimientosLocal) {
+        movimientosLocal.filter { !it.anulado }.take(20)
+    }
+    val visitas = remember(movimientosRecientes, clienteMap) {
+        agruparVisitas(movimientosRecientes, clienteMap, fmtHora)
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        // Hero con foto del local
+        item {
+            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                if (localData?.imagenUrl?.isNotBlank() == true) {
+                    AsyncImage(
+                        model = localData!!.imagenUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer))
+                }
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                            startY = 80f
+                        )
+                    )
+                )
+                IconButton(
+                    onClick = { vm.cerrarSesion(); onCerrarSesion() },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                ) {
+                    Icon(Icons.Default.Logout, "Cerrar sesión", tint = Color.White)
+                }
+                Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                    Text(
+                        nombreLocal.ifBlank { "Mi local" },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (codigoLocal.isNotBlank()) {
+                        Text(
+                            "Código para tus clientes: $codigoLocal",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
                     }
                 }
-            )
-        },
-        bottomBar = {
-            NavigationBar {
-                tabs.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = tabSeleccionado == index,
-                        onClick = { tabSeleccionado = index },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) }
+            }
+        }
+
+        // Deuda total
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Deuda total de clientes",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "$${"%.0f".format(totalDeuda)}",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurface
+                    )
+                    if (clientesConDeuda > 0) {
+                        TextButton(
+                            onClick = { subPantalla = SubPantalla.Clientes },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                "$clientesConDeuda cliente${if (clientesConDeuda != 1) "s" else ""} con deuda  →",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    val fiadoHoyVal = fiadoHoy.second
+                    val cobradoHoyVal = fiadoHoy.third
+                    if (fiadoHoyVal > 0 || cobradoHoyVal > 0) {
+                        Text(
+                            "+$${"%.0f".format(fiadoHoyVal)} fiado hoy",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            "−$${"%.0f".format(cobradoHoyVal)} cobrado",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        }
+
+        // Botones de acción
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { subPantalla = SubPantalla.SeleccionarCliente("cargo") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Anotar fiado")
+                }
+                OutlinedButton(
+                    onClick = { subPantalla = SubPantalla.SeleccionarCliente("pago") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cobrar")
+                }
+            }
+        }
+
+        // Alertas
+        if (alertaTotal > 0) {
+            items(disputados, key = { "disp_${it.id}" }) { mov ->
+                val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "Cliente"
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clickable { subPantalla = SubPantalla.DetalleMovimiento(mov.id) }
+                ) {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error) },
+                        headlineContent = {
+                            Text(
+                                "$nombreCliente no reconoce un fiado de $${"%.0f".format(mov.monto)}",
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, null) }
+                    )
+                }
+            }
+            items(sobreLimite, key = { "lim_${it.id}" }) { cliente ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clickable { subPantalla = SubPantalla.Clientes }
+                ) {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
+                        headlineContent = {
+                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
+                        },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, null) }
                     )
                 }
             }
         }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (tabSeleccionado) {
-                0 -> TabResumen(
-                    clientes = clientes,
-                    movimientos = movimientosLocal,
-                    movimientosHoy = fiadoHoy.first,
-                    onIrAClientes = { tabSeleccionado = 1 },
-                    onAnotarFiado = { subPantalla = SubPantalla.SeleccionarCliente("cargo") },
-                    onCobrar = { subPantalla = SubPantalla.SeleccionarCliente("pago") },
-                    onVerMovimiento = { subPantalla = SubPantalla.DetalleMovimiento(it) },
-                    nombreLocal = nombreLocal,
-                    nombreUsuario = nombreUsuario,
-                    totalDeuda = totalDeuda,
-                    clientesConDeuda = clientesConDeuda,
-                    fiadoHoy = fiadoHoy.second,
-                    cobradoHoy = fiadoHoy.third,
-                    disputados = disputados,
-                    sobreLimite = sobreLimite
+
+        // Cards de secciones
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SeccionCard(
+                    icon = Icons.Default.Person,
+                    label = "Clientes",
+                    modifier = Modifier.weight(1f),
+                    onClick = { subPantalla = SubPantalla.Clientes }
                 )
-                1 -> TabClientes(
-                    clientes = clientes,
-                    onVerCliente = { subPantalla = SubPantalla.DetalleCliente(it) },
-                    onAgregarCliente = { subPantalla = SubPantalla.AgregarCliente }
+                SeccionCard(
+                    icon = Icons.Default.ShoppingCart,
+                    label = "Productos",
+                    modifier = Modifier.weight(1f),
+                    onClick = { subPantalla = SubPantalla.Productos }
                 )
-                2 -> TabProductos(vm = vm, movimientos = movimientosLocal)
-                3 -> TabEquipo(
-                    empleados = empleados,
-                    movimientos = movimientosLocal,
-                    onEliminarEmpleado = { vm.eliminarEmpleado(it) },
-                    vm = vm
+                SeccionCard(
+                    icon = Icons.Default.People,
+                    label = "Equipo",
+                    modifier = Modifier.weight(1f),
+                    onClick = { subPantalla = SubPantalla.Equipo }
                 )
-                4 -> TabMiLocal(vm = vm)
+                SeccionCard(
+                    icon = Icons.Default.Store,
+                    label = "Mi local",
+                    modifier = Modifier.weight(1f),
+                    onClick = { subPantalla = SubPantalla.MiLocal }
+                )
+            }
+        }
+
+        // Últimas visitas (máx 4)
+        if (visitas.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "ÚLTIMAS VISITAS",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = { subPantalla = SubPantalla.TodasLasVisitas },
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        Text("Ver todo", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            items(visitas.take(4), key = { "visita_${it.items.firstOrNull()?.grupoId?.ifBlank { it.items.firstOrNull()?.id } ?: it.hora}" }) { visita ->
+                FilaVisitaDashboard(visita)
+            }
+        } else {
+            item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("Todavía no hay movimientos",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+internal data class VisitaResumen(
+    val clienteId: String,
+    val nombreCliente: String,
+    val hora: String,
+    val totalCargos: Double,
+    val totalPagos: Double,
+    val items: List<Movimiento>,
+    val anotadoPor: String
+)
+
+internal fun agruparVisitas(
+    movimientos: List<Movimiento>,
+    clienteMap: Map<String, com.kosking.app.modelo.Cliente>,
+    fmtHora: SimpleDateFormat,
+    ventanaMinutos: Long = 30
+): List<VisitaResumen> {
+    val result = mutableListOf<VisitaResumen>()
+
+    fun addVisita(grupo: List<Movimiento>) {
+        if (grupo.isEmpty()) return
+        val rep = grupo.minByOrNull { it.fecha.toDate().time }!!
+        result.add(VisitaResumen(
+            clienteId = rep.clienteId,
+            nombreCliente = clienteMap[rep.clienteId]?.nombre ?: "",
+            hora = fmtHora.format(rep.fecha.toDate()),
+            totalCargos = grupo.filter { it.tipo == "cargo" }.sumOf { it.monto },
+            totalPagos = grupo.filter { it.tipo != "cargo" }.sumOf { it.monto },
+            items = grupo.sortedBy { it.fecha.toDate().time },
+            anotadoPor = grupo.firstOrNull { it.anotadoPorNombre.isNotBlank() }?.anotadoPorNombre ?: ""
+        ))
+    }
+
+    // Nuevos con grupoId: agrupar por clienteId + grupoId
+    val conGrupo = movimientos.filter { it.grupoId.isNotBlank() }
+    conGrupo.groupBy { it.clienteId to it.grupoId }.values.forEach { addVisita(it) }
+
+    // Viejos sin grupoId: fallback ventana de tiempo por cliente
+    val sinGrupo = movimientos.filter { it.grupoId.isBlank() }
+    val usados = mutableSetOf<String>()
+    val sorted = sinGrupo.sortedByDescending { it.fecha.toDate().time }
+    for (mov in sorted) {
+        if (mov.id in usados) continue
+        val t0 = mov.fecha.toDate().time
+        val grupo = sorted.filter { m ->
+            m.id !in usados &&
+            m.clienteId == mov.clienteId &&
+            kotlin.math.abs(m.fecha.toDate().time - t0) <= ventanaMinutos * 60_000
+        }
+        grupo.forEach { usados.add(it.id) }
+        addVisita(grupo)
+    }
+
+    return result.sortedByDescending { it.items.firstOrNull()?.fecha?.toDate()?.time ?: 0 }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun FilaVisitaDashboard(visita: VisitaResumen) {
+    var mostrarDetalle by remember { mutableStateOf(false) }
+    val esSoloPago = visita.totalCargos == 0.0
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable { mostrarDetalle = true }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = if (esSoloPago) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        if (esSoloPago) "−" else "+",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (esSoloPago) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    visita.nombreCliente.ifBlank { "—" },
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        visita.hora,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (esSoloPago) "Pago" else "Fiado",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (esSoloPago) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "${visita.items.size} ítem${if (visita.items.size != 1) "s" else ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (visita.totalCargos > 0) {
+                    Text(
+                        "+$${"%.0f".format(visita.totalCargos)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                if (visita.totalPagos > 0) {
+                    Text(
+                        "−$${"%.0f".format(visita.totalPagos)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32)
+                    )
+                }
+            }
+        }
+    }
+
+    if (mostrarDetalle) {
+        ModalBottomSheet(onDismissRequest = { mostrarDetalle = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                // Encabezado: nombre izquierda, hora + quien anotó derecha
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        visita.nombreCliente.ifBlank { "Cliente" },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.AccessTime, null, Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(visita.hora, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        }
+                        if (visita.anotadoPor.isNotBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Person, null, Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(visita.anotadoPor, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Lista de ítems agrupados por nombre de producto
+                data class ItemAgrupado(val nombre: String, val cantidad: Int, val monto: Double, val esCargo: Boolean)
+                val itemsAgrupados = visita.items
+                    .groupBy { it.producto.ifBlank { if (it.tipo == "cargo") "Fiado" else "Pago" } }
+                    .map { (nombre, movs) ->
+                        ItemAgrupado(
+                            nombre = nombre,
+                            cantidad = movs.sumOf { it.cantidad.coerceAtLeast(1) },
+                            monto = movs.sumOf { it.monto },
+                            esCargo = movs.first().tipo == "cargo"
+                        )
+                    }
+                itemsAgrupados.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            item.nombre,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            if (item.cantidad > 1) "x${item.cantidad}" else "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp).widthIn(min = 28.dp)
+                        )
+                        Text(
+                            "${if (item.esCargo) "+" else "−"}$${"%.0f".format(item.monto)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (item.esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                        )
+                    }
+                    HorizontalDivider()
+                }
+
+                // Total
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            "${visita.items.size} ítem${if (visita.items.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text("Total fiado", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    }
+                    Text(
+                        "+$${"%.0f".format(visita.totalCargos - visita.totalPagos)}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SeccionCard(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    OutlinedCard(onClick = onClick, modifier = modifier.height(64.dp)) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -447,16 +1015,30 @@ private fun TabResumen(
 @Composable
 private fun TabClientes(
     clientes: List<Cliente>,
+    movimientos: List<Movimiento> = emptyList(),
     onVerCliente: (String) -> Unit,
-    onAgregarCliente: () -> Unit
+    onAgregarCliente: () -> Unit,
+    onAnotar: (clienteId: String) -> Unit = {},
+    onCobrar: (clienteId: String) -> Unit = {}
 ) {
     var filtro by remember { mutableStateOf("deuda") }
     var busqueda by remember { mutableStateOf("") }
+    var orden by remember { mutableStateOf("deuda") }
+    var mostrarOrden by remember { mutableStateOf(false) }
 
     val conDeuda = remember(clientes) { clientes.count { it.deudaTotal > 0 && it.habilitado } }
     val alDia = remember(clientes) { clientes.count { it.deudaTotal <= 0 && it.habilitado } }
+    val deudaTotal = remember(clientes) { clientes.sumOf { it.deudaTotal } }
 
-    val clientesFiltrados = remember(clientes, filtro, busqueda) {
+    val ultimaVisita = remember(movimientos) {
+        movimientos.filter { !it.anulado }
+            .groupBy { it.clienteId }
+            .mapValues { (_, movs) -> movs.maxByOrNull { it.fecha.toDate() }?.fecha?.toDate() }
+    }
+
+    val ahora = remember { System.currentTimeMillis() }
+
+    val clientesFiltrados = remember(clientes, filtro, busqueda, orden, ultimaVisita) {
         clientes
             .filter { c ->
                 when (filtro) {
@@ -467,64 +1049,133 @@ private fun TabClientes(
                 }
             }
             .filter { c -> busqueda.isBlank() || c.nombre.contains(busqueda, ignoreCase = true) }
-            .sortedByDescending { it.deudaTotal }
+            .sortedWith(when (orden) {
+                "nombre" -> compareBy { it.nombre }
+                "visita" -> compareByDescending { ultimaVisita[it.id]?.time ?: 0L }
+                else -> compareByDescending { it.deudaTotal }
+            })
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Búsqueda + agregar
+        // Stats
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            StatMiniCard("Deuda total", "$${"%.0f".format(deudaTotal)}", isError = deudaTotal > 0, modifier = Modifier.weight(1f))
+            StatMiniCard("Deben", "$conDeuda", isError = conDeuda > 0, modifier = Modifier.weight(1f))
+            StatMiniCard("Al día", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
+        }
+
+        // Búsqueda + orden + agregar
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = busqueda,
-                onValueChange = { busqueda = it },
-                placeholder = { Text("Buscar cliente") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) }
-            )
+            // Buscador compacto
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                BasicTextField(
+                    value = busqueda,
+                    onValueChange = { busqueda = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                    decorationBox = { inner ->
+                        Box {
+                            if (busqueda.isEmpty()) {
+                                Text("Buscar cliente", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            inner()
+                        }
+                    }
+                )
+                if (busqueda.isNotEmpty()) {
+                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { busqueda = "" },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            // Ordenar
+            Box {
+                IconButton(
+                    onClick = { mostrarOrden = true },
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) { Icon(Icons.Default.SwapVert, "Ordenar", Modifier.size(20.dp)) }
+                DropdownMenu(expanded = mostrarOrden, onDismissRequest = { mostrarOrden = false }) {
+                    DropdownMenuItem(text = { Text("Por deuda") }, onClick = { orden = "deuda"; mostrarOrden = false },
+                        leadingIcon = { if (orden == "deuda") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
+                    DropdownMenuItem(text = { Text("Por nombre") }, onClick = { orden = "nombre"; mostrarOrden = false },
+                        leadingIcon = { if (orden == "nombre") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
+                    DropdownMenuItem(text = { Text("Última visita") }, onClick = { orden = "visita"; mostrarOrden = false },
+                        leadingIcon = { if (orden == "visita") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
+                }
+            }
+            // Agregar cliente
             IconButton(
                 onClick = onAgregarCliente,
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Icon(Icons.Default.PersonAdd, "Agregar cliente")
-            }
+                modifier = Modifier.size(40.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) { Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
         }
 
-        // Filtros con conteo
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // Segmented control
+        val bloqueados = clientes.count { !it.habilitado }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 8.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
-            item {
-                FilterChip(
-                    selected = filtro == "deuda",
-                    onClick = { filtro = "deuda" },
-                    label = { Text("Deben · $conDeuda") }
-                )
-            }
-            item {
-                FilterChip(
-                    selected = filtro == "aldia",
-                    onClick = { filtro = "aldia" },
-                    label = { Text("Al día · $alDia") }
-                )
-            }
-            item {
-                FilterChip(
-                    selected = filtro == "todos",
-                    onClick = { filtro = "todos" },
-                    label = { Text("Todos") }
-                )
-            }
-            item {
-                FilterChip(
-                    selected = filtro == "bloqueado",
-                    onClick = { filtro = "bloqueado" },
-                    label = { Text("Bloqueados") }
-                )
+            data class Seg(val key: String, val num: Int, val label: String)
+            val segs = listOf(
+                Seg("deuda", conDeuda, "Deben"),
+                Seg("aldia", alDia, "Al día"),
+                Seg("bloqueado", bloqueados, "Bloqueados"),
+                Seg("todos", clientes.size, "Todos")
+            )
+            segs.forEach { seg ->
+                val selected = filtro == seg.key
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .then(
+                            if (selected) Modifier.background(MaterialTheme.colorScheme.surface)
+                                .then(Modifier.padding(1.dp))
+                            else Modifier
+                        )
+                        .clickable { filtro = seg.key }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            seg.num.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            seg.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
 
@@ -533,75 +1184,338 @@ private fun TabClientes(
                 Text(
                     if (clientes.isEmpty()) "Todavía no hay clientes\nTocá + para agregar el primero"
                     else "Sin resultados para este filtro",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         } else {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 items(clientesFiltrados, key = { it.id }) { cliente ->
-                    Column(
-                        Modifier
-                            .clickable { onVerCliente(cliente.id) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            // Avatar con inicial
-                            Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                color = if (cliente.deudaTotal > 0) MaterialTheme.colorScheme.errorContainer
-                                        else MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        cliente.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(cliente.nombre, fontWeight = FontWeight.Medium)
-                                if (!cliente.habilitado) {
-                                    Text("Bloqueado",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error)
-                                }
-                            }
-                            Text(
-                                if (cliente.deudaTotal > 0) "$${"%.0f".format(cliente.deudaTotal)}" else "Al día",
-                                fontWeight = FontWeight.Bold,
-                                color = if (cliente.deudaTotal > 0) MaterialTheme.colorScheme.error
-                                        else MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        // Barra de progreso si tiene límite configurado
-                        if (cliente.limiteCredito > 0) {
-                            Spacer(Modifier.height(6.dp))
-                            val progreso = (cliente.deudaTotal / cliente.limiteCredito).coerceIn(0.0, 1.0).toFloat()
-                            val superado = cliente.deudaTotal > cliente.limiteCredito
-                            LinearProgressIndicator(
-                                progress = { progreso },
-                                modifier = Modifier.fillMaxWidth().padding(start = 52.dp),
-                                color = if (superado) MaterialTheme.colorScheme.error
-                                        else MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                if (superado) "Superó el límite de $${"%.0f".format(cliente.limiteCredito)}"
-                                else "${"%.0f".format(progreso * 100)}% del límite de $${"%.0f".format(cliente.limiteCredito)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (superado) MaterialTheme.colorScheme.error
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 52.dp, top = 2.dp)
-                            )
-                        }
-                    }
-                    HorizontalDivider()
+                    CardCliente(
+                        cliente = cliente,
+                        ultimaVisitaDate = ultimaVisita[cliente.id],
+                        ahoraMs = ahora,
+                        onVerCliente = onVerCliente
+                    )
                 }
-                item { Spacer(Modifier.height(16.dp)) }
+                item { Spacer(Modifier.height(80.dp)) }
             }
         }
+    }
+}
+
+@Composable
+private fun StatMiniCard(
+    label: String,
+    valor: String,
+    isError: Boolean = false,
+    isSuccess: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                valor,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = when {
+                    isError -> MaterialTheme.colorScheme.error
+                    isSuccess -> Color(0xFF2E7D32)
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardCliente(
+    cliente: Cliente,
+    ultimaVisitaDate: java.util.Date?,
+    ahoraMs: Long,
+    onVerCliente: (String) -> Unit
+) {
+    val diasSinVenir = remember(ultimaVisitaDate, ahoraMs) {
+        if (ultimaVisitaDate == null) null
+        else ((ahoraMs - ultimaVisitaDate.time) / (1000 * 60 * 60 * 24)).toInt()
+    }
+
+    val accentColor = when {
+        !cliente.habilitado -> MaterialTheme.colorScheme.outlineVariant
+        cliente.limiteCredito > 0 && cliente.deudaTotal > cliente.limiteCredito -> MaterialTheme.colorScheme.error
+        cliente.deudaTotal > 300 -> MaterialTheme.colorScheme.error
+        cliente.deudaTotal > 50 -> Color(0xFFE65100)
+        cliente.deudaTotal > 0 -> Color(0xFF2E7D32)
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+
+    val visitaTexto = when {
+        diasSinVenir == null -> "Nuevo"
+        diasSinVenir == 0 -> "Hoy"
+        diasSinVenir == 1 -> "Ayer"
+        diasSinVenir < 7 -> "Hace $diasSinVenir días"
+        else -> "Hace ${diasSinVenir / 7} sem."
+    }
+    val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0
+    val visitaEsWarning = diasSinVenir != null && diasSinVenir in 3..6 && cliente.deudaTotal > 0
+
+    val dotColor = when {
+        visitaEsAlerta -> MaterialTheme.colorScheme.error
+        visitaEsWarning -> Color(0xFFE65100)
+        else -> Color(0xFF2E7D32)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onVerCliente(cliente.id) },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column {
+            // Barra de color superior
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(accentColor)
+            )
+            Column(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Avatar circular
+                val avatarBg = when {
+                    !cliente.habilitado -> MaterialTheme.colorScheme.surfaceVariant
+                    cliente.deudaTotal > 0 -> accentColor.copy(alpha = 0.18f)
+                    else -> MaterialTheme.colorScheme.primaryContainer
+                }
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(avatarBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        cliente.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (cliente.deudaTotal > 0 && cliente.habilitado) accentColor
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                // Nombre
+                Text(
+                    cliente.nombre,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                // Última visita con punto de color
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(dotColor)
+                    )
+                    Text(
+                        visitaTexto,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                // Barra de límite de crédito (solo si tiene límite)
+                if (cliente.limiteCredito > 0) {
+                    val progreso = (cliente.deudaTotal / cliente.limiteCredito).coerceIn(0.0, 1.0).toFloat()
+                    val superado = cliente.deudaTotal > cliente.limiteCredito
+                    LinearProgressIndicator(
+                        progress = { progreso },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                        color = if (superado) MaterialTheme.colorScheme.error else accentColor,
+                        trackColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilaCliente(
+    cliente: Cliente,
+    ultimaVisitaDate: java.util.Date?,
+    ahoraMs: Long,
+    onVerCliente: (String) -> Unit,
+    onAnotar: (String) -> Unit,
+    onCobrar: (String) -> Unit = {}
+) {
+    val diasSinVenir = remember(ultimaVisitaDate, ahoraMs) {
+        if (ultimaVisitaDate == null) null
+        else ((ahoraMs - ultimaVisitaDate.time) / (1000 * 60 * 60 * 24)).toInt()
+    }
+
+    val accentColor = when {
+        !cliente.habilitado -> MaterialTheme.colorScheme.outlineVariant
+        cliente.limiteCredito > 0 && cliente.deudaTotal > cliente.limiteCredito -> MaterialTheme.colorScheme.error
+        cliente.deudaTotal > 300 -> MaterialTheme.colorScheme.error
+        cliente.deudaTotal > 50 -> Color(0xFFE65100)
+        cliente.deudaTotal > 0 -> Color(0xFF2E7D32)
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
+
+    val visitaBadge = when {
+        diasSinVenir == null -> null
+        diasSinVenir == 0 -> "Hoy"
+        diasSinVenir == 1 -> "Ayer"
+        diasSinVenir < 7 -> "Hace $diasSinVenir días"
+        else -> "Hace ${diasSinVenir / 7} sem."
+    }
+    val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0
+    val visitaEsWarning = diasSinVenir != null && diasSinVenir in 3..6 && cliente.deudaTotal > 0
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clickable { onVerCliente(cliente.id) }
+    ) {
+        // Franja lateral — se estira al alto del contenido
+        Box(modifier = Modifier.width(3.dp).fillMaxHeight().background(accentColor))
+        Row(
+            modifier = Modifier.weight(1f).padding(horizontal = 10.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Avatar
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = if (cliente.deudaTotal > 0) MaterialTheme.colorScheme.errorContainer
+                        else MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        cliente.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            // Nombre + badges + barra límite
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (!cliente.habilitado) BadgeChip("Bloqueado", isError = true)
+                    val hoyMs = remember { java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.timeInMillis }
+                    val fechaPagoMs = cliente.fechaPago?.toDate()?.time
+                    val pagoVencido = fechaPagoMs != null && fechaPagoMs < hoyMs && cliente.deudaTotal > 0
+                    val pagoHoy = fechaPagoMs != null && fechaPagoMs in hoyMs..(hoyMs + 86_400_000L - 1) && cliente.deudaTotal > 0
+                    when {
+                        pagoVencido -> BadgeChip("Pago vencido", isError = true)
+                        pagoHoy -> BadgeChip("Paga hoy", isWarning = true)
+                        visitaBadge != null -> BadgeChip(visitaBadge, isError = visitaEsAlerta, isWarning = visitaEsWarning)
+                        ultimaVisitaDate == null -> BadgeChip("Nuevo")
+                    }
+                }
+                if (cliente.limiteCredito > 0 && cliente.deudaTotal > 0) {
+                    val progreso = (cliente.deudaTotal / cliente.limiteCredito).coerceIn(0.0, 1.0).toFloat()
+                    val superado = cliente.deudaTotal > cliente.limiteCredito
+                    LinearProgressIndicator(
+                        progress = { progreso },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                        color = if (superado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    Text(
+                        if (superado) "Superó el límite de $${"%.0f".format(cliente.limiteCredito)}"
+                        else "${"%.0f".format(progreso * 100)}% del límite",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (superado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            // Monto + acciones + chevron
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (cliente.deudaTotal > 0) {
+                        Text("$${"%.0f".format(cliente.deudaTotal)}", style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text("Al día", style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium)
+                    }
+                    if (cliente.habilitado) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(
+                                onClick = { onAnotar(cliente.id) },
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                modifier = Modifier.height(24.dp)
+                            ) {
+                                Text("+ Anotar", style = MaterialTheme.typography.labelSmall)
+                            }
+                            if (cliente.deudaTotal > 0) {
+                                TextButton(
+                                    onClick = { onCobrar(cliente.id) },
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(24.dp),
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.secondary
+                                    )
+                                ) {
+                                    Text("Cobrar", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                }
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                    tint = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
+        }
+    }
+    HorizontalDivider(modifier = Modifier.padding(start = 3.dp))
+}
+
+@Composable
+private fun BadgeChip(text: String, isError: Boolean = false, isWarning: Boolean = false) {
+    val bg = when {
+        isError -> MaterialTheme.colorScheme.errorContainer
+        isWarning -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val fg = when {
+        isError -> MaterialTheme.colorScheme.error
+        isWarning -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(shape = MaterialTheme.shapes.extraSmall, color = bg) {
+        Text(text, style = MaterialTheme.typography.labelSmall, color = fg,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
     }
 }
 
@@ -1215,6 +2129,7 @@ private fun TabEquipo(
 
 // ── Panel embebido para usar dentro de PantallaExplorar (TabMás) ──────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelDuenoEmbedido(
     vm: DuenoViewModel,
@@ -1230,58 +2145,322 @@ fun PanelDuenoEmbedido(
     val movimientosLocal by vm.movimientosLocal.collectAsState()
     val empleados by vm.empleados.collectAsState()
     val nombreLocal by vm.nombreLocal.collectAsState()
-    val nombreUsuario by vm.nombreUsuario.collectAsState()
+    val codigoLocal by vm.codigoLocal.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
     val clientesConDeuda by vm.clientesConDeuda.collectAsState()
     val fiadoHoy by vm.resumenHoy.collectAsState()
     val disputados by vm.disputados.collectAsState()
     val sobreLimite by vm.sobreLimite.collectAsState()
+    val localData by vm.localData.collectAsState()
 
-    Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tabSeleccionado) {
-            tabs.forEachIndexed { index, tab ->
-                Tab(
-                    selected = tabSeleccionado == index,
-                    onClick = { onTabChange(index) },
-                    icon = { Icon(tab.icon, null, Modifier.size(18.dp)) },
-                    text = { Text(tab.label, style = MaterialTheme.typography.labelSmall) }
+    BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
+
+    // tabSeleccionado == 0 → dashboard, 1..4 → sección
+    if (tabSeleccionado != 0) {
+        when (tabSeleccionado) {
+            1 -> TabClientes(
+                clientes = clientes,
+                movimientos = movimientosLocal,
+                onVerCliente = onAbrirDetalleCliente,
+                onAgregarCliente = onAbrirAgregarCliente,
+                onAnotar = { clienteId -> onAbrirAgregarFiado(clienteId, "cargo") },
+                onCobrar = { clienteId -> onAbrirAgregarFiado(clienteId, "pago") }
+            )
+            2 -> TabProductos(vm = vm, movimientos = movimientosLocal)
+            3 -> TabEquipo(
+                empleados = empleados,
+                movimientos = movimientosLocal,
+                onEliminarEmpleado = { vm.eliminarEmpleado(it) },
+                vm = vm
+            )
+            4 -> TabMiLocal(vm = vm)
+        }
+        return
+    }
+
+    // Dashboard principal
+    val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
+    val alertaTotal = disputados.size + sobreLimite.size
+    val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val movimientosRecientes = remember(movimientosLocal) {
+        movimientosLocal.filter { !it.anulado }.take(20)
+    }
+    val visitasEmb = remember(movimientosRecientes, clienteMap) {
+        agruparVisitas(movimientosRecientes, clienteMap, fmtHora)
+    }
+    var mostrarTodasVisitas by remember { mutableStateOf(false) }
+
+    if (mostrarTodasVisitas) {
+        BackHandler { mostrarTodasVisitas = false }
+        val fmtFecha = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+        val fmtDia = remember { SimpleDateFormat("dd 'de' MMMM", Locale("es", "AR")) }
+        val clienteMapTodas = remember(clientes) { clientes.associateBy { it.id } }
+        val todasVisitas = remember(movimientosLocal, clienteMapTodas) {
+            agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMapTodas, fmtFecha)
+        }
+        val visitasPorFecha = remember(todasVisitas) {
+            todasVisitas.groupBy { v ->
+                val mov = movimientosLocal.firstOrNull { m -> m.clienteId == v.clienteId && fmtFecha.format(m.fecha.toDate()) == v.hora }
+                mov?.fecha?.toDate()?.let {
+                    val cal = java.util.Calendar.getInstance().apply { time = it }
+                    Triple(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.DAY_OF_YEAR), fmtDia.format(it))
+                } ?: Triple(0, 0, "")
+            }.entries.sortedByDescending { it.key.first * 1000 + it.key.second }
+        }
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Actividad") },
+                    navigationIcon = {
+                        IconButton(onClick = { mostrarTodasVisitas = false }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                visitasPorFecha.forEach { (fechaKey, visitasDelDia) ->
+                    item(key = "fecha_${fechaKey.first}_${fechaKey.second}") {
+                        Text(
+                            fechaKey.third,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(visitasDelDia, key = { "all_${it.items.firstOrNull()?.grupoId?.ifBlank { it.items.firstOrNull()?.id } ?: it.hora}" }) { visita ->
+                        FilaVisitaDashboard(visita)
+                    }
+                }
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+        }
+        return
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        // Hero con foto del local
+        item {
+            Box(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+                if (localData?.imagenUrl?.isNotBlank() == true) {
+                    AsyncImage(
+                        model = localData!!.imagenUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer))
+                }
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                            startY = 60f
+                        )
+                    )
+                )
+                Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                    Text(
+                        nombreLocal.ifBlank { "Mi local" },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (codigoLocal.isNotBlank()) {
+                        Text(
+                            "Código para clientes: $codigoLocal",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Deuda total
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        "Deuda total de clientes",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "$${"%.0f".format(totalDeuda)}",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurface
+                    )
+                    if (clientesConDeuda > 0) {
+                        Text(
+                            "$clientesConDeuda cliente${if (clientesConDeuda != 1) "s" else ""} con deuda  →",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { onTabChange(1) }
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    val fiadoHoyVal = fiadoHoy.second
+                    val cobradoHoyVal = fiadoHoy.third
+                    Text(
+                        "Hoy",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "+$${"%.0f".format(fiadoHoyVal)} fiado",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (fiadoHoyVal > 0) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "−$${"%.0f".format(cobradoHoyVal)} cobrado",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (cobradoHoyVal > 0) Color(0xFF2E7D32)
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        }
+
+        // Botones de acción
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { onAbrirSeleccionarCliente("cargo") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Anotar fiado")
+                }
+                OutlinedButton(
+                    onClick = { onAbrirSeleccionarCliente("pago") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cobrar")
+                }
+            }
+        }
+
+        // Alertas
+        if (alertaTotal > 0) {
+            items(disputados, key = { "disp_${it.id}" }) { mov ->
+                val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "Cliente"
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clickable { onAbrirDetalleMovimiento(mov.id) }
+                ) {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error) },
+                        headlineContent = {
+                            Text(
+                                "$nombreCliente no reconoce un fiado de $${"%.0f".format(mov.monto)}",
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, null) }
+                    )
+                }
+            }
+            items(sobreLimite, key = { "lim_${it.id}" }) { cliente ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clickable { onTabChange(1) }
+                ) {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
+                        headlineContent = {
+                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
+                        },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, null) }
+                    )
+                }
+            }
+        }
+
+        // Cards de secciones
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SeccionCard(
+                    icon = Icons.Default.Person,
+                    label = "Clientes",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onTabChange(1) }
+                )
+                SeccionCard(
+                    icon = Icons.Default.ShoppingCart,
+                    label = "Productos",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onTabChange(2) }
+                )
+                SeccionCard(
+                    icon = Icons.Default.People,
+                    label = "Equipo",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onTabChange(3) }
+                )
+                SeccionCard(
+                    icon = Icons.Default.Store,
+                    label = "Mi local",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onTabChange(4) }
                 )
             }
         }
-        Box(Modifier.fillMaxSize()) {
-            when (tabSeleccionado) {
-                0 -> TabResumen(
-                    clientes = clientes,
-                    movimientos = movimientosLocal,
-                    movimientosHoy = fiadoHoy.first,
-                    onIrAClientes = { onTabChange(1) },
-                    onVerMovimiento = onAbrirDetalleMovimiento,
-                    onAnotarFiado = { onAbrirSeleccionarCliente("cargo") },
-                    onCobrar = { onAbrirSeleccionarCliente("pago") },
-                    nombreLocal = nombreLocal,
-                    nombreUsuario = nombreUsuario,
-                    totalDeuda = totalDeuda,
-                    clientesConDeuda = clientesConDeuda,
-                    fiadoHoy = fiadoHoy.second,
-                    cobradoHoy = fiadoHoy.third,
-                    disputados = disputados,
-                    sobreLimite = sobreLimite
-                )
-                1 -> TabClientes(
-                    clientes = clientes,
-                    onVerCliente = onAbrirDetalleCliente,
-                    onAgregarCliente = onAbrirAgregarCliente
-                )
-                2 -> TabProductos(vm = vm, movimientos = movimientosLocal)
-                3 -> TabEquipo(
-                    empleados = empleados,
-                    movimientos = movimientosLocal,
-                    onEliminarEmpleado = { vm.eliminarEmpleado(it) },
-                    vm = vm
-                )
-                4 -> TabMiLocal(vm = vm)
+
+        // Movimientos recientes agrupados por visita
+        if (visitasEmb.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "ÚLTIMAS VISITAS",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = { mostrarTodasVisitas = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        Text("Ver todo", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            items(visitasEmb.take(4), key = { "visita_${it.items.firstOrNull()?.grupoId?.ifBlank { it.items.firstOrNull()?.id } ?: it.hora}" }) { visita ->
+                FilaVisitaDashboard(visita)
+            }
+        } else {
+            item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("Todavía no hay movimientos",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
+
+        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
@@ -1307,7 +2486,16 @@ fun PantallaSeleccionarCliente(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(titulo) },
+                title = {
+                    Column {
+                        Text(titulo)
+                        Text(
+                            "Seleccioná un cliente",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
@@ -1317,14 +2505,41 @@ fun PantallaSeleccionarCliente(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            OutlinedTextField(
-                value = busqueda,
-                onValueChange = { busqueda = it },
-                placeholder = { Text("Buscar cliente...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            // Buscador
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                    .height(42.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                androidx.compose.foundation.text.BasicTextField(
+                    value = busqueda,
+                    onValueChange = { busqueda = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                    decorationBox = { inner ->
+                        Box {
+                            if (busqueda.isEmpty()) {
+                                Text("Buscar cliente...", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            inner()
+                        }
+                    }
+                )
+                if (busqueda.isNotEmpty()) {
+                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { busqueda = "" },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
             if (clientesFiltrados.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
@@ -1336,20 +2551,42 @@ fun PantallaSeleccionarCliente(
             } else {
                 androidx.compose.foundation.lazy.LazyColumn {
                     items(clientesFiltrados, key = { it.id }) { cliente ->
-                        ListItem(
-                            headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
-                            supportingContent = {
-                                if (cliente.deudaTotal > 0)
-                                    Text("Debe $${"%.2f".format(cliente.deudaTotal)}",
-                                        color = MaterialTheme.colorScheme.error)
-                                else
-                                    Text("Sin deuda", color = MaterialTheme.colorScheme.primary)
-                            },
-                            trailingContent = { Icon(Icons.Default.ChevronRight, null) },
-                            modifier = Modifier.clickable { onSeleccionado(cliente.id) }
-                        )
-                        HorizontalDivider()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSeleccionado(cliente.id) }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    cliente.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Text(
+                                cliente.nombre,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Icon(Icons.Default.ChevronRight, null,
+                                Modifier.size(20.dp), tint = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(start = 70.dp))
                     }
+                    item { Spacer(Modifier.height(32.dp)) }
                 }
             }
         }

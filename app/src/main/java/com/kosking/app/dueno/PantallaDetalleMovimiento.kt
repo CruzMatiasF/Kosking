@@ -122,8 +122,34 @@ fun PantallaDetalleMovimiento(
                     FilaDetalle("Cliente", cliente?.nombre ?: "—")
                     if (movActual.producto.isNotBlank()) FilaDetalle("Producto", movActual.producto)
                     if (movActual.cantidad > 1) FilaDetalle("Cantidad", movActual.cantidad.toString())
-                    FilaDetalle("Fecha", fmt.format(movActual.fecha.toDate()))
-                    FilaDetalle("Registrado por", movActual.anotadoPorNombre.ifBlank { "—" })
+                    HorizontalDivider()
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (esCargo) "Fiado" else "Pago",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                            )
+                            Text(
+                                fmt.format(movActual.fecha.toDate()),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (movActual.anotadoPorNombre.isNotBlank()) {
+                            Text(
+                                movActual.anotadoPorNombre,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                     if (movActual.anulado && movActual.motivoAnulacion.isNotBlank()) {
                         FilaDetalle("Motivo anulación", movActual.motivoAnulacion)
                     }
@@ -152,10 +178,10 @@ fun PantallaDetalleMovimiento(
 
     vmError?.let { msg ->
         AlertDialog(
-            onDismissRequest = { vm.error.value = null },
+            onDismissRequest = { vm.clearError() },
             title = { Text("Error") },
             text = { Text(msg) },
-            confirmButton = { TextButton(onClick = { vm.error.value = null }) { Text("Cerrar") } }
+            confirmButton = { TextButton(onClick = { vm.clearError() }) { Text("Cerrar") } }
         )
     }
 

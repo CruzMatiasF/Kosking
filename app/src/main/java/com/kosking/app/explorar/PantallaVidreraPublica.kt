@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.kosking.app.datos.FiadoRepository
+import com.kosking.app.modelo.HorarioDia
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Producto
 import com.google.firebase.auth.FirebaseAuth
@@ -42,6 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import java.util.Calendar
 
 class VidreraPublicaViewModel : ViewModel() {
     val local = MutableStateFlow<Local?>(null)
@@ -71,6 +74,51 @@ private val HeaderText = Color.White
 private val HeaderMuted = Color.White.copy(alpha = 0.5f)
 private val HeaderChipBg = Color.White.copy(alpha = 0.12f)
 
+private val DIAS_KEYS = listOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
+private val DIAS_NOMBRES = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
+private val DIAS_COMPLETOS = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+
+private fun diaHoyKey(): String {
+    val dow = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+    return when (dow) {
+        Calendar.MONDAY -> "lunes"
+        Calendar.TUESDAY -> "martes"
+        Calendar.WEDNESDAY -> "miercoles"
+        Calendar.THURSDAY -> "jueves"
+        Calendar.FRIDAY -> "viernes"
+        Calendar.SATURDAY -> "sabado"
+        else -> "domingo"
+    }
+}
+
+private fun parseMinutos(tiempo: String): Int? {
+    val partes = tiempo.trim().split(":")
+    if (partes.size != 2) return null
+    val h = partes[0].toIntOrNull() ?: return null
+    val m = partes[1].toIntOrNull() ?: return null
+    return h * 60 + m
+}
+
+private fun calcularAbierto(horarios: Map<String, HorarioDia>, abiertoManual: Boolean): Boolean {
+    val hoy = horarios[diaHoyKey()] ?: return abiertoManual
+    if (!hoy.tieneCarga) return abiertoManual
+    val ahora = Calendar.getInstance()
+    val minActual = ahora.get(Calendar.HOUR_OF_DAY) * 60 + ahora.get(Calendar.MINUTE)
+    val minApertura = parseMinutos(hoy.apertura) ?: return abiertoManual
+    val minCierre = parseMinutos(hoy.cierre) ?: return abiertoManual
+    return minActual in minApertura until minCierre
+}
+
+private fun textoHorarioHoy(horarios: Map<String, HorarioDia>, abierto: Boolean): String {
+    val hoy = horarios[diaHoyKey()]
+    return if (hoy != null && hoy.tieneCarga) {
+        if (abierto) "Abierto · Cierra ${hoy.cierre}"
+        else "Cerrado · Abre ${hoy.apertura}"
+    } else {
+        if (abierto) "Abierto" else "Cerrado"
+    }
+}
+
 @Composable
 fun PantallaVidreraPublica(
     localId: String,
@@ -84,6 +132,9 @@ fun PantallaVidreraPublica(
     val cargando by vm.cargando.collectAsState()
     val productos by remember(localId) { vm.productosFlow(localId) }.collectAsState()
 
+    var busqueda by remember { mutableStateOf("") }
+    var mostrarHorarios by remember { mutableStateOf(false) }
+
     val productosHabilitados = productos.filter { it.habilitado }
     val ofertas = productosHabilitados.filter { it.esOferta && !it.agotado }
 
@@ -91,10 +142,10 @@ fun PantallaVidreraPublica(
     // Los agotados se muestran al final de cada sección, griseados
     val secciones: List<Pair<String, List<Producto>>> = remember(productosHabilitados) {
         val sinOferta = productosHabilitados.filter { !it.esOferta }
-        val porCategoria = sinOferta.groupBy { it.categoria.ifBlank { "Otros" } }
-        // Ordenar: categorías con nombre primero (alfabético), "Otros" al final
+        val porCategoria = sinOferta.groupBy { it.categoria.ifBlank { "Productos" } }
+        // Ordenar: categorías con nombre primero (alfabético), "Productos" al final
         porCategoria.entries
-            .sortedWith(compareBy { if (it.key == "Otros") "ZZZ" else it.key })
+            .sortedWith(compareBy { if (it.key == "Productos") "ZZZ" else it.key })
             .map { (cat, prods) ->
                 cat to prods.sortedWith(compareBy({ it.agotado }, { it.nombre }))
             }
@@ -207,10 +258,14 @@ fun PantallaVidreraPublica(
 
                         // Chips de estado
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Abierto calculado desde horarios; fallback al booleano manual
+                            val estaAbierto = calcularAbierto(loc.horarios, loc.abierto)
+                            val chipColor = if (estaAbierto) Color(0xFF4ADE80) else Color(0xFFFF6B6B)
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(20.dp))
-                                    .background(HeaderChipBg)
+                                    .background(chipColor.copy(alpha = 0.15f))
+                                    .clickable { mostrarHorarios = !mostrarHorarios }
                                     .padding(horizontal = 10.dp, vertical = 5.dp)
                             ) {
                                 Row(
@@ -221,23 +276,55 @@ fun PantallaVidreraPublica(
                                         modifier = Modifier
                                             .size(7.dp)
                                             .clip(RoundedCornerShape(50))
-                                            .background(
-                                                if (loc.abierto) Color(0xFF4ADE80)
-                                                else Color(0xFFFF6B6B)
-                                            )
+                                            .background(chipColor)
                                     )
                                     Text(
-                                        if (loc.abierto) "Abierto" else "Cerrado",
-                                        color = HeaderText,
-                                        style = MaterialTheme.typography.labelSmall
+                                        textoHorarioHoy(loc.horarios, estaAbierto),
+                                        color = chipColor,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium
                                     )
+                                    if (loc.horarios.isNotEmpty()) {
+                                        Icon(
+                                            if (mostrarHorarios) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            null,
+                                            tint = chipColor.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
                                 }
                             }
-                            if (productosHabilitados.isNotEmpty()) {
-                                ChipHeader("${productosHabilitados.size} producto${if (productosHabilitados.size != 1) "s" else ""}")
-                            }
-                            if (ofertas.isNotEmpty()) {
-                                ChipHeader("${ofertas.size} oferta${if (ofertas.size != 1) "s" else ""}")
+                        }
+
+                        // Horarios semanales expandibles
+                        if (mostrarHorarios && loc.horarios.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            Column(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(HeaderChipBg)
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val hoyKey = diaHoyKey()
+                                DIAS_KEYS.forEachIndexed { i, key ->
+                                    val h = loc.horarios[key]
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            DIAS_COMPLETOS[i],
+                                            color = if (key == hoyKey) Color(0xFF4ADE80) else HeaderMuted,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (key == hoyKey) FontWeight.Bold else FontWeight.Normal,
+                                            modifier = Modifier.width(80.dp)
+                                        )
+                                        Text(
+                                            if (h != null && h.tieneCarga) "${h.apertura} – ${h.cierre}" else "Cerrado",
+                                            color = if (key == hoyKey) HeaderText else HeaderMuted,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (key == hoyKey) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -277,58 +364,36 @@ fun PantallaVidreraPublica(
                             }
                         }
 
-                        // Dirección + botón mapa
+                        // Dirección clickeable para abrir mapa
                         if (loc.direccion.isNotBlank() || (loc.lat != 0.0 && loc.lng != 0.0)) {
                             Spacer(Modifier.height(14.dp))
+                            val tieneCoords = loc.lat != 0.0 && loc.lng != 0.0
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // Ícono de ubicación
-                                Icon(
-                                    Icons.Default.LocationOn, null,
-                                    tint = HeaderMuted,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                // Texto de dirección
-                                Text(
-                                    loc.direccion.ifBlank { "Ver en el mapa" },
-                                    color = HeaderText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                // Botón "Ver en mapa"
-                                val tieneCoords = loc.lat != 0.0 && loc.lng != 0.0
-                                OutlinedButton(
-                                    onClick = {
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
                                         val uri = if (tieneCoords)
                                             Uri.parse("geo:${loc.lat},${loc.lng}?q=${loc.lat},${loc.lng}(${Uri.encode(loc.nombre)})")
                                         else
                                             Uri.parse("geo:0,0?q=${Uri.encode(loc.direccion)}")
                                         context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                                    },
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = HeaderText
-                                    ),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp, Color.White.copy(alpha = 0.25f)
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Map, null,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(
-                                        "Mapa",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
+                                    }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn, null,
+                                    tint = HeaderMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    loc.direccion.ifBlank { "Ver en el mapa" },
+                                    color = HeaderText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -337,30 +402,131 @@ fun PantallaVidreraPublica(
             }
         }
 
-        // Chips de acceso rápido (solo si hay más de 1 sección)
-        if (secciones.size > 1) {
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (ofertas.isNotEmpty()) {
-                        item {
-                            FilterChip(
-                                selected = false,
-                                onClick = { scope.launch { listState.animateScrollToItem(if (secciones.size > 1) 2 else 1) } },
-                                label = { Text("Ofertas") },
-                                leadingIcon = { Icon(Icons.Default.LocalOffer, null, Modifier.size(14.dp)) }
-                            )
+        // Barra de búsqueda compacta
+        item {
+            OutlinedTextField(
+                value = busqueda,
+                onValueChange = { busqueda = it },
+                placeholder = { Text("Buscar producto...", style = MaterialTheme.typography.bodySmall) },
+                leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(16.dp)) },
+                trailingIcon = {
+                    if (busqueda.isNotBlank()) {
+                        IconButton(onClick = { busqueda = "" }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
                         }
                     }
-                    items(secciones.size) { i ->
-                        val (cat, _) = secciones[i]
-                        FilterChip(
-                            selected = false,
-                            onClick = { scope.launch { listState.animateScrollToItem(indicesSecciones[i]) } },
-                            label = { Text(cat) }
+                },
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .heightIn(max = 46.dp),
+                shape = RoundedCornerShape(28.dp)
+            )
+        }
+
+        // Resultados de búsqueda
+        if (busqueda.isNotBlank()) {
+            val query = busqueda.trim()
+            val resultados = productosHabilitados.filter {
+                it.nombre.contains(query, ignoreCase = true) ||
+                it.descripcion.contains(query, ignoreCase = true) ||
+                it.categoria.contains(query, ignoreCase = true)
+            }
+            if (resultados.isEmpty()) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No hay productos que coincidan con \"$query\"",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
                         )
+                    }
+                }
+            } else {
+                item {
+                    SeccionVidreraLabel(
+                        texto = "Resultados (${resultados.size})"
+                    )
+                }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(resultados) { prod ->
+                            TarjetaVidreraProducto(producto = prod, esOferta = prod.esOferta)
+                        }
+                    }
+                }
+            }
+            return@LazyColumn
+        }
+
+        // Grid de categorías destacadas
+        if (secciones.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.padding(horizontal = 14.dp)) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Categorías",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    val todasCats = buildList {
+                        if (ofertas.isNotEmpty()) add(Pair("Ofertas", -1))
+                        secciones.forEachIndexed { i, (cat, _) -> add(Pair(cat, i)) }
+                    }
+                    val filas = todasCats.chunked(5)
+                    filas.forEach { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { (cat, idx) ->
+                                val targetIdx = if (idx == -1) 2 else indicesSecciones[idx]
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { scope.launch { listState.animateScrollToItem(targetIdx) } }
+                                        .padding(bottom = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            if (cat == "Ofertas") Icons.Default.LocalOffer
+                                            else Icons.Default.ShoppingBag,
+                                            null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        cat,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                            repeat(5 - fila.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
                 }
             }
@@ -368,68 +534,30 @@ fun PantallaVidreraPublica(
 
         // Sección ofertas
         if (ofertas.isNotEmpty()) {
+            item { SeccionVidreraLabel(texto = "Ofertas") }
             item {
-                SeccionVidreraLabel(
-                    texto = "Ofertas",
-                    conteo = "${ofertas.size} disponible${if (ofertas.size != 1) "s" else ""}"
-                )
-            }
-            item {
-                val tresColumnasOfertas = ofertas.chunked(3)
-                Column(
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    tresColumnasOfertas.forEach { fila ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            fila.forEach { prod ->
-                                TarjetaVidreraProducto(
-                                    producto = prod,
-                                    esOferta = true,
-                                    modifier = Modifier.weight(1f).fillMaxHeight()
-                                )
-                            }
-                            repeat(3 - fila.size) { Spacer(Modifier.weight(1f)) }
-                        }
+                    items(ofertas) { prod ->
+                        TarjetaVidreraProducto(producto = prod, esOferta = true)
                     }
-                    Spacer(Modifier.height(4.dp))
                 }
             }
         }
 
         // Secciones agrupadas por categoría
         secciones.forEach { (categoria, prods) ->
+            item { SeccionVidreraLabel(texto = categoria) }
             item {
-                SeccionVidreraLabel(
-                    texto = categoria,
-                    conteo = "${prods.count { !it.agotado }} producto${if (prods.count { !it.agotado } != 1) "s" else ""}"
-                )
-            }
-            item {
-                val filas = prods.chunked(3)
-                Column(
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    filas.forEach { fila ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            fila.forEach { prod ->
-                                TarjetaVidreraProducto(
-                                    producto = prod,
-                                    esOferta = false,
-                                    modifier = Modifier.weight(1f).fillMaxHeight()
-                                )
-                            }
-                            repeat(3 - fila.size) { Spacer(Modifier.weight(1f)) }
-                        }
+                    items(prods) { prod ->
+                        TarjetaVidreraProducto(producto = prod, esOferta = false)
                     }
-                    Spacer(Modifier.height(4.dp))
                 }
             }
         }
@@ -474,23 +602,23 @@ private fun ChipHeader(texto: String) {
 }
 
 @Composable
-private fun SeccionVidreraLabel(texto: String, conteo: String = "") {
+private fun SeccionVidreraLabel(texto: String, conteo: String = "", onMostrarTodos: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 10.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 20.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            texto.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
+            texto,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        if (conteo.isNotBlank()) {
+        TextButton(onClick = { onMostrarTodos?.invoke() }) {
             Text(
-                conteo,
+                "Mostrar todos",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -501,8 +629,7 @@ private fun SeccionVidreraLabel(texto: String, conteo: String = "") {
 @Composable
 private fun TarjetaVidreraProducto(
     producto: Producto,
-    esOferta: Boolean,
-    modifier: Modifier = Modifier
+    esOferta: Boolean
 ) {
     val descuento = if (esOferta && producto.precioAnterior > 0)
         (((producto.precioAnterior - producto.precio) / producto.precioAnterior) * 100).toInt()
@@ -510,7 +637,7 @@ private fun TarjetaVidreraProducto(
     val agotado = producto.agotado
 
     Card(
-        modifier = modifier,
+        modifier = Modifier.width(150.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (agotado) 0.dp else 2.dp),
         colors = CardDefaults.cardColors(
@@ -518,11 +645,12 @@ private fun TarjetaVidreraProducto(
                              else MaterialTheme.colorScheme.surface
         )
     ) {
-        Column(modifier = Modifier.padding(10.dp).then(if (agotado) Modifier.alpha(0.5f) else Modifier)) {
+        Column(modifier = if (agotado) Modifier.alpha(0.5f) else Modifier) {
+            // Imagen grande
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .fillMaxWidth()
+                    .height(120.dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -536,75 +664,68 @@ private fun TarjetaVidreraProducto(
                 } else {
                     Icon(
                         Icons.Default.ShoppingBag, null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                 }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            if (agotado) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.errorContainer)
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                ) {
-                    Text("Agotado", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                // Badge de descuento sobre la imagen
+                if (!agotado && descuento > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFFFFD600))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text("$descuento% OFF", style = MaterialTheme.typography.labelSmall,
+                            color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
                 }
-                Spacer(Modifier.height(3.dp))
-            } else if (descuento > 0) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                ) {
-                    Text("−$descuento%", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                if (agotado) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text("Agotado", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                    }
                 }
-                Spacer(Modifier.height(3.dp))
             }
 
-            Text(
-                producto.nombre,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = MaterialTheme.typography.labelMedium.lineHeight,
-                color = if (agotado) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurface
-            )
-
-            if (producto.descripcion.isNotBlank()) {
+            Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
                 Text(
-                    producto.descripcion,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    producto.nombre,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                    color = if (agotado) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface
                 )
-            }
 
-            Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
 
-            Text(
-                "$${"%.0f".format(producto.precio)}",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = if (agotado) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurface
-            )
-            if (esOferta && producto.precioAnterior > 0) {
                 Text(
-                    "$${"%.0f".format(producto.precioAnterior)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textDecoration = TextDecoration.LineThrough
+                    "$${"%.0f".format(producto.precio)}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (agotado) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface
                 )
+                if (esOferta && producto.precioAnterior > 0) {
+                    Text(
+                        "$${"%.0f".format(producto.precioAnterior)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textDecoration = TextDecoration.LineThrough
+                    )
+                }
             }
         }
     }

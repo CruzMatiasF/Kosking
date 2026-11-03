@@ -1116,7 +1116,17 @@ private fun CardOferta(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (descuento > 0) {
+                if (producto.agotado) {
+                    Box(
+                        modifier = Modifier.align(Alignment.TopStart).padding(7.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer)
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text("Agotado", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                    }
+                } else if (descuento > 0) {
                     Box(
                         modifier = Modifier.align(Alignment.TopStart)
                             .padding(7.dp)
@@ -1189,7 +1199,17 @@ private fun TarjetaProducto(
                     Icon(Icons.Default.ShoppingBag, null, modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (producto.esOferta && producto.precioAnterior > 0) {
+                if (producto.agotado) {
+                    Box(
+                        modifier = Modifier.align(Alignment.TopStart).padding(7.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(MaterialTheme.colorScheme.errorContainer)
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text("Agotado", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                    }
+                } else if (producto.esOferta && producto.precioAnterior > 0) {
                     val descuento = (((producto.precioAnterior - producto.precio) / producto.precioAnterior) * 100).toInt()
                     Box(
                         modifier = Modifier.align(Alignment.TopStart).padding(7.dp)

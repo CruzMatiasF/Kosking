@@ -125,6 +125,12 @@ fun PantallaProductos(
                                         Text("Oferta", color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
                                 }
+                                if (prod.agotado) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
+                                        Text("Agotado", color = MaterialTheme.colorScheme.onErrorContainer)
+                                    }
+                                }
                                 if (!prod.habilitado) {
                                     Spacer(Modifier.width(6.dp))
                                     Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
@@ -167,14 +173,15 @@ fun PantallaProductos(
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
-                        habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior
+                        habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
+                        agotado = agotado
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado)
                 }
                 mostrarDialogo = false
             },
@@ -206,7 +213,7 @@ fun PantallaProductos(
 internal fun DialogProducto(
     productoInicial: Producto?,
     productosExistentes: List<Producto> = emptyList(),
-    onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double) -> Unit,
+    onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double, agotado: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(productoInicial?.nombre ?: "") }
@@ -215,6 +222,7 @@ internal fun DialogProducto(
     var habilitado by remember { mutableStateOf(productoInicial?.habilitado ?: true) }
     var esOferta by remember { mutableStateOf(productoInicial?.esOferta ?: false) }
     var precioAnterior by remember { mutableStateOf(productoInicial?.precioAnterior?.let { if (it > 0) "%.2f".format(it) else "" } ?: "") }
+    var agotado by remember { mutableStateOf(productoInicial?.agotado ?: false) }
 
     val similarExistente = remember(nombre, productosExistentes) {
         val trimmed = nombre.trim()
@@ -261,6 +269,11 @@ internal fun DialogProducto(
                     trailingContent = { Switch(checked = habilitado, onCheckedChange = { habilitado = it }) }
                 )
                 ListItem(
+                    headlineContent = { Text("Agotado") },
+                    supportingContent = { Text("Se muestra como agotado y no se puede anotar en fiado") },
+                    trailingContent = { Switch(checked = agotado, onCheckedChange = { agotado = it }) }
+                )
+                ListItem(
                     headlineContent = { Text("Es oferta") },
                     supportingContent = { Text("Muestra precio tachado y badge de descuento") },
                     trailingContent = { Switch(checked = esOferta, onCheckedChange = { esOferta = it; if (!it) precioAnterior = "" }) }
@@ -285,7 +298,8 @@ internal fun DialogProducto(
                         descripcion.trim(),
                         habilitado,
                         esOferta,
-                        precioAnterior.toDoubleOrNull() ?: 0.0
+                        precioAnterior.toDoubleOrNull() ?: 0.0,
+                        agotado
                     )
                 },
                 enabled = nombre.isNotBlank() && (precio.toDoubleOrNull() ?: 0.0) > 0

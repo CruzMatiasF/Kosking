@@ -250,14 +250,15 @@ private fun TabPreciosEmpleado(vm: EmpleadoViewModel, productos: List<Producto>)
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
-                        habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior
+                        habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
+                        agotado = agotado
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado)
                 }
                 mostrarDialogo = false
             },

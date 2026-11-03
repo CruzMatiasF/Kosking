@@ -121,7 +121,7 @@ private fun PantallaAgregarFiadoUI(
     var visitante by remember { mutableStateOf("") }
     var busqueda by remember { mutableStateOf("") }
 
-    val productosHabilitados = remember(productos) { productos.filter { it.habilitado } }
+    val productosHabilitados = remember(productos) { productos.filter { it.habilitado && !it.agotado } }
     val productosFiltrados = remember(productosHabilitados, busqueda) {
         if (busqueda.isBlank()) productosHabilitados
         else productosHabilitados.filter { it.nombre.contains(busqueda, ignoreCase = true) }
@@ -281,51 +281,6 @@ private fun PantallaAgregarFiadoUI(
                     }
                 }
 
-                // Carrito (si hay items)
-                if (carrito.isNotEmpty()) {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(carrito, key = { it.productoId }) { item ->
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.height(32.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    IconButton(
-                                        onClick = {
-                                            val idx = carrito.indexOfFirst { it.productoId == item.productoId }
-                                            if (item.cantidad > 1) carrito[idx] = item.copy(cantidad = item.cantidad - 1)
-                                            else carrito.removeAt(idx)
-                                        },
-                                        modifier = Modifier.size(20.dp)
-                                    ) { Icon(Icons.Default.Remove, null, Modifier.size(12.dp)) }
-                                    Text("${item.nombre} ×${item.cantidad}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                    Text("$${"%.0f".format(item.total)}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary)
-                                    IconButton(
-                                        onClick = {
-                                            val idx = carrito.indexOfFirst { it.productoId == item.productoId }
-                                            carrito[idx] = item.copy(cantidad = item.cantidad + 1)
-                                        },
-                                        modifier = Modifier.size(20.dp)
-                                    ) { Icon(Icons.Default.Add, null, Modifier.size(12.dp)) }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 // Grilla de productos
                 if (productosFiltrados.isEmpty()) {
                     Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -350,11 +305,9 @@ private fun PantallaAgregarFiadoUI(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        val idx = carrito.indexOfFirst { it.productoId == prod.id }
-                                        if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
-                                        else carrito.add(ItemCarrito(prod.id, prod.nombre, prod.precio))
-                                    },
+                                    .then(if (!enCarrito) Modifier.clickable {
+                                        carrito.add(ItemCarrito(prod.id, prod.nombre, prod.precio))
+                                    } else Modifier),
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (enCarrito) MaterialTheme.colorScheme.primaryContainer
                                                      else MaterialTheme.colorScheme.surface
@@ -364,35 +317,136 @@ private fun PantallaAgregarFiadoUI(
                                 else
                                     androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                             ) {
-                                Box(modifier = Modifier.fillMaxWidth()) {
-                                    Column(
-                                        modifier = Modifier.padding(8.dp).fillMaxWidth(),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        Text(prod.nombre, style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                            maxLines = 2,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                            color = if (enCarrito) MaterialTheme.colorScheme.onPrimaryContainer
-                                                    else MaterialTheme.colorScheme.onSurface)
-                                        Text("$${"%.0f".format(prod.precio)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = if (enCarrito) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp).fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(prod.nombre, style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        color = if (enCarrito) MaterialTheme.colorScheme.onPrimaryContainer
+                                                else MaterialTheme.colorScheme.onSurface)
+                                    Text("$${"%.0f".format(prod.precio)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (enCarrito) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant)
                                     if (enCarrito) {
-                                        Badge(
-                                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        ) { Text("×${itemEnCarrito!!.cantidad}") }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    val idx = carrito.indexOfFirst { it.productoId == prod.id }
+                                                    if (idx >= 0) {
+                                                        if (carrito[idx].cantidad > 1)
+                                                            carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
+                                                        else carrito.removeAt(idx)
+                                                    }
+                                                },
+                                                modifier = Modifier.size(28.dp)
+                                            ) { Icon(Icons.Default.Remove, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
+                                            Text(
+                                                "${itemEnCarrito!!.cantidad}",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.padding(horizontal = 4.dp)
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    val idx = carrito.indexOfFirst { it.productoId == prod.id }
+                                                    if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
+                                                },
+                                                modifier = Modifier.size(28.dp)
+                                            ) { Icon(Icons.Default.Add, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
+                                        }
                                     }
                                 }
                             }
                         }
                         item { Spacer(Modifier.height(8.dp)) }
                         item { Spacer(Modifier.height(8.dp)) }
+                    }
+                }
+
+                // Lista de productos seleccionados
+                if (carrito.isNotEmpty()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shadowElevation = 4.dp,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "${carrito.sumOf { it.cantidad }} producto${if (carrito.sumOf { it.cantidad } != 1) "s" else ""}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Total $${"%.0f".format(totalCarrito)}",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 180.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                items(carrito, key = { it.productoId }) { item ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(item.nombre,
+                                            modifier = Modifier.weight(1f),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        IconButton(
+                                            onClick = {
+                                                val idx = carrito.indexOfFirst { it.productoId == item.productoId }
+                                                if (idx >= 0) {
+                                                    if (carrito[idx].cantidad > 1) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
+                                                    else carrito.removeAt(idx)
+                                                }
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) { Icon(Icons.Default.Remove, null, Modifier.size(12.dp)) }
+                                        Text("${item.cantidad}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.widthIn(min = 20.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                        IconButton(
+                                            onClick = {
+                                                val idx = carrito.indexOfFirst { it.productoId == item.productoId }
+                                                if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) { Icon(Icons.Default.Add, null, Modifier.size(12.dp)) }
+                                        Text("$${"%.0f".format(item.total)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.widthIn(min = 48.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 

@@ -93,7 +93,8 @@ data class Producto(
     val habilitado: Boolean = true,
     val esOferta: Boolean = false,
     val precioAnterior: Double = 0.0,
-    val imagenUrl: String = ""
+    val imagenUrl: String = "",
+    val agotado: Boolean = false
 )
 
 @Immutable

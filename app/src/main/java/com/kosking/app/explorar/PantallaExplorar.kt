@@ -5,6 +5,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -835,28 +838,93 @@ private fun TabInicio(
                 }
             }
 
-            // Card grande: Ofertas
+            // Banner carrusel Kosking
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(110.dp)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    onClick = onVerOfertas,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-                ) {
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                        Text(
-                            "Ofertas",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.align(Alignment.BottomStart)
-                        )
-                        Icon(
-                            Icons.Default.LocalOffer, null,
-                            modifier = Modifier.size(56.dp).align(Alignment.CenterEnd),
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.3f)
-                        )
+                val slides = listOf(
+                    Triple(
+                        "Locales cerca tuyo",
+                        "Mirá qué kioscos y almacenes están abiertos ahora mismo.",
+                        Icons.Default.Storefront
+                    ),
+                    Triple(
+                        "Poné tu kiosco",
+                        "Registrá tu local gratis y llegá a más clientes del barrio.",
+                        Icons.Default.AddBusiness
+                    ),
+                    Triple(
+                        "Fiate con confianza",
+                        "Anotá lo que llevás y pagá cuando puedas con tu kiosquero.",
+                        Icons.Default.Handshake
+                    )
+                )
+                val pagerState = rememberPagerState(pageCount = { slides.size })
+                LaunchedEffect(pagerState) {
+                    while (true) {
+                        delay(3500)
+                        val next = (pagerState.currentPage + 1) % slides.size
+                        pagerState.animateScrollToPage(next)
+                    }
+                }
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    HorizontalPager(state = pagerState) { page ->
+                        val (titulo, subtitulo, icono) = slides[page]
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F0F))
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp)) {
+                                Icon(
+                                    icono, null,
+                                    modifier = Modifier.size(72.dp).align(Alignment.CenterEnd),
+                                    tint = Color.White.copy(alpha = 0.07f)
+                                )
+                                Column {
+                                    Text(
+                                        "KOSKING",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.4f),
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp)
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        titulo,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        subtitulo,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.65f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // Dots indicadores
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(slides.size) { i ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 3.dp)
+                                    .size(if (pagerState.currentPage == i) 8.dp else 5.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (pagerState.currentPage == i)
+                                            MaterialTheme.colorScheme.onSurface
+                                        else
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                    )
+                            )
+                        }
                     }
                 }
             }

@@ -204,7 +204,7 @@ fun PantallaVidreraPublica(
                     )
                 }
 
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                Column(modifier = Modifier.statusBarsPadding().padding(horizontal = 16.dp, vertical = 16.dp)) {
                     // Botón volver
                     IconButton(
                         onClick = onVolver,
@@ -589,17 +589,6 @@ fun PantallaVidreraPublica(
     }
 }
 
-@Composable
-private fun ChipHeader(texto: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(HeaderChipBg)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Text(texto, color = HeaderMuted, style = MaterialTheme.typography.labelSmall)
-    }
-}
 
 @Composable
 private fun SeccionVidreraLabel(texto: String, conteo: String = "", onMostrarTodos: (() -> Unit)? = null) {

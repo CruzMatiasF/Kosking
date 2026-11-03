@@ -431,7 +431,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false) {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, categoria: String = "") {
         viewModelScope.launch {
             try {
                 val producto = Producto(
@@ -442,7 +442,8 @@ class DuenoViewModel : ViewModel() {
                     habilitado = habilitado,
                     esOferta = esOferta,
                     precioAnterior = precioAnterior,
-                    agotado = agotado
+                    agotado = agotado,
+                    categoria = categoria
                 )
                 FiadoRepository.agregarProducto(producto)
             } catch (e: Exception) {

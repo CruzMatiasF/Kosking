@@ -153,7 +153,7 @@ class EmpleadoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false) {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, categoria: String = "") {
         viewModelScope.launch {
             cargando.value = true
             _error.value = null
@@ -161,7 +161,7 @@ class EmpleadoViewModel : ViewModel() {
                 FiadoRepository.agregarProducto(
                     Producto(localId = _localId.value, nombre = nombre, precio = precio,
                         descripcion = descripcion, habilitado = habilitado,
-                        esOferta = esOferta, precioAnterior = precioAnterior, agotado = agotado)
+                        esOferta = esOferta, precioAnterior = precioAnterior, agotado = agotado, categoria = categoria)
                 )
             } catch (e: Exception) {
                 _error.value = "No se pudo agregar el producto"

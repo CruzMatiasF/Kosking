@@ -3,9 +3,15 @@ package com.kosking.app.explorar
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.alpha
+import kotlinx.coroutines.CoroutineScope
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -35,6 +41,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 class VidreraPublicaViewModel : ViewModel() {
     val local = MutableStateFlow<Local?>(null)
@@ -78,8 +85,35 @@ fun PantallaVidreraPublica(
     val productos by remember(localId) { vm.productosFlow(localId) }.collectAsState()
 
     val productosHabilitados = productos.filter { it.habilitado }
-    val ofertas = productosHabilitados.filter { it.esOferta }
-    val resto = productosHabilitados.filter { !it.esOferta }
+    val ofertas = productosHabilitados.filter { it.esOferta && !it.agotado }
+
+    // Agrupar por categoría: productos con categoría agrupados, sin categoría van a "Otros"
+    // Los agotados se muestran al final de cada sección, griseados
+    val secciones: List<Pair<String, List<Producto>>> = remember(productosHabilitados) {
+        val sinOferta = productosHabilitados.filter { !it.esOferta }
+        val porCategoria = sinOferta.groupBy { it.categoria.ifBlank { "Otros" } }
+        // Ordenar: categorías con nombre primero (alfabético), "Otros" al final
+        porCategoria.entries
+            .sortedWith(compareBy { if (it.key == "Otros") "ZZZ" else it.key })
+            .map { (cat, prods) ->
+                cat to prods.sortedWith(compareBy({ it.agotado }, { it.nombre }))
+            }
+    }
+
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    // Calcular índices de cada sección en la LazyColumn para scroll
+    // items: 0=header, 1=chips(si hay secciones>1), 2=ofertas_label(si hay), 3=ofertas_grid(si hay), luego secciones
+    val indicesSecciones = remember(ofertas, secciones) {
+        var idx = 1 // header = 0
+        if (secciones.size > 1) idx++ // chips
+        if (ofertas.isNotEmpty()) idx += 2 // label + grid
+        secciones.mapIndexed { i, _ ->
+            val base = idx + i * 2 // label + grid por sección
+            base
+        }
+    }
 
     if (cargando) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -89,6 +123,7 @@ fun PantallaVidreraPublica(
     }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
@@ -302,6 +337,35 @@ fun PantallaVidreraPublica(
             }
         }
 
+        // Chips de acceso rápido (solo si hay más de 1 sección)
+        if (secciones.size > 1) {
+            item {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (ofertas.isNotEmpty()) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { scope.launch { listState.animateScrollToItem(if (secciones.size > 1) 2 else 1) } },
+                                label = { Text("Ofertas") },
+                                leadingIcon = { Icon(Icons.Default.LocalOffer, null, Modifier.size(14.dp)) }
+                            )
+                        }
+                    }
+                    items(secciones.size) { i ->
+                        val (cat, _) = secciones[i]
+                        FilterChip(
+                            selected = false,
+                            onClick = { scope.launch { listState.animateScrollToItem(indicesSecciones[i]) } },
+                            label = { Text(cat) }
+                        )
+                    }
+                }
+            }
+        }
+
         // Sección ofertas
         if (ofertas.isNotEmpty()) {
             item {
@@ -310,55 +374,63 @@ fun PantallaVidreraPublica(
                     conteo = "${ofertas.size} disponible${if (ofertas.size != 1) "s" else ""}"
                 )
             }
-            val paresOfertas = ofertas.chunked(2)
-            items(paresOfertas) { par ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Max)
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            item {
+                val tresColumnasOfertas = ofertas.chunked(3)
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    par.forEach { prod ->
-                        TarjetaVidreraProducto(
-                            producto = prod,
-                            esOferta = true,
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        )
+                    tresColumnasOfertas.forEach { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { prod ->
+                                TarjetaVidreraProducto(
+                                    producto = prod,
+                                    esOferta = true,
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                )
+                            }
+                            repeat(3 - fila.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
-                    if (par.size == 1) Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.height(4.dp))
                 }
-                Spacer(Modifier.height(10.dp))
             }
         }
 
-        // Sección productos regulares
-        if (resto.isNotEmpty()) {
+        // Secciones agrupadas por categoría
+        secciones.forEach { (categoria, prods) ->
             item {
                 SeccionVidreraLabel(
-                    texto = "Precios",
-                    conteo = "${resto.size} producto${if (resto.size != 1) "s" else ""}"
+                    texto = categoria,
+                    conteo = "${prods.count { !it.agotado }} producto${if (prods.count { !it.agotado } != 1) "s" else ""}"
                 )
             }
-            val paresResto = resto.chunked(2)
-            items(paresResto) { par ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Max)
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+            item {
+                val filas = prods.chunked(3)
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    par.forEach { prod ->
-                        TarjetaVidreraProducto(
-                            producto = prod,
-                            esOferta = false,
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        )
+                    filas.forEach { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { prod ->
+                                TarjetaVidreraProducto(
+                                    producto = prod,
+                                    esOferta = false,
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                )
+                            }
+                            repeat(3 - fila.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
-                    if (par.size == 1) Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.height(4.dp))
                 }
-                Spacer(Modifier.height(10.dp))
             }
         }
 
@@ -435,17 +507,21 @@ private fun TarjetaVidreraProducto(
     val descuento = if (esOferta && producto.precioAnterior > 0)
         (((producto.precioAnterior - producto.precio) / producto.precioAnterior) * 100).toInt()
     else 0
+    val agotado = producto.agotado
 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (agotado) 0.dp else 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (agotado) MaterialTheme.colorScheme.surfaceVariant
+                             else MaterialTheme.colorScheme.surface
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Imagen o ícono
+        Column(modifier = Modifier.padding(10.dp).then(if (agotado) Modifier.alpha(0.5f) else Modifier)) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(36.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -460,43 +536,49 @@ private fun TarjetaVidreraProducto(
                 } else {
                     Icon(
                         Icons.Default.ShoppingBag, null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Badge oferta
-            if (descuento > 0) {
+            if (agotado) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
-                    Text(
-                        "−$descuento%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Agotado", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
+            } else if (descuento > 0) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                ) {
+                    Text("−$descuento%", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(3.dp))
             }
 
-            // Nombre
             Text(
                 producto.nombre,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = MaterialTheme.typography.bodySmall.lineHeight
+                lineHeight = MaterialTheme.typography.labelMedium.lineHeight,
+                color = if (agotado) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface
             )
 
-            // Descripción como subtítulo
             if (producto.descripcion.isNotBlank()) {
                 Text(
                     producto.descripcion,
@@ -507,13 +589,14 @@ private fun TarjetaVidreraProducto(
                 )
             }
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // Precio
             Text(
                 "$${"%.0f".format(producto.precio)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.ExtraBold
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = if (agotado) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface
             )
             if (esOferta && producto.precioAnterior > 0) {
                 Text(

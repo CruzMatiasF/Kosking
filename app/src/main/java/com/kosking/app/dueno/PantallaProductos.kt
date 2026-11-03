@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -173,15 +174,15 @@ fun PantallaProductos(
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
                         habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
-                        agotado = agotado
+                        agotado = agotado, categoria = categoria
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria)
                 }
                 mostrarDialogo = false
             },
@@ -213,7 +214,7 @@ fun PantallaProductos(
 internal fun DialogProducto(
     productoInicial: Producto?,
     productosExistentes: List<Producto> = emptyList(),
-    onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double, agotado: Boolean) -> Unit,
+    onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double, agotado: Boolean, categoria: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(productoInicial?.nombre ?: "") }
@@ -223,6 +224,8 @@ internal fun DialogProducto(
     var esOferta by remember { mutableStateOf(productoInicial?.esOferta ?: false) }
     var precioAnterior by remember { mutableStateOf(productoInicial?.precioAnterior?.let { if (it > 0) "%.2f".format(it) else "" } ?: "") }
     var agotado by remember { mutableStateOf(productoInicial?.agotado ?: false) }
+    var categoria by remember { mutableStateOf(productoInicial?.categoria ?: "") }
+    var mostrarMenuCategoria by remember { mutableStateOf(false) }
 
     val similarExistente = remember(nombre, productosExistentes) {
         val trimmed = nombre.trim()
@@ -263,6 +266,33 @@ internal fun DialogProducto(
                     label = { Text("Descripción (opcional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                val categoriasPredef = listOf("Gaseosas", "Aguas y jugos", "Cervezas", "Galletitas", "Golosinas", "Chocolates", "Lácteos", "Cigarrillos", "Almacén", "Snacks", "Higiene", "Otros")
+                Box {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = { categoria = it },
+                        label = { Text("Sección / Categoría (opcional)") },
+                        placeholder = { Text("Ej: Gaseosas, Galletitas...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { mostrarMenuCategoria = true }) {
+                                Icon(Icons.Default.ExpandMore, null)
+                            }
+                        },
+                        singleLine = true
+                    )
+                    DropdownMenu(
+                        expanded = mostrarMenuCategoria,
+                        onDismissRequest = { mostrarMenuCategoria = false }
+                    ) {
+                        categoriasPredef.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat) },
+                                onClick = { categoria = cat; mostrarMenuCategoria = false }
+                            )
+                        }
+                    }
+                }
                 ListItem(
                     headlineContent = { Text("Visible en Vidriera") },
                     supportingContent = { Text("Los clientes y empleados pueden verlo") },
@@ -299,7 +329,8 @@ internal fun DialogProducto(
                         habilitado,
                         esOferta,
                         precioAnterior.toDoubleOrNull() ?: 0.0,
-                        agotado
+                        agotado,
+                        categoria.trim()
                     )
                 },
                 enabled = nombre.isNotBlank() && (precio.toDoubleOrNull() ?: 0.0) > 0

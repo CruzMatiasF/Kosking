@@ -1789,15 +1789,15 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
                         habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
-                        agotado = agotado
+                        agotado = agotado, categoria = categoria
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria)
                 }
                 mostrarDialogo = false
             },

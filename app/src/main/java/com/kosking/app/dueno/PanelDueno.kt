@@ -5,8 +5,10 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -761,14 +763,6 @@ private fun SeccionCard(
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-private fun resolverNombreAnotador(anotadoPorNombre: String, nombreLocal: String, nombreUsuario: String): String {
-    val nombre = anotadoPorNombre.trim()
-    return when {
-        nombre.isBlank() -> nombreUsuario.ifBlank { "Vos" }
-        nombre.equals(nombreLocal, ignoreCase = true) -> nombreUsuario.ifBlank { "Vos" }
-        else -> nombre
-    }
-}
 
 // â”€â”€ Tab Clientes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -1129,146 +1123,6 @@ private fun CardCliente(
     }
 }
 
-@Composable
-private fun FilaCliente(
-    cliente: Cliente,
-    ultimaVisitaDate: java.util.Date?,
-    ahoraMs: Long,
-    onVerCliente: (String) -> Unit,
-    onAnotar: (String) -> Unit,
-    onCobrar: (String) -> Unit = {}
-) {
-    val diasSinVenir = remember(ultimaVisitaDate, ahoraMs) {
-        if (ultimaVisitaDate == null) null
-        else ((ahoraMs - ultimaVisitaDate.time) / (1000 * 60 * 60 * 24)).toInt()
-    }
-
-    val accentColor = when {
-        !cliente.habilitado -> MaterialTheme.colorScheme.outlineVariant
-        cliente.limiteCredito > 0 && cliente.deudaTotal > cliente.limiteCredito -> MaterialTheme.colorScheme.error
-        cliente.deudaTotal > 300 -> MaterialTheme.colorScheme.error
-        cliente.deudaTotal > 50 -> Color(0xFFE65100)
-        cliente.deudaTotal > 0 -> Color(0xFF2E7D32)
-        else -> MaterialTheme.colorScheme.outlineVariant
-    }
-
-    val visitaBadge = when {
-        diasSinVenir == null -> null
-        diasSinVenir == 0 -> "Hoy"
-        diasSinVenir == 1 -> "Ayer"
-        diasSinVenir < 7 -> "Hace $diasSinVenir dÃ­as"
-        else -> "Hace ${diasSinVenir / 7} sem."
-    }
-    val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0
-    val visitaEsWarning = diasSinVenir != null && diasSinVenir in 3..6 && cliente.deudaTotal > 0
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .clickable { onVerCliente(cliente.id) }
-    ) {
-        // Franja lateral â€” se estira al alto del contenido
-        Box(modifier = Modifier.width(3.dp).fillMaxHeight().background(accentColor))
-        Row(
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Avatar
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = if (cliente.deudaTotal > 0) MaterialTheme.colorScheme.errorContainer
-                        else MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        cliente.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            // Nombre + badges + barra lÃ­mite
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (!cliente.habilitado) BadgeChip("Bloqueado", isError = true)
-                    val hoyMs = remember { java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.timeInMillis }
-                    val fechaPagoMs = cliente.fechaPago?.toDate()?.time
-                    val pagoVencido = fechaPagoMs != null && fechaPagoMs < hoyMs && cliente.deudaTotal > 0
-                    val pagoHoy = fechaPagoMs != null && fechaPagoMs in hoyMs..(hoyMs + 86_400_000L - 1) && cliente.deudaTotal > 0
-                    when {
-                        pagoVencido -> BadgeChip("Pago vencido", isError = true)
-                        pagoHoy -> BadgeChip("Paga hoy", isWarning = true)
-                        visitaBadge != null -> BadgeChip(visitaBadge, isError = visitaEsAlerta, isWarning = visitaEsWarning)
-                        ultimaVisitaDate == null -> BadgeChip("Nuevo")
-                    }
-                }
-                if (cliente.limiteCredito > 0 && cliente.deudaTotal > 0) {
-                    val progreso = (cliente.deudaTotal / cliente.limiteCredito).coerceIn(0.0, 1.0).toFloat()
-                    val superado = cliente.deudaTotal > cliente.limiteCredito
-                    LinearProgressIndicator(
-                        progress = { progreso },
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
-                        color = if (superado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    Text(
-                        if (superado) "SuperÃ³ el lÃ­mite de $${"%.0f".format(cliente.limiteCredito)}"
-                        else "${"%.0f".format(progreso * 100)}% del lÃ­mite",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (superado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            // Monto + acciones + chevron
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (cliente.deudaTotal > 0) {
-                        Text("$${"%.0f".format(cliente.deudaTotal)}", style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                    } else {
-                        Text("Al dÃ­a", style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium)
-                    }
-                    if (cliente.habilitado) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TextButton(
-                                onClick = { onAnotar(cliente.id) },
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                                modifier = Modifier.height(24.dp)
-                            ) {
-                                Text("+ Anotar", style = MaterialTheme.typography.labelSmall)
-                            }
-                            if (cliente.deudaTotal > 0) {
-                                TextButton(
-                                    onClick = { onCobrar(cliente.id) },
-                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                                    modifier = Modifier.height(24.dp),
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.secondary
-                                    )
-                                ) {
-                                    Text("Cobrar", style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-                        }
-                    }
-                }
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp).padding(top = 2.dp),
-                    tint = MaterialTheme.colorScheme.outlineVariant
-                )
-            }
-        }
-    }
-    HorizontalDivider(modifier = Modifier.padding(start = 3.dp))
-}
 
 @Composable
 private fun BadgeChip(text: String, isError: Boolean = false, isWarning: Boolean = false) {
@@ -1407,7 +1261,8 @@ private fun TabProductos(vm: DuenoViewModel) {
                             CardProducto(
                                 prod = prod,
                                 onEditar = { productoEditar = prod; mostrarDialogo = true },
-                                onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") }
+                                onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") },
+                                onEliminar = { productoAEliminar = prod }
                             )
                         }
                         item(span = { GridItemSpan(3) }) { Spacer(Modifier.height(80.dp)) }
@@ -1427,7 +1282,8 @@ private fun TabProductos(vm: DuenoViewModel) {
                         CardProducto(
                             prod = prod,
                             onEditar = { productoEditar = prod; mostrarDialogo = true },
-                            onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") }
+                            onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") },
+                            onEliminar = { productoAEliminar = prod }
                         )
                     }
                     item(span = { GridItemSpan(3) }) { Spacer(Modifier.height(80.dp)) }
@@ -1474,7 +1330,8 @@ private fun TabProductos(vm: DuenoViewModel) {
                                         CardProducto(
                                             prod = prod,
                                             onEditar = { productoEditar = prod; mostrarDialogo = true },
-                                            onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") }
+                                            onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") },
+                                            onEliminar = { productoAEliminar = prod }
                                         )
                                     }
                                 }
@@ -1521,14 +1378,16 @@ private fun TabProductos(vm: DuenoViewModel) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CardProducto(
     prod: Producto,
     onEditar: () -> Unit,
-    onFoto: () -> Unit
+    onFoto: () -> Unit,
+    onEliminar: () -> Unit = {}
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onEditar),
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onEditar, onLongClick = onEliminar),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {

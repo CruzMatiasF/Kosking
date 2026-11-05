@@ -26,6 +26,7 @@ android {
             ?.firstOrNull { it.startsWith("MAPS_API_KEY=") }
             ?.substringAfter("=") ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsKey\"")
     }
 
     buildTypes {
@@ -47,6 +48,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

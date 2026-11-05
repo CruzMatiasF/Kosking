@@ -32,10 +32,13 @@ fun PantallaPanelEmpleado(
     vm: EmpleadoViewModel
 ) {
     val nombreLocal by vm.nombreLocal.collectAsState()
+    val nombreEmpleado by vm.nombreEmpleado.collectAsState()
     val clientes by vm.clientesHabilitados.collectAsState()
     val movimientos by vm.movimientosLocal.collectAsState()
     val productos by vm.productos.collectAsState()
     var mostrarMenu by remember { mutableStateOf(false) }
+    var mostrarConfirmDesvincularse by remember { mutableStateOf(false) }
+    var mostrarEditarNombre by remember { mutableStateOf(false) }
     var busqueda by remember { mutableStateOf("") }
     var tabActual by remember { mutableStateOf(tabInicial) }
 
@@ -76,6 +79,20 @@ fun PantallaPanelEmpleado(
                             expanded = mostrarMenu,
                             onDismissRequest = { mostrarMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Editar mi nombre") },
+                                onClick = {
+                                    mostrarMenu = false
+                                    mostrarEditarNombre = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Desvincularme del local") },
+                                onClick = {
+                                    mostrarMenu = false
+                                    mostrarConfirmDesvincularse = true
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Cerrar sesión") },
                                 onClick = {
@@ -168,6 +185,53 @@ fun PantallaPanelEmpleado(
             }
         }
     }
+
+    var nombreEditar by remember(nombreEmpleado) { mutableStateOf(nombreEmpleado) }
+
+    if (mostrarEditarNombre) {
+        AlertDialog(
+            onDismissRequest = { mostrarEditarNombre = false },
+            title = { Text("Editar mi nombre") },
+            text = {
+                OutlinedTextField(
+                    value = nombreEditar,
+                    onValueChange = { nombreEditar = it },
+                    label = { Text("Tu nombre") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (nombreEditar.isNotBlank()) {
+                            vm.actualizarMiNombre(nombreEditar.trim())
+                            mostrarEditarNombre = false
+                        }
+                    },
+                    enabled = nombreEditar.isNotBlank()
+                ) { Text("Guardar") }
+            },
+            dismissButton = { TextButton(onClick = { mostrarEditarNombre = false }) { Text("Cancelar") } }
+        )
+    }
+
+    if (mostrarConfirmDesvincularse) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmDesvincularse = false },
+            title = { Text("Desvincularme del local") },
+            text = { Text("¿Querés dejar de trabajar en ${nombreLocal.ifBlank { "este local" }}? Vas a perder el acceso.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarConfirmDesvincularse = false
+                    vm.desvincularme { onCerrarSesion() }
+                }) { Text("Desvincularme", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmDesvincularse = false }) { Text("Cancelar") }
+            }
+        )
+    }
 }
 
 @Composable
@@ -250,15 +314,15 @@ private fun TabPreciosEmpleado(vm: EmpleadoViewModel, productos: List<Producto>)
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, estadoStock, categoria ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
                         habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
-                        agotado = agotado, categoria = categoria
+                        agotado = agotado, estadoStock = estadoStock, categoria = categoria
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, estadoStock, categoria)
                 }
                 mostrarDialogo = false
             },

@@ -122,6 +122,28 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarDireccion(direccion: String) {
+        val local = localData.value ?: return
+        actualizarLocal(
+            nombre = local.nombre, tipo = local.tipo, direccion = direccion,
+            telefono = local.telefono, descripcion = local.descripcion,
+            abierto = local.abierto, onExito = {}
+        )
+    }
+
+    // cierre: "HH:mm" para hoy, o "" para quitar
+    fun actualizarCierreHoy(cierre: String) {
+        viewModelScope.launch {
+            val local = localData.value ?: return@launch
+            val fecha = if (cierre.isNotEmpty()) {
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    .format(java.util.Calendar.getInstance().time)
+            } else ""
+            val actualizado = local.copy(excepcionFecha = fecha, excepcionTipo = "", excepcionCierre = cierre)
+            try { FiadoRepository.actualizarLocal(actualizado) } catch (_: Exception) {}
+        }
+    }
+
     fun crearLocal(
         nombre: String,
         tipo: String = "Kiosco",
@@ -385,7 +407,7 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    fun generarCodigoEmpleado(nombre: String, onExito: (String) -> Unit) {
+    fun generarCodigoEmpleado(onExito: (String) -> Unit) {
         viewModelScope.launch {
             cargando.value = true
             _error.value = null
@@ -413,7 +435,7 @@ class DuenoViewModel : ViewModel() {
                 }
                 val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
                 val codigo = (1..6).map { chars.random() }.joinToString("")
-                FiadoRepository.guardarCodigoEmpleado(localId, _nombreLocal.value, nombre, codigo)
+                FiadoRepository.guardarCodigoEmpleado(localId, _nombreLocal.value, codigo)
                 onExito(codigo)
             } catch (e: Exception) {
                 _error.value = "No se pudo generar el código"
@@ -431,7 +453,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, categoria: String = "") {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, estadoStock: String = "", categoria: String = "") {
         viewModelScope.launch {
             try {
                 val producto = Producto(
@@ -443,6 +465,7 @@ class DuenoViewModel : ViewModel() {
                     esOferta = esOferta,
                     precioAnterior = precioAnterior,
                     agotado = agotado,
+                    estadoStock = estadoStock,
                     categoria = categoria
                 )
                 FiadoRepository.agregarProducto(producto)

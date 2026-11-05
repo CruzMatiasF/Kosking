@@ -333,15 +333,30 @@ object FiadoRepository {
         db.collection("productos").document(productoId).delete().await()
     }
 
-    suspend fun guardarCodigoEmpleado(localId: String, nombreLocal: String, nombreEmpleado: String, codigo: String) {
+    suspend fun guardarCodigoEmpleado(localId: String, nombreLocal: String, codigo: String) {
         val datos = mapOf(
             "localId" to localId,
             "nombreLocal" to nombreLocal,
-            "nombreEmpleado" to nombreEmpleado,
             "codigo" to codigo,
             "usado" to false
         )
         db.collection("codigosEmpleado").document().set(datos).await()
+    }
+
+    suspend fun actualizarNombreEmpleadoPorUid(uid: String, localId: String, nombre: String) {
+        val snap = db.collection("empleados")
+            .whereEqualTo("uid", uid)
+            .whereEqualTo("localId", localId)
+            .get().await()
+        snap.documents.forEach { it.reference.update("nombre", nombre).await() }
+    }
+
+    suspend fun eliminarEmpleadoPorUid(uid: String, localId: String) {
+        val snap = db.collection("empleados")
+            .whereEqualTo("uid", uid)
+            .whereEqualTo("localId", localId)
+            .get().await()
+        snap.documents.forEach { it.reference.delete().await() }
     }
 
     // ── Locales guardados por cliente (subcolección de usuarios) ────────────

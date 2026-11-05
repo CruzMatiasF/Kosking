@@ -57,7 +57,6 @@ import com.kosking.app.dueno.PantallaAgregarCliente
 import com.kosking.app.dueno.PantallaAgregarFiado
 import com.kosking.app.dueno.PantallaDetalleCliente
 import com.kosking.app.dueno.PantallaDetalleMovimiento
-import com.kosking.app.dueno.PantallaSeleccionarCliente
 import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
@@ -75,8 +74,7 @@ private sealed class VistaDueno {
     object Panel : VistaDueno()
     object AgregarCliente : VistaDueno()
     data class DetalleCliente(val id: String) : VistaDueno()
-    data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo", val desdeResumen: Boolean = false, val volverAPanel: Boolean = false) : VistaDueno()
-    data class SeleccionarCliente(val tipo: String) : VistaDueno()
+    data class AgregarFiado(val clienteId: String, val tipoInicial: String = "cargo", val volverAPanel: Boolean = false) : VistaDueno()
     data class DetalleMovimiento(val id: String, val clienteId: String? = null) : VistaDueno()
 }
 
@@ -278,12 +276,8 @@ fun PantallaExplorar(
             }
             panelActivoEnMas && vistaDueno !is VistaDueno.Panel -> {
                 vistaDueno = when (val v = vistaDueno) {
-                    is VistaDueno.AgregarFiado -> when {
-                        v.desdeResumen -> VistaDueno.SeleccionarCliente(v.tipoInicial)
-                        v.volverAPanel -> VistaDueno.Panel
-                        else -> VistaDueno.DetalleCliente(v.clienteId)
-                    }
-                    is VistaDueno.SeleccionarCliente -> VistaDueno.Panel
+                    is VistaDueno.AgregarFiado -> if (v.volverAPanel) VistaDueno.Panel
+                                                  else VistaDueno.DetalleCliente(v.clienteId)
                     else -> VistaDueno.Panel
                 }
             }
@@ -438,13 +432,7 @@ fun PantallaExplorar(
                         }
                         else -> {
                             TopAppBar(
-                                title = {
-                                    Column {
-                                        Text(nombreLocal.ifBlank { "Mi local" })
-                                        Text("Panel del dueño", style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
+                                title = { Text("Panel del dueño") }
                             )
                         }
                     }
@@ -556,8 +544,7 @@ fun PantallaExplorar(
                             onAbrirAgregarCliente = { vistaDueno = VistaDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = VistaDueno.DetalleCliente(it) },
                             onAbrirAgregarFiado = { clienteId, tipo -> vistaDueno = VistaDueno.AgregarFiado(clienteId, tipo, volverAPanel = tabPanelDueno != 0) },
-                            onAbrirDetalleMovimiento = { vistaDueno = VistaDueno.DetalleMovimiento(it) },
-                            onAbrirSeleccionarCliente = { tipo -> vistaDueno = VistaDueno.SeleccionarCliente(tipo) }
+                            onAbrirDetalleMovimiento = { vistaDueno = VistaDueno.DetalleMovimiento(it) }
                         )
                         is VistaDueno.AgregarCliente -> PantallaAgregarCliente(
                             onVolver = { vistaDueno = VistaDueno.Panel },
@@ -576,29 +563,15 @@ fun PantallaExplorar(
                         is VistaDueno.AgregarFiado -> PantallaAgregarFiado(
                             clienteId = vista.clienteId,
                             onGuardado = {
-                                vistaDueno = when {
-                                    vista.desdeResumen -> VistaDueno.Panel
-                                    vista.volverAPanel -> VistaDueno.Panel
-                                    else -> VistaDueno.DetalleCliente(vista.clienteId)
-                                }
+                                vistaDueno = if (vista.volverAPanel) VistaDueno.Panel
+                                             else VistaDueno.DetalleCliente(vista.clienteId)
                             },
                             onVolver = {
-                                vistaDueno = when {
-                                    vista.desdeResumen -> VistaDueno.SeleccionarCliente(vista.tipoInicial)
-                                    vista.volverAPanel -> VistaDueno.Panel
-                                    else -> VistaDueno.DetalleCliente(vista.clienteId)
-                                }
+                                vistaDueno = if (vista.volverAPanel) VistaDueno.Panel
+                                             else VistaDueno.DetalleCliente(vista.clienteId)
                             },
                             vm = duenoVm,
                             tipoInicial = vista.tipoInicial
-                        )
-                        is VistaDueno.SeleccionarCliente -> PantallaSeleccionarCliente(
-                            tipo = vista.tipo,
-                            vm = duenoVm,
-                            onSeleccionado = { clienteId ->
-                                vistaDueno = VistaDueno.AgregarFiado(clienteId, vista.tipo, desdeResumen = true)
-                            },
-                            onVolver = { vistaDueno = VistaDueno.Panel }
                         )
                         is VistaDueno.DetalleMovimiento -> PantallaDetalleMovimiento(
                             movimientoId = vista.id,
@@ -1167,7 +1140,7 @@ private fun CardOferta(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (producto.agotado) {
+                if (producto.estadoStock == "agotado" || producto.agotado) {
                     Box(
                         modifier = Modifier.align(Alignment.TopStart).padding(7.dp)
                             .clip(RoundedCornerShape(5.dp))
@@ -1176,6 +1149,16 @@ private fun CardOferta(
                     ) {
                         Text("Agotado", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                    }
+                } else if (producto.estadoStock == "pocos") {
+                    Box(
+                        modifier = Modifier.align(Alignment.TopStart).padding(7.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(MaterialTheme.colorScheme.tertiaryContainer)
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text("Quedan pocos", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold)
                     }
                 } else if (descuento > 0) {
                     Box(
@@ -1250,7 +1233,7 @@ private fun TarjetaProducto(
                     Icon(Icons.Default.ShoppingBag, null, modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (producto.agotado) {
+                if (producto.estadoStock == "agotado" || producto.agotado) {
                     Box(
                         modifier = Modifier.align(Alignment.TopStart).padding(7.dp)
                             .clip(RoundedCornerShape(5.dp))
@@ -1259,6 +1242,16 @@ private fun TarjetaProducto(
                     ) {
                         Text("Agotado", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                    }
+                } else if (producto.estadoStock == "pocos") {
+                    Box(
+                        modifier = Modifier.align(Alignment.TopStart).padding(7.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(MaterialTheme.colorScheme.tertiaryContainer)
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text("Quedan pocos", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold)
                     }
                 } else if (producto.esOferta && producto.precioAnterior > 0) {
                     val descuento = (((producto.precioAnterior - producto.precio) / producto.precioAnterior) * 100).toInt()

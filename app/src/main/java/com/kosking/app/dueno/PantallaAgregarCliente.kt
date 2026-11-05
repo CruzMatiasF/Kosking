@@ -196,7 +196,7 @@ fun PantallaAgregarCliente(
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
                 if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                else Text("Guardar cliente")
+                else Text("Crear cliente")
             }
         }
     }

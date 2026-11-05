@@ -104,7 +104,8 @@ class EmpleadoViewModel : ViewModel() {
 
                 val local = FiadoRepository.obtenerLocal(localId)
                 val usuario = FiadoRepository.obtenerUsuario(uid)
-                val nombreEmpleado = usuario?.nombre ?: user.displayName ?: ""
+                val nombreEmpleado = listOf(usuario?.nombre, user.displayName)
+                    .firstOrNull { !it.isNullOrBlank() } ?: "Empleado"
 
                 doc.reference.update("usado", true, "usadoPorUid", uid).await()
                 FiadoRepository.agregarEmpleado(Empleado(localId = localId, uid = uid, nombre = nombreEmpleado))
@@ -135,6 +136,39 @@ class EmpleadoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarMiNombre(nombre: String) {
+        viewModelScope.launch {
+            try {
+                val uid = auth.currentUser?.uid ?: return@launch
+                FiadoRepository.actualizarNombreEmpleadoPorUid(uid, _localId.value, nombre)
+                _nombreEmpleado.value = nombre
+            } catch (e: Exception) {
+                _error.value = "No se pudo actualizar el nombre"
+            }
+        }
+    }
+
+    fun desvincularme(onExito: () -> Unit) {
+        viewModelScope.launch {
+            cargando.value = true
+            _error.value = null
+            try {
+                val uid = auth.currentUser?.uid ?: return@launch
+                val localId = _localId.value
+                FiadoRepository.eliminarEmpleadoPorUid(uid, localId)
+                FiadoRepository.limpiarEmpleoEnUsuario(uid)
+                _localId.value = ""
+                _nombreLocal.value = ""
+                _nombreEmpleado.value = ""
+                onExito()
+            } catch (e: Exception) {
+                _error.value = "No se pudo desvincular"
+            } finally {
+                cargando.value = false
+            }
+        }
+    }
+
     val productos: StateFlow<List<Producto>> = _localId
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
@@ -153,7 +187,7 @@ class EmpleadoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, categoria: String = "") {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, estadoStock: String = "", categoria: String = "") {
         viewModelScope.launch {
             cargando.value = true
             _error.value = null
@@ -161,7 +195,8 @@ class EmpleadoViewModel : ViewModel() {
                 FiadoRepository.agregarProducto(
                     Producto(localId = _localId.value, nombre = nombre, precio = precio,
                         descripcion = descripcion, habilitado = habilitado,
-                        esOferta = esOferta, precioAnterior = precioAnterior, agotado = agotado, categoria = categoria)
+                        esOferta = esOferta, precioAnterior = precioAnterior, agotado = agotado,
+                        estadoStock = estadoStock, categoria = categoria)
                 )
             } catch (e: Exception) {
                 _error.value = "No se pudo agregar el producto"

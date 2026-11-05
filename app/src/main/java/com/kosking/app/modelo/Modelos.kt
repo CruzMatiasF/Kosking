@@ -36,7 +36,10 @@ data class Local(
     val descripcion: String = "",
     val lat: Double = 0.0,
     val lng: Double = 0.0,
-    val horarios: Map<String, HorarioDia> = emptyMap()
+    val horarios: Map<String, HorarioDia> = emptyMap(),
+    val excepcionFecha: String = "",
+    val excepcionTipo: String = "",
+    val excepcionCierre: String = ""
 )
 
 @Immutable
@@ -95,6 +98,7 @@ data class Producto(
     val precioAnterior: Double = 0.0,
     val imagenUrl: String = "",
     val agotado: Boolean = false,
+    val estadoStock: String = "",
     val categoria: String = ""
 )
 

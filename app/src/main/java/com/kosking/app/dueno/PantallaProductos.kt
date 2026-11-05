@@ -5,7 +5,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -174,15 +178,15 @@ fun PantallaProductos(
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, estadoStock, categoria ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
                         habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
-                        agotado = agotado, categoria = categoria
+                        agotado = agotado, estadoStock = estadoStock, categoria = categoria
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, estadoStock, categoria)
                 }
                 mostrarDialogo = false
             },
@@ -214,7 +218,7 @@ fun PantallaProductos(
 internal fun DialogProducto(
     productoInicial: Producto?,
     productosExistentes: List<Producto> = emptyList(),
-    onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double, agotado: Boolean, categoria: String) -> Unit,
+    onGuardar: (nombre: String, precio: Double, descripcion: String, habilitado: Boolean, esOferta: Boolean, precioAnterior: Double, agotado: Boolean, estadoStock: String, categoria: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(productoInicial?.nombre ?: "") }
@@ -223,7 +227,7 @@ internal fun DialogProducto(
     var habilitado by remember { mutableStateOf(productoInicial?.habilitado ?: true) }
     var esOferta by remember { mutableStateOf(productoInicial?.esOferta ?: false) }
     var precioAnterior by remember { mutableStateOf(productoInicial?.precioAnterior?.let { if (it > 0) "%.2f".format(it) else "" } ?: "") }
-    var agotado by remember { mutableStateOf(productoInicial?.agotado ?: false) }
+    var estadoStock by remember { mutableStateOf(productoInicial?.estadoStock ?: "") }
     var categoria by remember { mutableStateOf(productoInicial?.categoria ?: "") }
     var mostrarMenuCategoria by remember { mutableStateOf(false) }
 
@@ -234,110 +238,243 @@ internal fun DialogProducto(
         else null
     }
 
-    AlertDialog(
+    val categoriasPredef = listOf("Gaseosas", "Aguas y jugos", "Cervezas", "Galletitas", "Golosinas", "Chocolates", "Lácteos", "Cigarrillos", "Almacén", "Snacks", "Higiene", "Otros")
+    val puedeGuardar = nombre.isNotBlank() && (precio.toDoubleOrNull() ?: 0.0) > 0
+
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (productoInicial != null) "Editar producto" else "Nuevo producto") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre") },
-                    placeholder = { Text("Ej: Coca 500ml, Pan, Cigarrillos") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (similarExistente != null) {
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
+        ) {
+            Column {
+                // Header
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        "Ya existe \"${similarExistente.nombre}\" — revisá si no es el mismo producto",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        if (productoInicial != null) "Editar producto" else "Nuevo producto",
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
-                OutlinedTextField(
-                    value = precio,
-                    onValueChange = { precio = it },
-                    label = { Text("Precio $") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción (opcional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                val categoriasPredef = listOf("Gaseosas", "Aguas y jugos", "Cervezas", "Galletitas", "Golosinas", "Chocolates", "Lácteos", "Cigarrillos", "Almacén", "Snacks", "Higiene", "Otros")
-                Box {
+                HorizontalDivider()
+
+                // Contenido scrollable
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Nombre
                     OutlinedTextField(
-                        value = categoria,
-                        onValueChange = { categoria = it },
-                        label = { Text("Sección / Categoría (opcional)") },
-                        placeholder = { Text("Ej: Gaseosas, Galletitas...") },
+                        value = nombre,
+                        onValueChange = { nombre = it },
+                        label = { Text("Nombre") },
+                        placeholder = { Text("Ej: Coca 500ml, Pan, Cigarrillos") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            IconButton(onClick = { mostrarMenuCategoria = true }) {
-                                Icon(Icons.Default.ExpandMore, null)
-                            }
-                        },
                         singleLine = true
                     )
-                    DropdownMenu(
-                        expanded = mostrarMenuCategoria,
-                        onDismissRequest = { mostrarMenuCategoria = false }
-                    ) {
-                        categoriasPredef.forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = { categoria = cat; mostrarMenuCategoria = false }
+                    if (similarExistente != null) {
+                        Text(
+                            "Ya existe \"${similarExistente.nombre}\" — ¿es el mismo?",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    // Precio + Categoría en dos columnas
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = precio,
+                            onValueChange = { precio = it },
+                            label = { Text("Precio $") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = categoria,
+                                onValueChange = { categoria = it },
+                                label = { Text("Categoría") },
+                                placeholder = { Text("Gaseosas...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    IconButton(onClick = { mostrarMenuCategoria = true }) {
+                                        Icon(Icons.Default.ExpandMore, null, Modifier.size(18.dp))
+                                    }
+                                },
+                                singleLine = true
                             )
+                            DropdownMenu(
+                                expanded = mostrarMenuCategoria,
+                                onDismissRequest = { mostrarMenuCategoria = false }
+                            ) {
+                                categoriasPredef.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat, style = MaterialTheme.typography.bodyMedium) },
+                                        onClick = { categoria = cat; mostrarMenuCategoria = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Descripción
+                    OutlinedTextField(
+                        value = descripcion,
+                        onValueChange = { descripcion = it },
+                        label = { Text("Descripción (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 3
+                    )
+
+                    HorizontalDivider()
+
+                    // Switches compactos
+                    SwitchRowItem("Visible en vidriera", "Lo ven clientes y empleados", habilitado) { habilitado = it }
+
+                    // Estado de stock
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Estado del stock", style = MaterialTheme.typography.bodyMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("" to "Disponible", "pocos" to "Quedan pocos", "agotado" to "Agotado").forEach { (valor, label) ->
+                                val seleccionado = estadoStock == valor
+                                FilterChip(
+                                    selected = seleccionado,
+                                    onClick = { estadoStock = valor },
+                                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = when (valor) {
+                                            "pocos" -> MaterialTheme.colorScheme.tertiaryContainer
+                                            "agotado" -> MaterialTheme.colorScheme.errorContainer
+                                            else -> MaterialTheme.colorScheme.primaryContainer
+                                        },
+                                        selectedLabelColor = when (valor) {
+                                            "pocos" -> MaterialTheme.colorScheme.onTertiaryContainer
+                                            "agotado" -> MaterialTheme.colorScheme.onErrorContainer
+                                            else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                        }
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    SwitchRowItem("Es oferta", "Muestra badge OFERTA en la card", esOferta) { esOferta = it; if (!it) precioAnterior = "" }
+
+                    // Bloque oferta
+                    if (esOferta) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = precioAnterior,
+                                    onValueChange = { precioAnterior = it },
+                                    label = { Text("Precio original $") },
+                                    placeholder = { Text("ej: 1500") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                if (precioAnterior.isNotBlank()) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("antes", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            "$$precioAnterior",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        "se muestra\ntachado",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-                ListItem(
-                    headlineContent = { Text("Visible en Vidriera") },
-                    supportingContent = { Text("Los clientes y empleados pueden verlo") },
-                    trailingContent = { Switch(checked = habilitado, onCheckedChange = { habilitado = it }) }
-                )
-                ListItem(
-                    headlineContent = { Text("Agotado") },
-                    supportingContent = { Text("Se muestra como agotado y no se puede anotar en fiado") },
-                    trailingContent = { Switch(checked = agotado, onCheckedChange = { agotado = it }) }
-                )
-                ListItem(
-                    headlineContent = { Text("Es oferta") },
-                    supportingContent = { Text("Muestra precio tachado y badge de descuento") },
-                    trailingContent = { Switch(checked = esOferta, onCheckedChange = { esOferta = it; if (!it) precioAnterior = "" }) }
-                )
-                if (esOferta) {
-                    OutlinedTextField(
-                        value = precioAnterior,
-                        onValueChange = { precioAnterior = it },
-                        label = { Text("Precio anterior $") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+
+                HorizontalDivider()
+
+                // Footer botones
+                Row(
+                    Modifier.fillMaxWidth().padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Cancelar") }
+                    Button(
+                        onClick = {
+                            onGuardar(
+                                nombre.trim(),
+                                precio.toDoubleOrNull() ?: 0.0,
+                                descripcion.trim(),
+                                habilitado,
+                                esOferta,
+                                precioAnterior.toDoubleOrNull() ?: 0.0,
+                                estadoStock == "agotado",
+                                estadoStock,
+                                categoria.trim()
+                            )
+                        },
+                        enabled = puedeGuardar,
+                        modifier = Modifier.weight(2f)
+                    ) { Text(if (productoInicial != null) "Guardar cambios" else "Agregar producto") }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onGuardar(
-                        nombre.trim(),
-                        precio.toDoubleOrNull() ?: 0.0,
-                        descripcion.trim(),
-                        habilitado,
-                        esOferta,
-                        precioAnterior.toDoubleOrNull() ?: 0.0,
-                        agotado,
-                        categoria.trim()
-                    )
-                },
-                enabled = nombre.isNotBlank() && (precio.toDoubleOrNull() ?: 0.0) > 0
-            ) { Text(if (productoInicial != null) "Guardar" else "Agregar") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
         }
-    )
+    }
+}
+
+@Composable
+private fun SwitchRowItem(
+    titulo: String,
+    subtitulo: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(titulo, style = MaterialTheme.typography.bodyMedium)
+            Text(subtitulo, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.scale(0.85f)
+        )
+    }
 }

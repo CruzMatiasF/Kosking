@@ -11,13 +11,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -60,15 +63,12 @@ private sealed class SubPantalla {
     data class DetalleCliente(val id: String) : SubPantalla()
     data class AgregarFiado(
         val clienteId: String,
-        val tipoInicial: String = "cargo",
-        val desdeResumen: Boolean = false
+        val tipoInicial: String = "cargo"
     ) : SubPantalla()
-    data class SeleccionarCliente(val tipo: String) : SubPantalla()
     data class DetalleMovimiento(val movimientoId: String, val clienteId: String? = null) : SubPantalla()
     object Clientes : SubPantalla()
     object Productos : SubPantalla()
     object Equipo : SubPantalla()
-    object MiLocal : SubPantalla()
     object TodasLasVisitas : SubPantalla()
 }
 
@@ -94,6 +94,7 @@ fun PanelDueno(
     val localData by vm.localData.collectAsState()
 
     var subPantalla by remember { mutableStateOf<SubPantalla?>(null) }
+    var editandoDireccionStandalone by remember { mutableStateOf(false) }
 
     BackHandler(enabled = subPantalla != null) { subPantalla = null }
 
@@ -118,27 +119,10 @@ fun PanelDueno(
         is SubPantalla.AgregarFiado -> {
             PantallaAgregarFiado(
                 clienteId = sp.clienteId,
-                onGuardado = {
-                    subPantalla = if (sp.desdeResumen) null
-                                 else SubPantalla.DetalleCliente(sp.clienteId)
-                },
-                onVolver = {
-                    subPantalla = if (sp.desdeResumen) SubPantalla.SeleccionarCliente(sp.tipoInicial)
-                                 else SubPantalla.DetalleCliente(sp.clienteId)
-                },
+                onGuardado = { subPantalla = SubPantalla.DetalleCliente(sp.clienteId) },
+                onVolver = { subPantalla = SubPantalla.DetalleCliente(sp.clienteId) },
                 vm = vm,
                 tipoInicial = sp.tipoInicial
-            )
-            return
-        }
-        is SubPantalla.SeleccionarCliente -> {
-            PantallaSeleccionarCliente(
-                tipo = sp.tipo,
-                vm = vm,
-                onSeleccionado = { clienteId ->
-                    subPantalla = SubPantalla.AgregarFiado(clienteId, sp.tipo, desdeResumen = true)
-                },
-                onVolver = { subPantalla = null }
             )
             return
         }
@@ -217,25 +201,6 @@ fun PanelDueno(
                         onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                         vm = vm
                     )
-                }
-            }
-            return
-        }
-        is SubPantalla.MiLocal -> {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Mi local") },
-                        navigationIcon = {
-                            IconButton(onClick = { subPantalla = null }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                            }
-                        }
-                    )
-                }
-            ) { padding ->
-                Box(Modifier.fillMaxSize().padding(padding)) {
-                    TabMiLocal(vm = vm)
                 }
             }
             return
@@ -324,12 +289,6 @@ fun PanelDueno(
                         )
                     )
                 )
-                IconButton(
-                    onClick = { vm.cerrarSesion(); onCerrarSesion() },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
-                ) {
-                    Icon(Icons.Default.Logout, "Cerrar sesión", tint = Color.White)
-                }
                 Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
                     Text(
                         nombreLocal.ifBlank { "Mi local" },
@@ -368,14 +327,31 @@ fun PanelDueno(
                         color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurface
                     )
-                    if (clientesConDeuda > 0) {
-                        TextButton(
-                            onClick = { subPantalla = SubPantalla.Clientes },
-                            contentPadding = PaddingValues(0.dp)
+                    val direccion = localData?.direccion.orEmpty()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn, null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            direccion.ifBlank { "Sin dirección" },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        IconButton(
+                            onClick = { editandoDireccionStandalone = true },
+                            modifier = Modifier.size(24.dp)
                         ) {
-                            Text(
-                                "$clientesConDeuda cliente${if (clientesConDeuda != 1) "s" else ""} con deuda  →",
-                                style = MaterialTheme.typography.labelMedium
+                            Icon(
+                                Icons.Default.Edit, null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -398,29 +374,6 @@ fun PanelDueno(
                 }
             }
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-        }
-
-        // Botones de acción
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Button(
-                    onClick = { subPantalla = SubPantalla.SeleccionarCliente("cargo") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Anotar fiado")
-                }
-                OutlinedButton(
-                    onClick = { subPantalla = SubPantalla.SeleccionarCliente("pago") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cobrar")
-                }
-            }
         }
 
         // Alertas
@@ -483,12 +436,6 @@ fun PanelDueno(
                     modifier = Modifier.weight(1f),
                     onClick = { subPantalla = SubPantalla.Equipo }
                 )
-                SeccionCard(
-                    icon = Icons.Default.Store,
-                    label = "Mi local",
-                    modifier = Modifier.weight(1f),
-                    onClick = { subPantalla = SubPantalla.MiLocal }
-                )
             }
         }
 
@@ -527,6 +474,24 @@ fun PanelDueno(
         }
 
         item { Spacer(Modifier.height(16.dp)) }
+    }
+
+    if (editandoDireccionStandalone) {
+        DireccionBottomSheet(
+            direccionActual = localData?.direccion.orEmpty(),
+            latActual = localData?.lat,
+            lngActual = localData?.lng,
+            onGuardar = { dir, lat, lng ->
+                val local = localData ?: return@DireccionBottomSheet
+                vm.actualizarLocal(
+                    nombre = local.nombre, tipo = local.tipo, direccion = dir,
+                    telefono = local.telefono, descripcion = local.descripcion,
+                    abierto = local.abierto, lat = lat, lng = lng, onExito = {}
+                )
+                editandoDireccionStandalone = false
+            },
+            onDismiss = { editandoDireccionStandalone = false }
+        )
     }
 }
 
@@ -1327,6 +1292,15 @@ private fun CardCliente(
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
+                // Monto de deuda (si debe)
+                if (cliente.deudaTotal > 0 && cliente.habilitado) {
+                    Text(
+                        "$${"%.0f".format(cliente.deudaTotal)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor
+                    )
+                }
                 // Última visita con punto de color
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1527,7 +1501,6 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
     var mostrarDialogo by remember { mutableStateOf(false) }
     var productoEditar by remember { mutableStateOf<Producto?>(null) }
     var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
-    var productoEditarPrecio by remember { mutableStateOf<Producto?>(null) }
     var productoParaFoto by remember { mutableStateOf<Producto?>(null) }
 
     val fotoProductoLauncher = rememberLauncherForActivityResult(
@@ -1540,264 +1513,197 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
         productoParaFoto = null
     }
     var busqueda by remember { mutableStateOf("") }
-    var filtro by remember { mutableStateOf("todos") }
 
-    // Conteo de veces que cada producto fue fiado
-    val conteoFiados = remember(movimientos) {
-        movimientos
-            .filter { it.tipo == "cargo" && !it.anulado && it.producto.isNotBlank() }
-            .groupBy { it.producto.trim().lowercase() }
-            .mapValues { it.value.size }
+    // Secciones: categorías ordenadas alfabéticamente, sin categoría al final
+    val secciones = remember(productos) {
+        val cats = productos.map { it.categoria.trim() }
+            .filter { it.isNotBlank() }.distinct().sorted()
+        val sinCat = productos.any { it.categoria.isBlank() }
+        if (sinCat) cats + listOf("") else cats
     }
 
-    val enOferta = remember(productos) { productos.count { it.esOferta && it.habilitado } }
-    val ocultos = remember(productos) { productos.count { !it.habilitado } }
-
-    val productosFiltrados = remember(productos, filtro, busqueda, conteoFiados) {
-        productos
-            .filter { p ->
-                when (filtro) {
-                    "oferta" -> p.esOferta && p.habilitado
-                    "oculto" -> !p.habilitado
-                    else -> true
-                }
-            }
-            .filter { p -> busqueda.isBlank() || p.nombre.contains(busqueda, ignoreCase = true) }
-            .sortedByDescending { p -> conteoFiados[p.nombre.trim().lowercase()] ?: 0 }
+    val productosBusqueda = remember(productos, busqueda) {
+        if (busqueda.isBlank()) emptyList()
+        else productos.filter { it.nombre.contains(busqueda, ignoreCase = true) }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize()) {
-            // Búsqueda + nuevo
+    Column(Modifier.fillMaxSize()) {
+        // Buscador compacto + botón nuevo
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = busqueda,
-                    onValueChange = { busqueda = it },
-                    placeholder = { Text("Buscar producto") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) }
-                )
-                Button(onClick = { productoEditar = null; mostrarDialogo = true }) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Nuevo")
-                }
-            }
-
-            // Filtros con conteo
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                item {
-                    FilterChip(
-                        selected = filtro == "todos",
-                        onClick = { filtro = "todos" },
-                        label = { Text("Todos · ${productos.size}") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = filtro == "oferta",
-                        onClick = { filtro = "oferta" },
-                        label = { Text("En oferta · $enOferta") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = filtro == "oculto",
-                        onClick = { filtro = "oculto" },
-                        label = { Text("Ocultos · $ocultos") }
-                    )
+                Icon(Icons.Default.Search, null, Modifier.size(15.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                BasicTextField(
+                    value = busqueda,
+                    onValueChange = { busqueda = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface),
+                    decorationBox = { inner ->
+                        Box {
+                            if (busqueda.isEmpty()) Text("Buscar...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            inner()
+                        }
+                    }
+                )
+                if (busqueda.isNotEmpty()) {
+                    Icon(Icons.Default.Close, "Limpiar",
+                        Modifier.size(14.dp).clickable { busqueda = "" },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            IconButton(
+                onClick = { productoEditar = null; mostrarDialogo = true },
+                modifier = Modifier.size(36.dp),
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Icon(Icons.Default.Add, "Nuevo producto", Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+        }
 
-            if (productosFiltrados.isEmpty() && busqueda.isBlank()) {
+        // Contenido
+        when {
+            productos.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("No hay productos cargados",
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        Text("Tocá Nuevo para agregar precios",
+                        Text("Tocá + para agregar el primero",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            } else {
-                val mostrarOrdenLabel = conteoFiados.isNotEmpty() && busqueda.isBlank() && filtro == "todos"
-                if (mostrarOrdenLabel) {
-                    Text(
-                        "ORDENADOS POR LOS MÁS FIADOS",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
+            }
+            busqueda.isNotBlank() -> {
+                // Búsqueda activa: grid 3 columnas
+                if (productosBusqueda.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Sin resultados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(productosBusqueda, key = { it.id }) { prod ->
+                            CardProducto(
+                                prod = prod,
+                                onEditar = { productoEditar = prod; mostrarDialogo = true },
+                                onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") }
+                            )
+                        }
+                        item(span = { GridItemSpan(3) }) { Spacer(Modifier.height(80.dp)) }
+                    }
                 }
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(productosFiltrados, key = { it.id }) { prod ->
-                        val vecesFiado = conteoFiados[prod.nombre.trim().lowercase()] ?: 0
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { productoEditar = prod; mostrarDialogo = true }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable {
-                                        productoParaFoto = prod
-                                        fotoProductoLauncher.launch("image/*")
-                                    },
-                                contentAlignment = Alignment.Center
+            }
+            secciones.isEmpty() -> {
+                // Productos sin categoría, mostrar directamente como grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(productos, key = { it.id }) { prod ->
+                        CardProducto(
+                            prod = prod,
+                            onEditar = { productoEditar = prod; mostrarDialogo = true },
+                            onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") }
+                        )
+                    }
+                    item(span = { GridItemSpan(3) }) { Spacer(Modifier.height(80.dp)) }
+                }
+            }
+            else -> {
+                // Secciones por categoría con scroll horizontal (como Rappi/PedidosYa)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    secciones.forEach { cat ->
+                        val prods = productos.filter {
+                            if (cat.isBlank()) it.categoria.isBlank()
+                            else it.categoria.trim() == cat
+                        }
+                        if (prods.isEmpty()) return@forEach
+                        item(key = "header_$cat") {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (prod.imagenUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = prod.imagenUrl,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                } else {
-                                    Text(
-                                        prod.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                // overlay cámara
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .size(16.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.CameraAlt, null,
-                                        modifier = Modifier.size(10.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-                            }
-                            Column(Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(prod.nombre, fontWeight = FontWeight.Medium)
-                                    if (prod.esOferta) {
-                                        Badge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                                            Text("OFERTA",
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                style = MaterialTheme.typography.labelSmall)
-                                        }
-                                    }
-                                    if (!prod.habilitado) {
-                                        Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
-                                            Text("OCULTO",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                style = MaterialTheme.typography.labelSmall)
-                                        }
-                                    }
-                                }
-                                val subtitulo = buildString {
-                                    if (prod.descripcion.isNotBlank()) append(prod.descripcion)
-                                    if (vecesFiado > 0) {
-                                        if (isNotEmpty()) append(" · ")
-                                        append("fiado $vecesFiado ve${if (vecesFiado == 1) "z" else "ces"}")
-                                    }
-                                }
-                                if (subtitulo.isNotBlank()) {
-                                    Text(subtitulo,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                            // Precio como botón tappable para edición rápida
-                            OutlinedCard(onClick = { productoEditarPrecio = prod }) {
                                 Text(
-                                    "$${"%.0f".format(prod.precio)}",
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    if (cat.isBlank()) "Sin categoría" else cat,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "${prods.size} productos",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        HorizontalDivider()
+                        item(key = "row_$cat") {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(prods, key = { it.id }) { prod ->
+                                    Box(Modifier.width(110.dp)) {
+                                        CardProducto(
+                                            prod = prod,
+                                            onEditar = { productoEditar = prod; mostrarDialogo = true },
+                                            onFoto = { productoParaFoto = prod; fotoProductoLauncher.launch("image/*") }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
-                    item {
-                        Text(
-                            "Tocá el precio para cambiarlo rápido.\nTocá el producto para editar todo.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
-    }
-
-    // Diálogo de edición rápida de precio
-    productoEditarPrecio?.let { prod ->
-        var nuevoPrecio by remember(prod.id) { mutableStateOf("%.0f".format(prod.precio)) }
-        AlertDialog(
-            onDismissRequest = { productoEditarPrecio = null },
-            title = { Text(prod.nombre) },
-            text = {
-                OutlinedTextField(
-                    value = nuevoPrecio,
-                    onValueChange = { nuevoPrecio = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Precio") },
-                    prefix = { Text("$") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val precio = nuevoPrecio.toDoubleOrNull()
-                        if (precio != null && precio >= 0) {
-                            vm.actualizarProducto(prod.copy(precio = precio))
-                            productoEditarPrecio = null
-                        }
-                    },
-                    enabled = nuevoPrecio.toDoubleOrNull() != null
-                ) { Text("Guardar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { productoEditarPrecio = null }) { Text("Cancelar") }
-            }
-        )
     }
 
     if (mostrarDialogo) {
         DialogProducto(
             productoInicial = productoEditar,
             productosExistentes = if (productoEditar == null) productos else emptyList(),
-            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria ->
+            onGuardar = { nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, estadoStock, categoria ->
                 if (productoEditar != null) {
                     vm.actualizarProducto(productoEditar!!.copy(
                         nombre = nombre, precio = precio, descripcion = descripcion,
                         habilitado = habilitado, esOferta = esOferta, precioAnterior = precioAnterior,
-                        agotado = agotado, categoria = categoria
+                        agotado = agotado, estadoStock = estadoStock, categoria = categoria
                     ))
                 } else {
-                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, categoria)
+                    vm.agregarProducto(nombre, precio, descripcion, habilitado, esOferta, precioAnterior, agotado, estadoStock, categoria)
                 }
                 mostrarDialogo = false
             },
@@ -1820,6 +1726,130 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
     }
 }
 
+@Composable
+private fun CardProducto(
+    prod: Producto,
+    onEditar: () -> Unit,
+    onFoto: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onEditar),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column {
+            // Imagen / inicial + overlay cámara + precio en esquina
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .then(if (prod.imagenUrl.isBlank()) Modifier.clickable(onClick = onFoto) else Modifier)
+            ) {
+                if (prod.imagenUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = prod.imagenUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        prod.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                // Overlay cámara (solo sin imagen)
+                if (prod.imagenUrl.isBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .clickable(onClick = onFoto),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CameraAlt, null, Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+                }
+                // Badges
+                Column(
+                    modifier = Modifier.align(Alignment.TopStart).padding(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    if (prod.esOferta) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text("OFERTA",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                        }
+                    }
+                    if (!prod.habilitado) {
+                        Surface(shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant) {
+                            Text("OCULTO", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                        }
+                    }
+                    if (prod.estadoStock == "agotado" || (prod.estadoStock.isBlank() && prod.agotado)) {
+                        Surface(shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.errorContainer) {
+                            Text("AGOTADO", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                        }
+                    } else if (prod.estadoStock == "pocos") {
+                        Surface(shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer) {
+                            Text("POCOS", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                        }
+                    }
+                }
+            }
+            // Info + precio
+            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    prod.nombre,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "$${"%.0f".format(prod.precio)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (prod.esOferta && prod.precioAnterior > 0) {
+                        Text(
+                            "$${"%.0f".format(prod.precioAnterior)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ── Tab Equipo ─────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1832,6 +1862,7 @@ private fun TabEquipo(
     val context = LocalContext.current
     val vmCargando by vm.cargando.collectAsState()
     val vmError by vm.error.collectAsState()
+    val nombreLocal by vm.nombreLocal.collectAsState()
     var mostrarDialogNombre by remember { mutableStateOf(false) }
     var codigoGenerado by remember { mutableStateOf<Pair<String, String>?>(null) }
     var empleadoAEliminar by remember { mutableStateOf<Empleado?>(null) }
@@ -1972,7 +2003,7 @@ private fun TabEquipo(
                 TextButton(onClick = { mostrarDialogNombre = true }) {
                     Icon(Icons.Default.Add, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("+ Sumar")
+                    Text("Sumar")
                 }
             }
         }
@@ -2006,35 +2037,26 @@ private fun TabEquipo(
                 val ultimoMov = ultimoMovPorUid[emp.uid]
                 val reclamos = disputasPorUid[emp.uid] ?: 0
                 Card(Modifier.fillMaxWidth()) {
+                    val esActivoHoy = ultimoMov != null &&
+                        ultimoMov.fecha.toDate().time >= inicioDia
                     ListItem(
                         leadingContent = {
-                            Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.size(40.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        emp.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                Text(
+                                    emp.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         },
                         headlineContent = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(emp.nombre, fontWeight = FontWeight.Medium)
-                                if (reclamos > 0) {
-                                    Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
-                                        Text("$reclamos reclamo${if (reclamos != 1) "s" else ""}",
-                                            color = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
+                            Text(emp.nombre, fontWeight = FontWeight.Medium)
                         },
                         supportingContent = {
                             if (ultimoMov != null) {
@@ -2048,24 +2070,78 @@ private fun TabEquipo(
                         },
                         trailingContent = {
                             IconButton(onClick = { empleadoAEliminar = emp }) {
-                                Icon(Icons.Default.Delete, "Eliminar",
+                                Icon(Icons.Default.Delete, "Desvincular",
                                     tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     )
+                    if (esActivoHoy || reclamos > 0) {
+                        Row(
+                            Modifier.padding(start = 68.dp, bottom = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (esActivoHoy) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        "Activo hoy",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                            if (reclamos > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer
+                                ) {
+                                    Text(
+                                        "$reclamos reclamo${if (reclamos != 1) "s" else ""}",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     if (mostrarDialogNombre) {
-        DialogNombreEmpleado(
+        val localContext = LocalContext.current
+        DialogInvitarEmpleado(
             cargando = vmCargando,
             error = vmError,
-            onGuardar = { nombre, whatsapp ->
-                vm.generarCodigoEmpleado(nombre) { codigo ->
+            onGenerar = { whatsapp, email ->
+                vm.generarCodigoEmpleado { codigo ->
                     mostrarDialogNombre = false
-                    codigoGenerado = codigo to whatsapp
+                    val local = nombreLocal.ifBlank { "Kosking" }
+                    val mensaje = "👋 Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguí estos pasos:\n1️⃣ Descargá la app Kosking desde Play Store\n2️⃣ Registrate o iniciá sesión\n3️⃣ Tocá \"Soy empleado\" e ingresá el código:\n\n*$codigo*\n\nEl código es de un solo uso."
+                    if (whatsapp.isNotBlank()) {
+                        val numero = whatsapp.replace(Regex("[^0-9]"), "")
+                        try {
+                            localContext.startActivity(Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("https://wa.me/$numero?text=${Uri.encode(mensaje)}")
+                            })
+                        } catch (_: Exception) {}
+                    } else if (email.isNotBlank()) {
+                        try {
+                            localContext.startActivity(Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:")
+                                putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
+                                putExtra(Intent.EXTRA_SUBJECT, "Tu código de empleado - Kosking")
+                                putExtra(Intent.EXTRA_TEXT, mensaje)
+                            })
+                        } catch (_: Exception) {}
+                    } else {
+                        codigoGenerado = codigo to ""
+                    }
                 }
             },
             onDismiss = { mostrarDialogNombre = false }
@@ -2086,44 +2162,25 @@ private fun TabEquipo(
         )
     }
 
-    codigoGenerado?.let { (codigo, whatsapp) ->
+    codigoGenerado?.let { (codigo, _) ->
         AlertDialog(
             onDismissRequest = { codigoGenerado = null },
-            title = { Text("Código generado") },
+            title = { Text("Código de invitación") },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Compartí este código con el empleado:")
-                    Spacer(Modifier.height(12.dp))
                     Text(codigo,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(8.dp))
-                    Text("El empleado lo ingresa en la app para acceder.",
+                    Text("El empleado lo ingresa en la app para conectarse al local.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             confirmButton = {
-                if (whatsapp.isNotBlank()) {
-                    TextButton(onClick = {
-                        val numero = whatsapp.replace(Regex("[^0-9]"), "")
-                        val mensaje = "Tu código de empleado para Kosking es: $codigo — Descargá la app y usá este código para conectarte al local."
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse("https://wa.me/$numero?text=${Uri.encode(mensaje)}")
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {}
-                        codigoGenerado = null
-                    }) { Text("Enviar por WhatsApp") }
-                } else {
-                    TextButton(onClick = { codigoGenerado = null }) { Text("Listo") }
-                }
-            },
-            dismissButton = if (whatsapp.isNotBlank()) {
-                { TextButton(onClick = { codigoGenerado = null }) { Text("Cerrar") } }
-            } else null
+                TextButton(onClick = { codigoGenerado = null }) { Text("Listo") }
+            }
         )
     }
 }
@@ -2139,8 +2196,7 @@ fun PanelDuenoEmbedido(
     onAbrirAgregarCliente: () -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirAgregarFiado: (clienteId: String, tipo: String) -> Unit,
-    onAbrirDetalleMovimiento: (String) -> Unit,
-    onAbrirSeleccionarCliente: (tipo: String) -> Unit = {}
+    onAbrirDetalleMovimiento: (String) -> Unit
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
@@ -2174,9 +2230,16 @@ fun PanelDuenoEmbedido(
                 onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                 vm = vm
             )
-            4 -> TabMiLocal(vm = vm)
         }
         return
+    }
+
+    var editandoDireccion by remember { mutableStateOf(false) }
+    var editandoHorarios by remember { mutableStateOf(false) }
+    var editandoDatos by remember { mutableStateOf(false) }
+
+    val fotoLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) vm.subirFotoLocal(uri) {}
     }
 
     // Dashboard principal
@@ -2263,6 +2326,28 @@ fun PanelDuenoEmbedido(
                         )
                     )
                 )
+                // Botones arriba a la derecha: horarios + cámara
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = { editandoHorarios = true },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black.copy(alpha = 0.35f))
+                    ) {
+                        Icon(Icons.Default.Schedule, "Horarios", tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(
+                        onClick = { fotoLocalLauncher.launch("image/*") },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black.copy(alpha = 0.35f))
+                    ) {
+                        Icon(Icons.Default.CameraAlt, "Cambiar foto", tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                }
                 Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
                     Text(
                         nombreLocal.ifBlank { "Mi local" },
@@ -2301,13 +2386,33 @@ fun PanelDuenoEmbedido(
                         color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurface
                     )
-                    if (clientesConDeuda > 0) {
-                        Text(
-                            "$clientesConDeuda cliente${if (clientesConDeuda != 1) "s" else ""} con deuda  →",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable { onTabChange(1) }
+                    val direccion = localData?.direccion.orEmpty()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn, null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Text(
+                            direccion.ifBlank { "Sin dirección" },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        IconButton(
+                            onClick = { editandoDireccion = true },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit, null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -2335,26 +2440,94 @@ fun PanelDuenoEmbedido(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
 
-        // Botones de acción
+        // Card de estado de hoy (excepción)
         item {
-            Row(
+            val abiertoAhora = localData?.let { com.kosking.app.explorar.estaAbiertoAhora(it) } ?: false
+            var mostrarTimePicker by remember { mutableStateOf("") } // "antes" o "mas"
+
+            if (mostrarTimePicker.isNotEmpty()) {
+                val horarioCierreBase = localData?.let {
+                    com.kosking.app.explorar.cierreEfectivoHoy(it)
+                } ?: "20:00"
+                val partes = horarioCierreBase.split(":")
+                val hBase = partes.getOrNull(0)?.toIntOrNull() ?: 20
+                val mBase = partes.getOrNull(1)?.toIntOrNull() ?: 0
+                val timeState = rememberTimePickerState(
+                    initialHour = if (mostrarTimePicker == "antes") maxOf(hBase - 1, 0) else minOf(hBase + 1, 23),
+                    initialMinute = mBase,
+                    is24Hour = true
+                )
+                AlertDialog(
+                    onDismissRequest = { mostrarTimePicker = "" },
+                    title = {
+                        Text(if (mostrarTimePicker == "antes") "¿Hasta qué hora cerrás hoy?" else "¿Hasta qué hora seguís abierto?")
+                    },
+                    text = { TimeInput(state = timeState) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val hora = "%02d:%02d".format(timeState.hour, timeState.minute)
+                            vm.actualizarCierreHoy(hora)
+                            mostrarTimePicker = ""
+                        }) { Text("Confirmar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { mostrarTimePicker = "" }) { Text("Cancelar") }
+                    }
+                )
+            }
+
+            Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = if (abiertoAhora) Color(0xFF1B5E20).copy(alpha = 0.15f)
+                                     else Color(0xFF7F0000).copy(alpha = 0.12f)
+                )
             ) {
-                Button(
-                    onClick = { onAbrirSeleccionarCliente("cargo") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Anotar fiado")
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier.size(10.dp).clip(CircleShape)
+                                .background(if (abiertoAhora) Color(0xFF4ADE80) else Color(0xFFFF6B6B))
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (abiertoAhora) "Abierto ahora" else "Cerrado ahora",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        }
+                    Spacer(Modifier.height(2.dp))
+                    val textoHorario = localData?.let { com.kosking.app.explorar.textoHorarioHoy(it) } ?: ""
+                    if (textoHorario.isNotEmpty()) {
+                        Text(textoHorario, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { mostrarTimePicker = "antes" },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Cerrar antes", style = MaterialTheme.typography.labelMedium) }
+                        OutlinedButton(
+                            onClick = { mostrarTimePicker = "mas" },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Quedarme más", style = MaterialTheme.typography.labelMedium) }
+                    }
                 }
-                OutlinedButton(
-                    onClick = { onAbrirSeleccionarCliente("pago") },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cobrar")
-                }
+            }
+        }
+
+        // Botón editar datos del local
+        item {
+            OutlinedButton(
+                onClick = { editandoDatos = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Editar datos del local")
             }
         }
 
@@ -2418,12 +2591,6 @@ fun PanelDuenoEmbedido(
                     modifier = Modifier.weight(1f),
                     onClick = { onTabChange(3) }
                 )
-                SeccionCard(
-                    icon = Icons.Default.Store,
-                    label = "Mi local",
-                    modifier = Modifier.weight(1f),
-                    onClick = { onTabChange(4) }
-                )
             }
         }
 
@@ -2463,413 +2630,191 @@ fun PanelDuenoEmbedido(
 
         item { Spacer(Modifier.height(16.dp)) }
     }
-}
 
-// ── Pantalla Seleccionar Cliente (acción rápida desde Resumen) ────────────────
+    if (editandoDatos) {
+        val sheetDatos = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val tiposLocales = listOf("Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro")
+        var nombreEdit by remember { mutableStateOf(localData?.nombre.orEmpty()) }
+        var tipoEdit by remember { mutableStateOf(localData?.tipo ?: "Kiosco") }
+        var telefonoEdit by remember { mutableStateOf(localData?.telefono.orEmpty()) }
+        var descripcionEdit by remember { mutableStateOf(localData?.descripcion.orEmpty()) }
+        var expandirTipo by remember { mutableStateOf(false) }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PantallaSeleccionarCliente(
-    tipo: String,
-    vm: DuenoViewModel,
-    onSeleccionado: (clienteId: String) -> Unit,
-    onVolver: () -> Unit
-) {
-    val clientes by vm.clientes.collectAsState()
-    var busqueda by remember { mutableStateOf("") }
-
-    val titulo = if (tipo == "cargo") "¿A quién le anotás?" else "¿Quién está pagando?"
-    val clientesFiltrados = remember(clientes, busqueda) {
-        if (busqueda.isBlank()) clientes
-        else clientes.filter { it.nombre.contains(busqueda, ignoreCase = true) }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(titulo)
-                        Text(
-                            "Seleccioná un cliente",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Buscador
-            Row(
+        ModalBottomSheet(
+            onDismissRequest = { editandoDatos = false },
+            sheetState = sheetDatos
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                    .height(42.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                androidx.compose.foundation.text.BasicTextField(
-                    value = busqueda,
-                    onValueChange = { busqueda = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                    decorationBox = { inner ->
-                        Box {
-                            if (busqueda.isEmpty()) {
-                                Text("Buscar cliente...", style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            inner()
-                        }
-                    }
+                Text(
+                    "Datos del local",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-                if (busqueda.isNotEmpty()) {
-                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { busqueda = "" },
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
 
-            if (clientesFiltrados.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        if (clientes.isEmpty()) "No tenés clientes aún" else "Sin resultados",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                OutlinedTextField(
+                    value = nombreEdit,
+                    onValueChange = { nombreEdit = it },
+                    label = { Text("Nombre del local") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = expandirTipo,
+                    onExpandedChange = { expandirTipo = it }
+                ) {
+                    OutlinedTextField(
+                        value = tipoEdit,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tipo de local") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirTipo) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
-                }
-            } else {
-                androidx.compose.foundation.lazy.LazyColumn {
-                    items(clientesFiltrados, key = { it.id }) { cliente ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSeleccionado(cliente.id) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(androidx.compose.foundation.shape.CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    cliente.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Text(
-                                cliente.nombre,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
-                            Icon(Icons.Default.ChevronRight, null,
-                                Modifier.size(20.dp), tint = MaterialTheme.colorScheme.outlineVariant)
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(start = 70.dp))
-                    }
-                    item { Spacer(Modifier.height(32.dp)) }
-                }
-            }
-        }
-    }
-}
-
-// ── Tab Mi Local ──────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TabMiLocal(vm: DuenoViewModel) {
-    val cargando by vm.cargando.collectAsState()
-    val error by vm.error.collectAsState()
-    val localActual by vm.localData.collectAsState()
-
-    var nombre by remember(localActual) { mutableStateOf(localActual?.nombre ?: "") }
-    var tipo by remember(localActual) { mutableStateOf(localActual?.tipo ?: "Kiosco") }
-    var direccion by remember(localActual) { mutableStateOf(localActual?.direccion ?: "") }
-    var telefono by remember(localActual) { mutableStateOf(localActual?.telefono ?: "") }
-    var descripcion by remember(localActual) { mutableStateOf(localActual?.descripcion ?: "") }
-    var abierto by remember(localActual) { mutableStateOf(localActual?.abierto ?: true) }
-    var expandirTipo by remember { mutableStateOf(false) }
-
-    var latGuardada by remember(localActual) { mutableStateOf(localActual?.lat ?: 0.0) }
-    var lngGuardada by remember(localActual) { mutableStateOf(localActual?.lng ?: 0.0) }
-    var obteniendoUbicacion by remember { mutableStateOf(false) }
-    var errorUbicacion by remember { mutableStateOf<String?>(null) }
-    var guardado by remember { mutableStateOf(false) }
-
-    val horarios = remember(localActual) {
-        mutableStateMapOf<String, HorarioDia>().also { map ->
-            localActual?.horarios?.forEach { (k, v) -> map[k] = v }
-        }
-    }
-
-    val fotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) vm.subirFotoLocal(uri) {}
-    }
-
-    val lanzarUbicacion = rememberUbicacionLauncher(
-        onUbicacion = { lat, lng -> latGuardada = lat; lngGuardada = lng; obteniendoUbicacion = false; errorUbicacion = null },
-        onError = { msg -> errorUbicacion = msg; obteniendoUbicacion = false }
-    )
-
-    if (localActual == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Foto del local
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Foto del local", style = MaterialTheme.typography.titleSmall)
-                    if (localActual?.imagenUrl?.isNotBlank() == true) {
-                        AsyncImage(
-                            model = localActual!!.imagenUrl,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxWidth().height(160.dp).clip(MaterialTheme.shapes.medium),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { fotoLauncher.launch("image/*") },
-                        modifier = Modifier.fillMaxWidth()
+                    ExposedDropdownMenu(
+                        expanded = expandirTipo,
+                        onDismissRequest = { expandirTipo = false }
                     ) {
-                        Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (localActual?.imagenUrl?.isNotBlank() == true) "Cambiar foto" else "Agregar foto")
-                    }
-                }
-            }
-        }
-
-        // Datos basicos
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Datos del local", style = MaterialTheme.typography.titleSmall)
-
-                    OutlinedTextField(value = nombre, onValueChange = { nombre = it; guardado = false },
-                        label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-
-                    ExposedDropdownMenuBox(expanded = expandirTipo, onExpandedChange = { expandirTipo = it }) {
-                        OutlinedTextField(value = tipo, onValueChange = {}, readOnly = true,
-                            label = { Text("Tipo") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirTipo) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor())
-                        ExposedDropdownMenu(expanded = expandirTipo, onDismissRequest = { expandirTipo = false }) {
-                            listOf("Kiosco","Almacen","Maxikiosco","Ropa","Corralon","Farmacia","Verduleria","Otro").forEach { t ->
-                                DropdownMenuItem(text = { Text(t) }, onClick = { tipo = t; expandirTipo = false; guardado = false })
-                            }
+                        tiposLocales.forEach { tipo ->
+                            DropdownMenuItem(
+                                text = { Text(tipo) },
+                                onClick = { tipoEdit = tipo; expandirTipo = false }
+                            )
                         }
                     }
+                }
+                Spacer(Modifier.height(10.dp))
 
-                    OutlinedTextField(value = telefono, onValueChange = { telefono = it; guardado = false },
-                        label = { Text("Telefono / WhatsApp") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(
+                    value = telefonoEdit,
+                    onValueChange = { telefonoEdit = it },
+                    label = { Text("Teléfono") },
+                    placeholder = { Text("Ej: 3884123456") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
 
-                    OutlinedTextField(value = direccion, onValueChange = { direccion = it; guardado = false },
-                        label = { Text("Direccion") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(
+                    value = descripcionEdit,
+                    onValueChange = { descripcionEdit = it },
+                    label = { Text("Descripción") },
+                    placeholder = { Text("Ej: Kiosco 24hs, delivery al barrio") },
+                    minLines = 2,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(16.dp))
 
-                    OutlinedTextField(value = descripcion, onValueChange = { descripcion = it; guardado = false },
-                        label = { Text("Descripcion (opcional)") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
+                Button(
+                    onClick = {
+                        val local = localData ?: return@Button
+                        vm.actualizarLocal(
+                            nombre = nombreEdit.trim(),
+                            tipo = tipoEdit,
+                            direccion = local.direccion,
+                            telefono = telefonoEdit.trim(),
+                            descripcion = descripcionEdit.trim(),
+                            abierto = local.abierto,
+                            lat = local.lat?.takeIf { it != 0.0 },
+                            lng = local.lng?.takeIf { it != 0.0 },
+                            onExito = {}
+                        )
+                        editandoDatos = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Guardar")
                 }
             }
         }
+    }
 
-        // Horarios
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Horarios de atencion", style = MaterialTheme.typography.titleSmall)
-                    Text("El mapa muestra automaticamente si estas abierto ahora.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    listOf("lunes" to "Lunes","martes" to "Martes","miercoles" to "Miercoles",
-                        "jueves" to "Jueves","viernes" to "Viernes","sabado" to "Sabado","domingo" to "Domingo"
-                    ).forEach { (clave, etiqueta) ->
-                        val h = horarios[clave] ?: HorarioDia()
-                        FilaHorarioPanelDueno(dia = etiqueta, horario = h, onCambio = { nuevo -> horarios[clave] = nuevo; guardado = false })
-                    }
-                }
-            }
-        }
+    if (editandoDireccion) {
+        DireccionBottomSheet(
+            direccionActual = localData?.direccion.orEmpty(),
+            latActual = localData?.lat,
+            lngActual = localData?.lng,
+            onGuardar = { dir, lat, lng ->
+                val local = localData ?: return@DireccionBottomSheet
+                vm.actualizarLocal(
+                    nombre = local.nombre, tipo = local.tipo, direccion = dir,
+                    telefono = local.telefono, descripcion = local.descripcion,
+                    abierto = local.abierto, lat = lat, lng = lng, onExito = {}
+                )
+                editandoDireccion = false
+            },
+            onDismiss = { editandoDireccion = false }
+        )
+    }
 
-        // Ubicacion GPS con mapa interactivo
-        item {
-            UbicacionCard(
-                lat = latGuardada,
-                lng = lngGuardada,
-                obteniendo = obteniendoUbicacion,
-                error = errorUbicacion,
-                onUsarGps = { obteniendoUbicacion = true; guardado = false; lanzarUbicacion() },
-                onPosicionCambiada = { nuevaLat, nuevaLng ->
-                    latGuardada = nuevaLat
-                    lngGuardada = nuevaLng
-                    guardado = false
-                }
+    if (editandoHorarios) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val diasClaves = listOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
+        val diasEtiquetas = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+        var horariosEdit by remember {
+            mutableStateOf(
+                diasClaves.associateWith { clave ->
+                    localData?.horarios?.get(clave) ?: HorarioDia()
+                }.toMutableMap()
             )
         }
 
-        // Estado abierto/cerrado
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                ListItem(
-                    headlineContent = { Text("Local abierto ahora") },
-                    supportingContent = { Text(if (abierto) "Visible como abierto" else "Visible como cerrado") },
-                    trailingContent = { Switch(checked = abierto, onCheckedChange = { abierto = it; guardado = false }) }
-                )
-            }
-        }
-
-        // Error y boton guardar
-        item {
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-            if (guardado) {
-                Text("Cambios guardados", color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall)
-            }
-            Spacer(Modifier.height(4.dp))
-            Button(
-                onClick = {
-                    vm.actualizarLocal(
-                        nombre = nombre.trim(), tipo = tipo, direccion = direccion.trim(),
-                        telefono = telefono.trim(), descripcion = descripcion.trim(), abierto = abierto,
-                        lat = latGuardada.takeIf { it != 0.0 }, lng = lngGuardada.takeIf { it != 0.0 },
-                        horarios = horarios.toMap().ifEmpty { null },
-                        onExito = { guardado = true }
-                    )
-                },
-                enabled = !cargando && nombre.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+        ModalBottomSheet(
+            onDismissRequest = { editandoHorarios = false },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                else Text("Guardar cambios")
-            }
-            Spacer(Modifier.height(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun UbicacionCard(
-    lat: Double,
-    lng: Double,
-    obteniendo: Boolean,
-    error: String?,
-    onUsarGps: () -> Unit,
-    onPosicionCambiada: (Double, Double) -> Unit
-) {
-    val tieneUbicacion = lat != 0.0 && lng != 0.0
-    val camaraState = rememberCameraPositionState {
-        position = if (tieneUbicacion)
-            CameraPosition.fromLatLngZoom(LatLng(lat, lng), 16f)
-        else
-            CameraPosition.fromLatLngZoom(LatLng(-34.6037, -58.3816), 11f)
-    }
-    val markerState = remember(lat, lng) { MarkerState(LatLng(lat, lng)) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(lat, lng) {
-        if (lat != 0.0 && lng != 0.0) {
-            camaraState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 16f))
-        }
-    }
-
-    // Detectar cuando el marker termina de ser arrastrado
-    val markerDragging = markerState.dragState == com.google.maps.android.compose.DragState.END
-    LaunchedEffect(markerDragging) {
-        if (markerDragging) {
-            onPosicionCambiada(markerState.position.latitude, markerState.position.longitude)
-        }
-    }
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Ubicación en el mapa", style = MaterialTheme.typography.titleSmall)
-
-            if (tieneUbicacion) {
                 Text(
-                    "Tocá el mapa para mover el pin al lugar exacto, o arrastrá el marcador.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Horarios del local",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                ) {
-                    GoogleMap(
-                        modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = camaraState,
-                        uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
-                        onMapClick = { latlng ->
-                            markerState.position = latlng
-                            onPosicionCambiada(latlng.latitude, latlng.longitude)
+                diasClaves.forEachIndexed { i, clave ->
+                    val h = horariosEdit[clave] ?: HorarioDia()
+                    FilaHorarioPanelDueno(
+                        dia = diasEtiquetas[i],
+                        horario = h,
+                        onCambio = { nuevo ->
+                            horariosEdit = horariosEdit.toMutableMap().also { it[clave] = nuevo }
                         }
-                    ) {
-                        Marker(
-                            state = markerState,
-                            draggable = true
-                        )
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                    Text(
-                        "%.5f, %.5f".format(markerState.position.latitude, markerState.position.longitude),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
-                Text(
-                    "Sin ubicación — tu local no aparece en el mapa de la app.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-
-            OutlinedButton(
-                onClick = onUsarGps,
-                enabled = !obteniendo,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (obteniendo) {
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Obteniendo ubicación...")
-                } else {
-                    Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(if (tieneUbicacion) "Actualizar con GPS" else "Usar mi ubicación actual")
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        val local = localData ?: return@Button
+                        vm.actualizarLocal(
+                            nombre = local.nombre,
+                            tipo = local.tipo,
+                            direccion = local.direccion,
+                            telefono = local.telefono,
+                            descripcion = local.descripcion,
+                            abierto = local.abierto,
+                            horarios = horariosEdit,
+                            onExito = {}
+                        )
+                        editandoHorarios = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Guardar horarios")
                 }
             }
         }

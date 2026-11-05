@@ -121,15 +121,15 @@ internal fun TabEquipo(
                             Modifier.fillMaxWidth().padding(vertical = 6.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("QuiÃ©n",
+                            Text("Quién",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f))
-                            Text("AnotÃ³",
+                            Text("Anotó",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.width(48.dp))
-                            Text("CobrÃ³",
+                            Text("Cobró",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.width(72.dp))
@@ -166,7 +166,7 @@ internal fun TabEquipo(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("EMPLEADOS Â· ${empleados.size}",
+                Text("EMPLEADOS · ${empleados.size}",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -192,7 +192,7 @@ internal fun TabEquipo(
                         Modifier.size(16.dp).padding(top = 2.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer)
                     Text(
-                        "Los empleados pueden anotar fiados y registrar pagos. ControlÃ¡ los permisos por cliente desde el detalle de cada uno.",
+                        "Los empleados pueden anotar fiados y registrar pagos. Controlá los permisos por cliente desde el detalle de cada uno.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -206,10 +206,10 @@ internal fun TabEquipo(
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Groups, null, Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                        Text("Sin empleados todavÃ­a",
+                        Text("Sin empleados todavía",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("TocÃ¡ + Sumar para invitar a alguien",
+                        Text("Tocá + Sumar para invitar a alguien",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                     }
@@ -255,11 +255,11 @@ internal fun TabEquipo(
                                     fontWeight = FontWeight.Medium,
                                     style = MaterialTheme.typography.bodyLarge)
                                 if (ultimoMov != null) {
-                                    val accion = if (ultimoMov.tipo == "cargo") "AnotÃ³ fiado" else "CobrÃ³"
+                                    val accion = if (ultimoMov.tipo == "cargo") "Anotó fiado" else "Cobró"
                                     val esHoy = ultimoMov.fecha.toDate().time >= inicioDia
                                     val fechaStr = if (esHoy) "hoy ${fmtHora.format(ultimoMov.fecha.toDate())}"
                                                   else fmtFecha.format(ultimoMov.fecha.toDate())
-                                    Text("Ãšltimo: $fechaStr Â· $accion",
+                                    Text("Último: $fechaStr · $accion",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
@@ -309,7 +309,7 @@ internal fun TabEquipo(
                 vm.generarCodigoEmpleado { codigo ->
                     mostrarDialogInvitar = false
                     val local = nombreLocal.ifBlank { "Kosking" }
-                    val mensaje = "ðŸ‘‹ Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguÃ­ estos pasos:\n1ï¸âƒ£ DescargÃ¡ la app Kosking desde Play Store\n2ï¸âƒ£ Registrate o iniciÃ¡ sesiÃ³n\n3ï¸âƒ£ TocÃ¡ \"Soy empleado\" e ingresÃ¡ el cÃ³digo:\n\n*$codigo*\n\nEl cÃ³digo es de un solo uso."
+                    val mensaje = "ðŸ‘‹ Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguí estos pasos:\n1ï¸âƒ£ Descargá la app Kosking desde Play Store\n2ï¸âƒ£ Registrate o iniciá sesión\n3ï¸âƒ£ Tocá \"Soy empleado\" e ingresá el código:\n\n*$codigo*\n\nEl código es de un solo uso."
                     if (whatsapp.isNotBlank()) {
                         val numero = whatsapp.replace(Regex("[^0-9]"), "")
                         try {
@@ -322,7 +322,7 @@ internal fun TabEquipo(
                             localContext.startActivity(Intent(Intent.ACTION_SENDTO).apply {
                                 data = Uri.parse("mailto:")
                                 putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                                putExtra(Intent.EXTRA_SUBJECT, "Tu cÃ³digo de empleado - Kosking")
+                                putExtra(Intent.EXTRA_SUBJECT, "Tu código de empleado - Kosking")
                                 putExtra(Intent.EXTRA_TEXT, mensaje)
                             })
                         } catch (_: Exception) {}
@@ -339,7 +339,7 @@ internal fun TabEquipo(
         AlertDialog(
             onDismissRequest = { empleadoAEliminar = null },
             title = { Text("Eliminar empleado") },
-            text = { Text("Â¿Eliminar a ${emp.nombre}? Se va a desconectar del local.") },
+            text = { Text("¿Eliminar a ${emp.nombre}? Se va a desconectar del local.") },
             confirmButton = {
                 TextButton(onClick = { onEliminarEmpleado(emp.id); empleadoAEliminar = null }) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)
@@ -352,10 +352,10 @@ internal fun TabEquipo(
     codigoGenerado?.let { codigo ->
         AlertDialog(
             onDismissRequest = { codigoGenerado = null },
-            title = { Text("CÃ³digo de invitaciÃ³n") },
+            title = { Text("Código de invitación") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("CompartÃ­ este cÃ³digo con el empleado:")
+                    Text("Compartí este código con el empleado:")
                     Text(codigo,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,

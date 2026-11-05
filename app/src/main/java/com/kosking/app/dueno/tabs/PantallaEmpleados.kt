@@ -28,7 +28,7 @@ internal fun DialogInvitarEmpleado(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Se genera un cÃ³digo para que el empleado se una al local.",
+                    "Se genera un código para que el empleado se una al local.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -50,7 +50,7 @@ internal fun DialogInvitarEmpleado(
                     OutlinedTextField(
                         value = whatsapp,
                         onValueChange = { whatsapp = it },
-                        label = { Text("NÃºmero de WhatsApp") },
+                        label = { Text("Número de WhatsApp") },
                         placeholder = { Text("Ej: 5491112345678") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth(),
@@ -82,7 +82,7 @@ internal fun DialogInvitarEmpleado(
                     when {
                         contacto.isNotBlank() && usaWhatsapp -> "Enviar por WhatsApp"
                         contacto.isNotBlank() -> "Enviar por email"
-                        else -> "Generar cÃ³digo"
+                        else -> "Generar código"
                     }
                 )
             }

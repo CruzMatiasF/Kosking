@@ -77,7 +77,7 @@ fun PantallaProductos(
                     Text("No hay productos cargados",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
-                    Text("TocÃ¡ + para agregar precios",
+                    Text("Tocá + para agregar precios",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -201,7 +201,7 @@ fun PantallaProductos(
             AlertDialog(
                 onDismissRequest = { productoAEliminar = null },
                 title = { Text("Eliminar producto") },
-                text = { Text("Â¿Eliminar ${prod.nombre} de la lista de precios?") },
+                text = { Text("¿Eliminar ${prod.nombre} de la lista de precios?") },
                 confirmButton = {
                     TextButton(onClick = {
                         vm.eliminarProducto(prod.id)
@@ -240,7 +240,7 @@ internal fun DialogProducto(
         else null
     }
 
-    val categoriasPredef = listOf("Gaseosas", "Aguas y jugos", "Cervezas", "Galletitas", "Golosinas", "Chocolates", "LÃ¡cteos", "Cigarrillos", "AlmacÃ©n", "Snacks", "Higiene", "Otros")
+    val categoriasPredef = listOf("Gaseosas", "Aguas y jugos", "Cervezas", "Galletitas", "Golosinas", "Chocolates", "Lácteos", "Cigarrillos", "Almacén", "Snacks", "Higiene", "Otros")
     val puedeGuardar = nombre.isNotBlank() && (precio.toDoubleOrNull() ?: 0.0) > 0
 
     Dialog(
@@ -288,13 +288,13 @@ internal fun DialogProducto(
                     )
                     if (similarExistente != null) {
                         Text(
-                            "Ya existe \"${similarExistente.nombre}\" â€” Â¿es el mismo?",
+                            "Ya existe \"${similarExistente.nombre}\" — ¿es el mismo?",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )
                     }
 
-                    // Precio + CategorÃ­a en dos columnas
+                    // Precio + Categoría en dos columnas
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedTextField(
                             value = precio,
@@ -308,7 +308,7 @@ internal fun DialogProducto(
                             OutlinedTextField(
                                 value = categoria,
                                 onValueChange = { categoria = it },
-                                label = { Text("CategorÃ­a") },
+                                label = { Text("Categoría") },
                                 placeholder = { Text("Gaseosas...") },
                                 modifier = Modifier.fillMaxWidth(),
                                 trailingIcon = {
@@ -332,11 +332,11 @@ internal fun DialogProducto(
                         }
                     }
 
-                    // DescripciÃ³n
+                    // Descripción
                     OutlinedTextField(
                         value = descripcion,
                         onValueChange = { descripcion = it },
-                        label = { Text("DescripciÃ³n (opcional)") },
+                        label = { Text("Descripción (opcional)") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 3

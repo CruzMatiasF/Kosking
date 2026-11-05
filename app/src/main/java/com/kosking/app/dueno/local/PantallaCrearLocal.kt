@@ -18,16 +18,16 @@ import com.kosking.app.modelo.HorarioDia
 import java.util.Locale
 
 private val tiposLocales = listOf(
-    "Kiosco", "AlmacÃ©n", "Maxikiosco", "Ropa", "CorralÃ³n", "Farmacia", "VerdulerÃ­a", "Otro"
+    "Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro"
 )
 
 private val DIAS_SEMANA_CREAR = listOf(
     "lunes" to "Lunes",
     "martes" to "Martes",
-    "miercoles" to "MiÃ©rcoles",
+    "miercoles" to "Miércoles",
     "jueves" to "Jueves",
     "viernes" to "Viernes",
-    "sabado" to "SÃ¡bado",
+    "sabado" to "Sábado",
     "domingo" to "Domingo"
 )
 
@@ -53,9 +53,9 @@ fun PantallaCrearLocal(
             .padding(horizontal = 24.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("CreÃ¡ tu local", style = MaterialTheme.typography.headlineSmall)
+        Text("Creá tu local", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Esto es lo que verÃ¡n tus clientes al explorar la app.",
+            "Esto es lo que verán tus clientes al explorar la app.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -97,18 +97,18 @@ fun PantallaCrearLocal(
         OutlinedTextField(
             value = direccion,
             onValueChange = { direccion = it },
-            label = { Text("DirecciÃ³n") },
+            label = { Text("Dirección") },
             placeholder = { Text("Ej: Av. Corrientes 1234, Buenos Aires") },
-            supportingText = { Text("Tus clientes verÃ¡n esto para encontrarte. TambiÃ©n se usa para ubicarte en el mapa.") },
+            supportingText = { Text("Tus clientes verán esto para encontrarte. También se usa para ubicarte en el mapa.") },
             modifier = Modifier.fillMaxWidth()
         )
 
-        // â”€â”€ Horarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Horarios ──────────────────────────────────────────────────────────
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Horarios de atenciÃ³n", style = MaterialTheme.typography.titleSmall)
+                Text("Horarios de atención", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "El mapa va a mostrar si tu local estÃ¡ abierto ahora segÃºn este horario.",
+                    "El mapa va a mostrar si tu local está abierto ahora según este horario.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -132,7 +132,7 @@ fun PantallaCrearLocal(
 
         Button(
             onClick = {
-                // Geocodificar la direcciÃ³n para obtener lat/lng
+                // Geocodificar la dirección para obtener lat/lng
                 var lat = 0.0
                 var lng = 0.0
                 if (direccion.isNotBlank()) {

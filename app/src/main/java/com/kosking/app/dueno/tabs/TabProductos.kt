@@ -124,7 +124,7 @@ internal fun TabProductos(vm: DuenoViewModel) {
                         Text("No hay productos cargados",
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        Text("TocÃ¡ + para agregar el primero",
+                        Text("Tocá + para agregar el primero",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -193,7 +193,7 @@ internal fun TabProductos(vm: DuenoViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    if (cat.isBlank()) "Sin categorÃ­a" else cat,
+                                    if (cat.isBlank()) "Sin categoría" else cat,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -251,7 +251,7 @@ internal fun TabProductos(vm: DuenoViewModel) {
         AlertDialog(
             onDismissRequest = { productoAEliminar = null },
             title = { Text("Eliminar producto") },
-            text = { Text("Â¿Eliminar ${prod.nombre} de la lista?") },
+            text = { Text("¿Eliminar ${prod.nombre} de la lista?") },
             confirmButton = {
                 TextButton(onClick = { vm.eliminarProducto(prod.id); productoAEliminar = null }) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)

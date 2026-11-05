@@ -197,7 +197,7 @@ fun PanelDuenoEmbedido(
                     )
                     if (codigoLocal.isNotBlank()) {
                         Text(
-                            "CÃ³digo para clientes: $codigoLocal",
+                            "Código para clientes: $codigoLocal",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -237,7 +237,7 @@ fun PanelDuenoEmbedido(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            direccion.ifBlank { "Sin direcciÃ³n" },
+                            direccion.ifBlank { "Sin dirección" },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f, fill = false)
@@ -298,7 +298,7 @@ fun PanelDuenoEmbedido(
                 AlertDialog(
                     onDismissRequest = { mostrarTimePicker = "" },
                     title = {
-                        Text(if (mostrarTimePicker == "antes") "Â¿Hasta quÃ© hora cerrÃ¡s hoy?" else "Â¿Hasta quÃ© hora seguÃ­s abierto?")
+                        Text(if (mostrarTimePicker == "antes") "¿Hasta qué hora cerrás hoy?" else "¿Hasta qué hora seguís abierto?")
                     },
                     text = { TimeInput(state = timeState) },
                     confirmButton = {
@@ -349,7 +349,7 @@ fun PanelDuenoEmbedido(
                         OutlinedButton(
                             onClick = { mostrarTimePicker = "mas" },
                             modifier = Modifier.weight(1f)
-                        ) { Text("Quedarme mÃ¡s", style = MaterialTheme.typography.labelMedium) }
+                        ) { Text("Quedarme más", style = MaterialTheme.typography.labelMedium) }
                     }
                 }
             }
@@ -395,7 +395,7 @@ fun PanelDuenoEmbedido(
                     ListItem(
                         leadingContent = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
                         headlineContent = {
-                            Text("${cliente.nombre} superÃ³ su lÃ­mite", fontWeight = FontWeight.Medium)
+                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
                         },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) }
                     )
@@ -437,7 +437,7 @@ fun PanelDuenoEmbedido(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "ÃšLTIMAS VISITAS",
+                        "ÚLTIMAS VISITAS",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -456,7 +456,7 @@ fun PanelDuenoEmbedido(
         } else {
             item {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("TodavÃ­a no hay movimientos",
+                    Text("Todavía no hay movimientos",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -467,7 +467,7 @@ fun PanelDuenoEmbedido(
 
     if (editandoDatos) {
         val sheetDatos = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val tiposLocales = listOf("Kiosco", "AlmacÃ©n", "Maxikiosco", "Ropa", "CorralÃ³n", "Farmacia", "VerdulerÃ­a", "Otro")
+        val tiposLocales = listOf("Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro")
         var nombreEdit by remember { mutableStateOf(localData?.nombre.orEmpty()) }
         var tipoEdit by remember { mutableStateOf(localData?.tipo ?: "Kiosco") }
         var telefonoEdit by remember { mutableStateOf(localData?.telefono.orEmpty()) }
@@ -530,7 +530,7 @@ fun PanelDuenoEmbedido(
                 OutlinedTextField(
                     value = telefonoEdit,
                     onValueChange = { telefonoEdit = it },
-                    label = { Text("TelÃ©fono") },
+                    label = { Text("Teléfono") },
                     placeholder = { Text("Ej: 3884123456") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -541,7 +541,7 @@ fun PanelDuenoEmbedido(
                 OutlinedTextField(
                     value = descripcionEdit,
                     onValueChange = { descripcionEdit = it },
-                    label = { Text("DescripciÃ³n") },
+                    label = { Text("Descripción") },
                     placeholder = { Text("Ej: Kiosco 24hs, delivery al barrio") },
                     minLines = 2,
                     maxLines = 4,
@@ -594,7 +594,7 @@ fun PanelDuenoEmbedido(
     if (editandoHorarios) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val diasClaves = listOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
-        val diasEtiquetas = listOf("Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes", "SÃ¡bado", "Domingo")
+        val diasEtiquetas = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
         var horariosEdit by remember {
             mutableStateOf(
                 diasClaves.associateWith { clave ->

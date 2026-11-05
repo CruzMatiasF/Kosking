@@ -72,10 +72,10 @@ internal fun TabClientes(
         ) {
             StatMiniCard("Deuda total", "$${"%.0f".format(deudaTotal)}", isError = deudaTotal > 0, modifier = Modifier.weight(1f))
             StatMiniCard("Deben", "$conDeuda", isError = conDeuda > 0, modifier = Modifier.weight(1f))
-            StatMiniCard("Al dÃ­a", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
+            StatMiniCard("Al día", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
         }
 
-        // BÃºsqueda + orden + agregar
+        // Búsqueda + orden + agregar
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -124,7 +124,7 @@ internal fun TabClientes(
                         leadingIcon = { if (orden == "deuda") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
                     DropdownMenuItem(text = { Text("Por nombre") }, onClick = { orden = "nombre"; mostrarOrden = false },
                         leadingIcon = { if (orden == "nombre") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
-                    DropdownMenuItem(text = { Text("Ãšltima visita") }, onClick = { orden = "visita"; mostrarOrden = false },
+                    DropdownMenuItem(text = { Text("Última visita") }, onClick = { orden = "visita"; mostrarOrden = false },
                         leadingIcon = { if (orden == "visita") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
                 }
             }
@@ -148,7 +148,7 @@ internal fun TabClientes(
             data class Seg(val key: String, val num: Int, val label: String)
             val segs = listOf(
                 Seg("deuda", conDeuda, "Deben"),
-                Seg("aldia", alDia, "Al dÃ­a"),
+                Seg("aldia", alDia, "Al día"),
                 Seg("bloqueado", bloqueados, "Bloqueados"),
                 Seg("todos", clientes.size, "Todos")
             )
@@ -187,7 +187,7 @@ internal fun TabClientes(
         if (clientesFiltrados.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    if (clientes.isEmpty()) "TodavÃ­a no hay clientes\nTocÃ¡ + para agregar el primero"
+                    if (clientes.isEmpty()) "Todavía no hay clientes\nTocá + para agregar el primero"
                     else "Sin resultados para este filtro",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -270,7 +270,7 @@ private fun CardCliente(
         diasSinVenir == null -> "Nuevo"
         diasSinVenir == 0 -> "Hoy"
         diasSinVenir == 1 -> "Ayer"
-        diasSinVenir < 7 -> "Hace $diasSinVenir dÃ­as"
+        diasSinVenir < 7 -> "Hace $diasSinVenir días"
         else -> "Hace ${diasSinVenir / 7} sem."
     }
     val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0

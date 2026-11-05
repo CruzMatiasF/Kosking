@@ -220,7 +220,7 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    // â”€â”€ Movimiento seleccionado (para detalle) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Movimiento seleccionado (para detalle) ────────────────────────────────
 
     private val _movimientoSeleccionado = MutableStateFlow<Movimiento?>(null)
     val movimientoSeleccionado: StateFlow<Movimiento?> = _movimientoSeleccionado.asStateFlow()
@@ -234,7 +234,7 @@ class DuenoViewModel : ViewModel() {
                 try {
                     val mov = FiadoRepository.obtenerMovimiento(id)
                     _movimientoSeleccionado.value = mov
-                    if (mov == null) _error.value = "No se encontrÃ³ el movimiento"
+                    if (mov == null) _error.value = "No se encontró el movimiento"
                 } catch (e: Exception) {
                     _error.value = "No se pudo cargar el movimiento"
                 }
@@ -262,7 +262,7 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    // â”€â”€ Movimientos del detalle de cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Movimientos del detalle de cliente ───────────────────────────────────
 
     private val _detalleClienteId = MutableStateFlow("")
 
@@ -327,7 +327,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // â”€â”€ EstadÃ­sticas derivadas (calculadas en background, no en el hilo de UI) â”€
+    // ── Estadísticas derivadas (calculadas en background, no en el hilo de UI) ─
 
     val totalDeuda: StateFlow<Double> = clientes
         .map { lista -> lista.sumOf { it.deudaTotal } }
@@ -347,7 +347,7 @@ class DuenoViewModel : ViewModel() {
                 set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }.timeInMillis
-            // movimientosLocal ya viene filtrado por los Ãºltimos 90 dÃ­as desde Firestore
+            // movimientosLocal ya viene filtrado por los últimos 90 días desde Firestore
             val hoy = movs.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
             val fiado = hoy.filter { it.tipo == "cargo" }.sumOf { it.monto }
             val cobrado = hoy.filter { it.tipo == "pago" }.sumOf { it.monto }
@@ -411,20 +411,20 @@ class DuenoViewModel : ViewModel() {
             _cargando.value = true
             _error.value = null
             try {
-                // Si _localId estÃ¡ vacÃ­o, intentar recargarlo
+                // Si _localId está vacío, intentar recargarlo
                 val localId = if (_localId.value.isNotBlank()) {
                     _localId.value
                 } else {
                     val uid = auth.currentUser?.uid ?: run {
-                        _error.value = "SesiÃ³n no vÃ¡lida"
+                        _error.value = "Sesión no válida"
                         return@launch
                     }
                     val usuario = FiadoRepository.obtenerUsuario(uid) ?: run {
-                        _error.value = "No se encontrÃ³ el usuario"
+                        _error.value = "No se encontró el usuario"
                         return@launch
                     }
                     if (usuario.localId.isBlank()) {
-                        _error.value = "No tenÃ©s un local creado"
+                        _error.value = "No tenés un local creado"
                         return@launch
                     }
                     _localId.value = usuario.localId
@@ -437,14 +437,14 @@ class DuenoViewModel : ViewModel() {
                 FiadoRepository.guardarCodigoEmpleado(localId, _nombreLocal.value, codigo)
                 onExito(codigo)
             } catch (e: Exception) {
-                _error.value = "No se pudo generar el cÃ³digo"
+                _error.value = "No se pudo generar el código"
             } finally {
                 _cargando.value = false
             }
         }
     }
 
-    // â”€â”€ Productos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Productos ────────────────────────────────────────────────────────────
 
     val productos: StateFlow<List<Producto>> = _localId
         .flatMapLatest { id ->

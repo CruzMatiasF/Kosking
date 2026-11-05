@@ -277,7 +277,7 @@ fun PanelDueno(
                     )
                     if (codigoLocal.isNotBlank()) {
                         Text(
-                            "CÃ³digo para tus clientes: $codigoLocal",
+                            "Código para tus clientes: $codigoLocal",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -318,7 +318,7 @@ fun PanelDueno(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            direccion.ifBlank { "Sin direcciÃ³n" },
+                            direccion.ifBlank { "Sin dirección" },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f, fill = false)
@@ -345,7 +345,7 @@ fun PanelDueno(
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            "âˆ’$${"%.0f".format(cobradoHoyVal)} cobrado",
+                            "−$${"%.0f".format(cobradoHoyVal)} cobrado",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF2E7D32)
                         )
@@ -383,7 +383,7 @@ fun PanelDueno(
                     ListItem(
                         leadingContent = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
                         headlineContent = {
-                            Text("${cliente.nombre} superÃ³ su lÃ­mite", fontWeight = FontWeight.Medium)
+                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
                         },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) }
                     )
@@ -418,7 +418,7 @@ fun PanelDueno(
             }
         }
 
-        // Ãšltimas visitas (mÃ¡x 4)
+        // Últimas visitas (máx 4)
         if (visitas.isNotEmpty()) {
             item {
                 Row(
@@ -427,7 +427,7 @@ fun PanelDueno(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "ÃšLTIMAS VISITAS",
+                        "ÚLTIMAS VISITAS",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -446,7 +446,7 @@ fun PanelDueno(
         } else {
             item {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("TodavÃ­a no hay movimientos",
+                    Text("Todavía no hay movimientos",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -554,7 +554,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        if (esSoloPago) "âˆ’" else "+",
+                        if (esSoloPago) "−" else "+",
                         style = MaterialTheme.typography.titleMedium,
                         color = if (esSoloPago) MaterialTheme.colorScheme.onPrimaryContainer
                                 else MaterialTheme.colorScheme.onErrorContainer
@@ -563,7 +563,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
-                    visita.nombreCliente.ifBlank { "â€”" },
+                    visita.nombreCliente.ifBlank { "—" },
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1
@@ -574,7 +574,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text("Â·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         if (esSoloPago) "Pago" else "Fiado",
                         style = MaterialTheme.typography.labelSmall,
@@ -584,7 +584,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    "${visita.items.size} Ã­tem${if (visita.items.size != 1) "s" else ""}",
+                    "${visita.items.size} ítem${if (visita.items.size != 1) "s" else ""}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -598,7 +598,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                 }
                 if (visita.totalPagos > 0) {
                     Text(
-                        "âˆ’$${"%.0f".format(visita.totalPagos)}",
+                        "−$${"%.0f".format(visita.totalPagos)}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF2E7D32)
@@ -616,7 +616,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 32.dp)
             ) {
-                // Encabezado: nombre izquierda, hora + quien anotÃ³ derecha
+                // Encabezado: nombre izquierda, hora + quien anotó derecha
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -653,7 +653,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
 
                 HorizontalDivider()
 
-                // Lista de Ã­tems agrupados por nombre de producto
+                // Lista de ítems agrupados por nombre de producto
                 data class ItemAgrupado(val nombre: String, val cantidad: Int, val monto: Double, val esCargo: Boolean)
                 val itemsAgrupados = visita.items
                     .groupBy { it.producto.ifBlank { if (it.tipo == "cargo") "Fiado" else "Pago" } }
@@ -683,7 +683,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                             modifier = Modifier.padding(horizontal = 12.dp).widthIn(min = 28.dp)
                         )
                         Text(
-                            "${if (item.esCargo) "+" else "âˆ’"}$${"%.0f".format(item.monto)}",
+                            "${if (item.esCargo) "+" else "−"}$${"%.0f".format(item.monto)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = if (item.esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
@@ -700,7 +700,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                 ) {
                     Column {
                         Text(
-                            "${visita.items.size} Ã­tem${if (visita.items.size != 1) "s" else ""}",
+                            "${visita.items.size} ítem${if (visita.items.size != 1) "s" else ""}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

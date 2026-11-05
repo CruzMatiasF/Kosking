@@ -1,5 +1,9 @@
 ﻿package com.kosking.app.dueno
 
+import com.kosking.app.dueno.tabs.*
+import com.kosking.app.dueno.detalle.*
+import com.kosking.app.dueno.local.*
+
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts

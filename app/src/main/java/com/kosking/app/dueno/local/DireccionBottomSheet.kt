@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno.local
 
 import android.location.Geocoder
 import androidx.compose.foundation.background
@@ -126,7 +126,7 @@ fun DireccionBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Ubicación del local",
+                    "UbicaciÃ³n del local",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
@@ -136,12 +136,12 @@ fun DireccionBottomSheet(
 
             HorizontalDivider()
 
-            // Campo de búsqueda
+            // Campo de bÃºsqueda
             OutlinedTextField(
                 value = query,
                 onValueChange = {
                     query = it
-                    // limpiar selección si el usuario modifica el texto
+                    // limpiar selecciÃ³n si el usuario modifica el texto
                     if (it != dirSelec) { resultados = emptyList(); sinResultados = false }
                 },
                 placeholder = { Text("Ej: Av. Corrientes 1234, Buenos Aires") },
@@ -165,7 +165,7 @@ fun DireccionBottomSheet(
             )
 
             Text(
-                "Escribí la dirección y tocá el ícono de búsqueda o la lupa del teclado",
+                "EscribÃ­ la direcciÃ³n y tocÃ¡ el Ã­cono de bÃºsqueda o la lupa del teclado",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -217,18 +217,18 @@ fun DireccionBottomSheet(
             } else if (sinResultados) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(
-                        "No se encontró esa dirección.\nIntentá con más detalle (ciudad, provincia).",
+                        "No se encontrÃ³ esa direcciÃ³n.\nIntentÃ¡ con mÃ¡s detalle (ciudad, provincia).",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(32.dp)
                     )
                 }
             } else if (tieneUbicacion) {
-                // Mini mapa de confirmación
+                // Mini mapa de confirmaciÃ³n
                 Column(modifier = Modifier.weight(1f)) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Ubicación actual",
+                        "UbicaciÃ³n actual",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -266,7 +266,7 @@ fun DireccionBottomSheet(
                 Spacer(Modifier.weight(1f))
             }
 
-            // Botón guardar
+            // BotÃ³n guardar
             Button(
                 onClick = { onGuardar(dirSelec.ifBlank { query.trim() }, latSelec, lngSelec) },
                 enabled = query.isNotBlank(),
@@ -274,7 +274,7 @@ fun DireccionBottomSheet(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(if (tieneUbicacion) "Guardar ubicación" else "Guardar dirección")
+                Text(if (tieneUbicacion) "Guardar ubicaciÃ³n" else "Guardar direcciÃ³n")
             }
         }
     }

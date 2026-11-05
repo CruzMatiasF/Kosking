@@ -1,4 +1,6 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno.detalle
+
+import com.kosking.app.dueno.DuenoViewModel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -74,7 +76,7 @@ fun PantallaDetalleCliente(
         AlertDialog(
             onDismissRequest = { mostrarConfirmarEliminar = false },
             title = { Text("Eliminar cliente") },
-            text = { Text("¿Seguro que querés eliminar a ${cliente.nombre}? Esta acción no se puede deshacer.") },
+            text = { Text("Â¿Seguro que querÃ©s eliminar a ${cliente.nombre}? Esta acciÃ³n no se puede deshacer.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -177,14 +179,14 @@ fun PantallaDetalleCliente(
                         }
                     }
                 }
-                // Tiles de configuración
+                // Tiles de configuraciÃ³n
                 item { ConfigTiles(it, vm) }
             }
 
             if (extracto.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("Sin movimientos todavía",
+                        Text("Sin movimientos todavÃ­a",
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -205,7 +207,7 @@ fun PantallaDetalleCliente(
         }
     }
 
-    // Diálogo editar cliente
+    // DiÃ¡logo editar cliente
     if (mostrarEditar && cliente != null) {
         DialogEditarCliente(
             cliente = cliente,
@@ -255,12 +257,12 @@ private fun HeroCliente(cliente: Cliente) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    if (superado) "Superó el límite" else "${"%.0f".format(progreso * 100)}% usado",
+                    if (superado) "SuperÃ³ el lÃ­mite" else "${"%.0f".format(progreso * 100)}% usado",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                 )
                 Text(
-                    "Límite $${"%.0f".format(cliente.limiteCredito)}",
+                    "LÃ­mite $${"%.0f".format(cliente.limiteCredito)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                 )
@@ -345,7 +347,7 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
     val fmtFecha = remember { SimpleDateFormat("d MMM", Locale.getDefault()) }
 
     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-        // Tiles en grilla: fecha de pago + límite de crédito
+        // Tiles en grilla: fecha de pago + lÃ­mite de crÃ©dito
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -419,7 +421,7 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                 }
             }
 
-            // Tile límite de crédito
+            // Tile lÃ­mite de crÃ©dito
             Card(
                 modifier = Modifier
                     .weight(1f)
@@ -447,13 +449,13 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Límite de crédito",
+                        "LÃ­mite de crÃ©dito",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        if (cliente.limiteCredito > 0) "$${"%.0f".format(cliente.limiteCredito)}" else "Sin límite",
+                        if (cliente.limiteCredito > 0) "$${"%.0f".format(cliente.limiteCredito)}" else "Sin lÃ­mite",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -529,7 +531,7 @@ private fun DialogEditarNota(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Solo visible para vos y tus empleados al anotar. Útil para indicaciones especiales.",
+                    "Solo visible para vos y tus empleados al anotar. Ãštil para indicaciones especiales.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -571,19 +573,19 @@ private fun DialogEditarLimite(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Límite de crédito") },
+        title = { Text("LÃ­mite de crÃ©dito") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "El cliente no podrá superar este monto de deuda. Dejá vacío para no tener límite.",
+                    "El cliente no podrÃ¡ superar este monto de deuda. DejÃ¡ vacÃ­o para no tener lÃ­mite.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
                     value = valor,
                     onValueChange = { valor = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Monto máximo $") },
-                    placeholder = { Text("Sin límite") },
+                    label = { Text("Monto mÃ¡ximo $") },
+                    placeholder = { Text("Sin lÃ­mite") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
@@ -647,7 +649,7 @@ private fun construirExtracto(movimientos: List<Movimiento>): List<LineaExtracto
         val concepto = when {
             prods.size == 1 -> prods[0]
             prods.size == 2 -> "${prods[0]}, ${prods[1]}"
-            else -> "${prods[0]} · ${prods.size} ítems"
+            else -> "${prods[0]} Â· ${prods.size} Ã­tems"
         }
         lineasRaw.add(LineaRaw(sorted.first().fecha.toDate(), concepto, sorted.sumOf { it.monto }, sorted.first().id, sorted.first().tipo == "pago", sorted, sorted.firstOrNull { it.anotadoPorNombre.isNotBlank() }?.anotadoPorNombre ?: "", tieneAnulados = true))
     }
@@ -664,7 +666,7 @@ private fun construirExtracto(movimientos: List<Movimiento>): List<LineaExtracto
         LineaExtracto(raw.fecha, raw.concepto, delta, saldo, raw.esPago, movimientoId = raw.movimientoId, items = raw.items, anotadoPor = raw.anotadoPor, tieneAnulados = raw.tieneAnulados, visitante = raw.visitante)
     }
 
-    // Tachado FIFO: los pagos más viejos saldan los cargos más viejos
+    // Tachado FIFO: los pagos mÃ¡s viejos saldan los cargos mÃ¡s viejos
     var pagoRestante = conSaldo.filter { it.esPago && !it.tieneAnulados }.sumOf { -it.monto }
     val resultado = conSaldo.map { linea ->
         if (!linea.esPago && !linea.tieneAnulados && pagoRestante > 0) {
@@ -709,7 +711,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícono circular de tipo
+            // Ãcono circular de tipo
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -719,7 +721,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
                 Icon(tipoIcon, null, Modifier.size(18.dp), tint = tipoColor)
             }
 
-            // Centro: tipo · concepto + hora · quien anotó · visitante
+            // Centro: tipo Â· concepto + hora Â· quien anotÃ³ Â· visitante
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 val etiquetaTipo = when {
                     linea.tieneAnulados -> "Anulado"
@@ -746,7 +748,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alphaMuted)
                     )
                     if (linea.visitante.isNotBlank()) {
-                        Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        Text("Â·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                         Icon(Icons.Default.Person, null, Modifier.size(11.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alphaMuted))
                         Text(
                             linea.visitante,
@@ -760,7 +762,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
             // Monto + saldo parcial a la derecha
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    if (linea.esPago) "−$${"%.0f".format(-linea.monto)}"
+                    if (linea.esPago) "âˆ’$${"%.0f".format(-linea.monto)}"
                     else "+$${"%.0f".format(linea.monto)}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
@@ -790,7 +792,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
                     .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // Cabecera: fecha a la izquierda · nombre empleado a la derecha · badges
+                // Cabecera: fecha a la izquierda Â· nombre empleado a la derecha Â· badges
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -822,7 +824,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
 
                 HorizontalDivider()
 
-                // Ítems individuales
+                // Ãtems individuales
                 linea.items.forEach { mov ->
                     val esAnulado = mov.anulado
                     val nombreProd = mov.producto.ifBlank { if (mov.tipo == "cargo") "Fiado" else "Pago" }
@@ -847,7 +849,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
                             )
                         }
                         Text(
-                            "${if (mov.tipo == "cargo") "+" else "−"}$${"%.0f".format(mov.monto)}",
+                            "${if (mov.tipo == "cargo") "+" else "âˆ’"}$${"%.0f".format(mov.monto)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = when {
@@ -887,7 +889,7 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
                     }
                 }
 
-                // Botón anular todo el grupo (solo si no está ya anulado ni pagado)
+                // BotÃ³n anular todo el grupo (solo si no estÃ¡ ya anulado ni pagado)
                 if (!linea.tieneAnulados && !linea.pagado) {
                     Spacer(Modifier.height(16.dp))
                     OutlinedButton(
@@ -908,14 +910,14 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
         AlertDialog(
             onDismissRequest = { confirmarAnularTodo = false },
             title = { Text("Anular visita") },
-            text = { Text("Se anulará toda esta visita y se descontará del saldo del cliente.") },
+            text = { Text("Se anularÃ¡ toda esta visita y se descontarÃ¡ del saldo del cliente.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmarAnularTodo = false
                     mostrarDetalle = false
                     linea.items.forEach { mov ->
                         if (!mov.anulado) {
-                            vm.anularMovimiento(mov.id, clienteId, mov.monto, mov.tipo, "Anulado por el dueño")
+                            vm.anularMovimiento(mov.id, clienteId, mov.monto, mov.tipo, "Anulado por el dueÃ±o")
                         }
                     }
                 }) { Text("Anular", color = MaterialTheme.colorScheme.error) }
@@ -926,15 +928,15 @@ private fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: St
         )
     }
 
-    // Confirmar anular ítem individual
+    // Confirmar anular Ã­tem individual
     itemAAnular?.let { mov ->
         AlertDialog(
             onDismissRequest = { itemAAnular = null },
-            title = { Text("Anular ítem") },
-            text = { Text("Se anulará \"${mov.producto.ifBlank { "Fiado" }}\" ($${"%.0f".format(mov.monto)}) y se descontará del saldo.") },
+            title = { Text("Anular Ã­tem") },
+            text = { Text("Se anularÃ¡ \"${mov.producto.ifBlank { "Fiado" }}\" ($${"%.0f".format(mov.monto)}) y se descontarÃ¡ del saldo.") },
             confirmButton = {
                 TextButton(onClick = {
-                    vm.anularMovimiento(mov.id, clienteId, mov.monto, mov.tipo, "Anulado por el dueño")
+                    vm.anularMovimiento(mov.id, clienteId, mov.monto, mov.tipo, "Anulado por el dueÃ±o")
                     itemAAnular = null
                 }) { Text("Anular", color = MaterialTheme.colorScheme.error) }
             },
@@ -1009,7 +1011,7 @@ private fun DialogEditarCliente(
         var draft by remember(campo) { mutableStateOf(valorActual) }
         AlertDialog(
             onDismissRequest = { campoActivo = null },
-            title = { Text(when (campo) { "nombre" -> "Nombre"; "telefono" -> "Teléfono"; else -> "Domicilio" }) },
+            title = { Text(when (campo) { "nombre" -> "Nombre"; "telefono" -> "TelÃ©fono"; else -> "Domicilio" }) },
             text = {
                 OutlinedTextField(
                     value = draft, onValueChange = { draft = it },
@@ -1056,14 +1058,14 @@ private fun DialogEditarCliente(
                 CampoEditable(
                     icon = Icons.Default.Person,
                     label = "Nombre",
-                    value = nombre.ifBlank { "—" },
+                    value = nombre.ifBlank { "â€”" },
                     onClick = { campoActivo = "nombre" }
                 )
-                // Campo teléfono
+                // Campo telÃ©fono
                 CampoEditable(
                     icon = Icons.Default.Phone,
-                    label = "Teléfono",
-                    value = telefono.ifBlank { "Sin teléfono" },
+                    label = "TelÃ©fono",
+                    value = telefono.ifBlank { "Sin telÃ©fono" },
                     vacio = telefono.isBlank(),
                     onClick = { campoActivo = "telefono" }
                 )
@@ -1112,7 +1114,7 @@ private fun DialogEditarCliente(
                     }
                 }
 
-                // Código de acceso (solo lectura)
+                // CÃ³digo de acceso (solo lectura)
                 if (cliente.codigoAcceso.isNotBlank()) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -1127,7 +1129,7 @@ private fun DialogEditarCliente(
                             Icon(Icons.Default.Key, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    "Código de acceso · solo lectura",
+                                    "CÃ³digo de acceso Â· solo lectura",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

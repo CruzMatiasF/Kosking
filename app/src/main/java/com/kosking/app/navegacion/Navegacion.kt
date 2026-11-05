@@ -16,10 +16,10 @@ import com.kosking.app.autenticacion.AuthViewModel
 import com.kosking.app.cliente.ClienteViewModel
 import com.kosking.app.cliente.PantallaEntradaCliente
 import com.kosking.app.cliente.PantallaIngresarPIN
-import com.kosking.app.dueno.PantallaCrearLocal
+import com.kosking.app.dueno.local.PantallaCrearLocal
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.PanelDueno
-import com.kosking.app.dueno.PantallaDetalleMovimiento
+import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
 import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado

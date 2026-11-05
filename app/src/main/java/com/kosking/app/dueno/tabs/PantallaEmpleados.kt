@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno.tabs
 
 import android.content.Intent
 import android.net.Uri
@@ -28,7 +28,7 @@ internal fun DialogInvitarEmpleado(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Se genera un código para que el empleado se una al local.",
+                    "Se genera un cÃ³digo para que el empleado se una al local.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -50,7 +50,7 @@ internal fun DialogInvitarEmpleado(
                     OutlinedTextField(
                         value = whatsapp,
                         onValueChange = { whatsapp = it },
-                        label = { Text("Número de WhatsApp") },
+                        label = { Text("NÃºmero de WhatsApp") },
                         placeholder = { Text("Ej: 5491112345678") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth(),
@@ -82,7 +82,7 @@ internal fun DialogInvitarEmpleado(
                     when {
                         contacto.isNotBlank() && usaWhatsapp -> "Enviar por WhatsApp"
                         contacto.isNotBlank() -> "Enviar por email"
-                        else -> "Generar código"
+                        else -> "Generar cÃ³digo"
                     }
                 )
             }

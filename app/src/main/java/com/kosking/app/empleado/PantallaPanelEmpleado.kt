@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kosking.app.dueno.DialogProducto
+import com.kosking.app.dueno.local.DialogProducto
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Producto
 import java.util.*

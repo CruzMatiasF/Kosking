@@ -55,8 +55,8 @@ import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.PanelDuenoEmbedido
 import com.kosking.app.dueno.PantallaAgregarCliente
 import com.kosking.app.dueno.PantallaAgregarFiado
-import com.kosking.app.dueno.PantallaDetalleCliente
-import com.kosking.app.dueno.PantallaDetalleMovimiento
+import com.kosking.app.dueno.detalle.PantallaDetalleCliente
+import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
 import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri

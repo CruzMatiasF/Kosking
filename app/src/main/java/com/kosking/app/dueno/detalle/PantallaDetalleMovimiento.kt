@@ -1,4 +1,6 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno.detalle
+
+import com.kosking.app.dueno.DuenoViewModel
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -72,11 +74,11 @@ fun PantallaDetalleMovimiento(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("⚠", style = MaterialTheme.typography.titleMedium)
+                        Text("âš ", style = MaterialTheme.typography.titleMedium)
                         Column {
                             Text("Movimiento no reconocido", style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
-                            Text("El cliente indicó que no reconoce este movimiento.",
+                            Text("El cliente indicÃ³ que no reconoce este movimiento.",
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
@@ -119,7 +121,7 @@ fun PantallaDetalleMovimiento(
                         color = if (movActual.anulado) MaterialTheme.colorScheme.onSurfaceVariant
                                 else if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32))
                     HorizontalDivider()
-                    FilaDetalle("Cliente", cliente?.nombre ?: "—")
+                    FilaDetalle("Cliente", cliente?.nombre ?: "â€”")
                     if (movActual.producto.isNotBlank()) FilaDetalle("Producto", movActual.producto)
                     if (movActual.cantidad > 1) FilaDetalle("Cantidad", movActual.cantidad.toString())
                     HorizontalDivider()
@@ -151,7 +153,7 @@ fun PantallaDetalleMovimiento(
                         }
                     }
                     if (movActual.anulado && movActual.motivoAnulacion.isNotBlank()) {
-                        FilaDetalle("Motivo anulación", movActual.motivoAnulacion)
+                        FilaDetalle("Motivo anulaciÃ³n", movActual.motivoAnulacion)
                     }
                 }
             }
@@ -192,7 +194,7 @@ fun PantallaDetalleMovimiento(
             title = { Text("Anular movimiento") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Esta acción revierte el efecto en la deuda del cliente y no se puede deshacer.")
+                    Text("Esta acciÃ³n revierte el efecto en la deuda del cliente y no se puede deshacer.")
                     OutlinedTextField(value = motivoAnulacion, onValueChange = { motivoAnulacion = it },
                         label = { Text("Motivo (opcional)") }, modifier = Modifier.fillMaxWidth(), maxLines = 3)
                 }

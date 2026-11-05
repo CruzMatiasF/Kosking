@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno.local
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -12,8 +12,8 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 
-// Pide permiso de ubicación y, si se otorga, llama onUbicacion(lat, lng).
-// Retorna una lambda que el botón puede invocar para arrancar el flujo.
+// Pide permiso de ubicaciÃ³n y, si se otorga, llama onUbicacion(lat, lng).
+// Retorna una lambda que el botÃ³n puede invocar para arrancar el flujo.
 @SuppressLint("MissingPermission")
 @Composable
 fun rememberUbicacionLauncher(
@@ -31,7 +31,7 @@ fun rememberUbicacionLauncher(
         if (ok) {
             obtenerUbicacion(context, fusedClient, onUbicacion, onError)
         } else {
-            onError("Permiso de ubicación denegado")
+            onError("Permiso de ubicaciÃ³n denegado")
         }
     }
 
@@ -56,7 +56,7 @@ private fun obtenerUbicacion(
     fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
         .addOnSuccessListener { loc: Location? ->
             if (loc != null) onUbicacion(loc.latitude, loc.longitude)
-            else onError("No se pudo obtener la ubicación")
+            else onError("No se pudo obtener la ubicaciÃ³n")
         }
-        .addOnFailureListener { onError("Error al obtener ubicación") }
+        .addOnFailureListener { onError("Error al obtener ubicaciÃ³n") }
 }

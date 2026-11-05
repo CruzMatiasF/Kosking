@@ -84,12 +84,10 @@ fun PanelDueno(
 ) {
     val nombreLocal by vm.nombreLocal.collectAsState()
     val codigoLocal by vm.codigoLocal.collectAsState()
-    val nombreUsuario by vm.nombreUsuario.collectAsState()
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
     val empleados by vm.empleados.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
-    val clientesConDeuda by vm.clientesConDeuda.collectAsState()
     val fiadoHoy by vm.resumenHoy.collectAsState()
     val disputados by vm.disputados.collectAsState()
     val sobreLimite by vm.sobreLimite.collectAsState()
@@ -156,9 +154,7 @@ fun PanelDueno(
                         clientes = clientes,
                         movimientos = movimientosLocal,
                         onVerCliente = { subPantalla = SubPantalla.DetalleCliente(it) },
-                        onAgregarCliente = { subPantalla = SubPantalla.AgregarCliente },
-                        onAnotar = { clienteId -> subPantalla = SubPantalla.AgregarFiado(clienteId, "cargo") },
-                        onCobrar = { clienteId -> subPantalla = SubPantalla.AgregarFiado(clienteId, "pago") }
+                        onAgregarCliente = { subPantalla = SubPantalla.AgregarCliente }
                     )
                 }
             }
@@ -771,9 +767,7 @@ private fun TabClientes(
     clientes: List<Cliente>,
     movimientos: List<Movimiento> = emptyList(),
     onVerCliente: (String) -> Unit,
-    onAgregarCliente: () -> Unit,
-    onAnotar: (clienteId: String) -> Unit = {},
-    onCobrar: (clienteId: String) -> Unit = {}
+    onAgregarCliente: () -> Unit
 ) {
     var filtro by remember { mutableStateOf("deuda") }
     var busqueda by remember { mutableStateOf("") }
@@ -1876,7 +1870,6 @@ fun PanelDuenoEmbedido(
     val nombreLocal by vm.nombreLocal.collectAsState()
     val codigoLocal by vm.codigoLocal.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
-    val clientesConDeuda by vm.clientesConDeuda.collectAsState()
     val fiadoHoy by vm.resumenHoy.collectAsState()
     val disputados by vm.disputados.collectAsState()
     val sobreLimite by vm.sobreLimite.collectAsState()
@@ -1891,9 +1884,7 @@ fun PanelDuenoEmbedido(
                 clientes = clientes,
                 movimientos = movimientosLocal,
                 onVerCliente = onAbrirDetalleCliente,
-                onAgregarCliente = onAbrirAgregarCliente,
-                onAnotar = { clienteId -> onAbrirAgregarFiado(clienteId, "cargo") },
-                onCobrar = { clienteId -> onAbrirAgregarFiado(clienteId, "pago") }
+                onAgregarCliente = onAbrirAgregarCliente
             )
             2 -> TabProductos(vm = vm)
             3 -> TabEquipo(

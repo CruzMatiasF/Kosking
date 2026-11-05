@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -33,7 +33,8 @@ class DuenoViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
     fun clearError() { _error.value = null }
-    val cargando = MutableStateFlow(false)
+    private val _cargando = MutableStateFlow(false)
+    val cargando: StateFlow<Boolean> = _cargando
 
     private val _localId = MutableStateFlow("")
     val localId: StateFlow<String> = _localId
@@ -81,8 +82,6 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    fun cargarDatosLocal() { /* localData ya es reactivo, no se necesita carga manual */ }
-
     fun actualizarLocal(
         nombre: String,
         tipo: String,
@@ -96,7 +95,7 @@ class DuenoViewModel : ViewModel() {
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val local = localData.value ?: return@launch
@@ -117,7 +116,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo guardar"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -154,7 +153,7 @@ class DuenoViewModel : ViewModel() {
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
@@ -171,7 +170,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo crear el local"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -185,7 +184,7 @@ class DuenoViewModel : ViewModel() {
 
     fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: (pin: String, codigoAcceso: String) -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val pin = (1000..9999).random().toString()
@@ -206,7 +205,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo agregar el cliente"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -221,7 +220,7 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    // ── Movimiento seleccionado (para detalle) ────────────────────────────────
+    // â”€â”€ Movimiento seleccionado (para detalle) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private val _movimientoSeleccionado = MutableStateFlow<Movimiento?>(null)
     val movimientoSeleccionado: StateFlow<Movimiento?> = _movimientoSeleccionado.asStateFlow()
@@ -235,7 +234,7 @@ class DuenoViewModel : ViewModel() {
                 try {
                     val mov = FiadoRepository.obtenerMovimiento(id)
                     _movimientoSeleccionado.value = mov
-                    if (mov == null) _error.value = "No se encontró el movimiento"
+                    if (mov == null) _error.value = "No se encontrÃ³ el movimiento"
                 } catch (e: Exception) {
                     _error.value = "No se pudo cargar el movimiento"
                 }
@@ -245,7 +244,7 @@ class DuenoViewModel : ViewModel() {
 
     fun eliminarCliente(cliente: Cliente, onExito: () -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val tieneMov = FiadoRepository.tieneMovimientos(cliente.id)
@@ -258,12 +257,12 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo eliminar el cliente"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
 
-    // ── Movimientos del detalle de cliente ───────────────────────────────────
+    // â”€â”€ Movimientos del detalle de cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private val _detalleClienteId = MutableStateFlow("")
 
@@ -285,7 +284,7 @@ class DuenoViewModel : ViewModel() {
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
@@ -317,7 +316,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo guardar"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -328,7 +327,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ── Estadísticas derivadas (calculadas en background, no en el hilo de UI) ─
+    // â”€â”€ EstadÃ­sticas derivadas (calculadas en background, no en el hilo de UI) â”€
 
     val totalDeuda: StateFlow<Double> = clientes
         .map { lista -> lista.sumOf { it.deudaTotal } }
@@ -348,7 +347,7 @@ class DuenoViewModel : ViewModel() {
                 set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }.timeInMillis
-            // movimientosLocal ya viene filtrado por los últimos 90 días desde Firestore
+            // movimientosLocal ya viene filtrado por los Ãºltimos 90 dÃ­as desde Firestore
             val hoy = movs.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
             val fiado = hoy.filter { it.tipo == "cargo" }.sumOf { it.monto }
             val cobrado = hoy.filter { it.tipo == "pago" }.sumOf { it.monto }
@@ -362,7 +361,7 @@ class DuenoViewModel : ViewModel() {
 
     fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String, onExito: () -> Unit = {}) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 FiadoRepository.anularMovimiento(movimientoId, clienteId, monto, tipo, motivo)
@@ -373,7 +372,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo anular el movimiento"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -409,23 +408,23 @@ class DuenoViewModel : ViewModel() {
 
     fun generarCodigoEmpleado(onExito: (String) -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
-                // Si _localId está vacío, intentar recargarlo
+                // Si _localId estÃ¡ vacÃ­o, intentar recargarlo
                 val localId = if (_localId.value.isNotBlank()) {
                     _localId.value
                 } else {
                     val uid = auth.currentUser?.uid ?: run {
-                        _error.value = "Sesión no válida"
+                        _error.value = "SesiÃ³n no vÃ¡lida"
                         return@launch
                     }
                     val usuario = FiadoRepository.obtenerUsuario(uid) ?: run {
-                        _error.value = "No se encontró el usuario"
+                        _error.value = "No se encontrÃ³ el usuario"
                         return@launch
                     }
                     if (usuario.localId.isBlank()) {
-                        _error.value = "No tenés un local creado"
+                        _error.value = "No tenÃ©s un local creado"
                         return@launch
                     }
                     _localId.value = usuario.localId
@@ -438,14 +437,14 @@ class DuenoViewModel : ViewModel() {
                 FiadoRepository.guardarCodigoEmpleado(localId, _nombreLocal.value, codigo)
                 onExito(codigo)
             } catch (e: Exception) {
-                _error.value = "No se pudo generar el código"
+                _error.value = "No se pudo generar el cÃ³digo"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
 
-    // ── Productos ────────────────────────────────────────────────────────────
+    // â”€â”€ Productos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     val productos: StateFlow<List<Producto>> = _localId
         .flatMapLatest { id ->
@@ -497,7 +496,7 @@ class DuenoViewModel : ViewModel() {
 
     fun subirFotoLocal(uri: Uri, onExito: (String) -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val url = FiadoRepository.subirImagenLocal(_localId.value, uri)
@@ -506,14 +505,14 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo subir la foto"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
 
     fun subirFotoProducto(producto: Producto, uri: Uri, onExito: (String) -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val url = FiadoRepository.subirImagenProducto(_localId.value, producto.id, uri)
@@ -522,7 +521,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 _error.value = "No se pudo subir la foto"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }

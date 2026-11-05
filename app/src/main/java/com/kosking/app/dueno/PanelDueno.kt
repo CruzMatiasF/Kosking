@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+﻿package com.kosking.app.dueno
 
 import android.content.Intent
 import android.net.Uri
@@ -176,7 +176,7 @@ fun PanelDueno(
                 }
             ) { padding ->
                 Box(Modifier.fillMaxSize().padding(padding)) {
-                    TabProductos(vm = vm, movimientos = movimientosLocal)
+                    TabProductos(vm = vm)
                 }
             }
             return
@@ -206,15 +206,15 @@ fun PanelDueno(
             return
         }
         is SubPantalla.TodasLasVisitas -> {
-            val fmtFecha = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+            val fmtHoraTodas = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
             val fmtDia = remember { SimpleDateFormat("dd 'de' MMMM", Locale("es", "AR")) }
             val clienteMapTodas = remember(clientes) { clientes.associateBy { it.id } }
             val todasVisitas = remember(movimientosLocal, clienteMapTodas) {
-                agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMapTodas, fmtFecha)
+                agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMapTodas, fmtHoraTodas)
             }
             val visitasPorFecha = remember(todasVisitas) {
                 todasVisitas.groupBy { v ->
-                    val mov = movimientosLocal.firstOrNull { m -> m.clienteId == v.clienteId && fmtFecha.format(m.fecha.toDate()) == v.hora }
+                    val mov = movimientosLocal.firstOrNull { m -> m.clienteId == v.clienteId && fmtHoraTodas.format(m.fecha.toDate()) == v.hora }
                     mov?.fecha?.toDate()?.let {
                         val cal = java.util.Calendar.getInstance().apply { time = it }
                         Triple(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.DAY_OF_YEAR), fmtDia.format(it))
@@ -298,7 +298,7 @@ fun PanelDueno(
                     )
                     if (codigoLocal.isNotBlank()) {
                         Text(
-                            "Código para tus clientes: $codigoLocal",
+                            "CÃ³digo para tus clientes: $codigoLocal",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -339,7 +339,7 @@ fun PanelDueno(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            direccion.ifBlank { "Sin dirección" },
+                            direccion.ifBlank { "Sin direcciÃ³n" },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f, fill = false)
@@ -366,7 +366,7 @@ fun PanelDueno(
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            "−$${"%.0f".format(cobradoHoyVal)} cobrado",
+                            "âˆ’$${"%.0f".format(cobradoHoyVal)} cobrado",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF2E7D32)
                         )
@@ -404,7 +404,7 @@ fun PanelDueno(
                     ListItem(
                         leadingContent = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
                         headlineContent = {
-                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
+                            Text("${cliente.nombre} superÃ³ su lÃ­mite", fontWeight = FontWeight.Medium)
                         },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) }
                     )
@@ -439,7 +439,7 @@ fun PanelDueno(
             }
         }
 
-        // Últimas visitas (máx 4)
+        // Ãšltimas visitas (mÃ¡x 4)
         if (visitas.isNotEmpty()) {
             item {
                 Row(
@@ -448,7 +448,7 @@ fun PanelDueno(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "ÚLTIMAS VISITAS",
+                        "ÃšLTIMAS VISITAS",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -467,7 +467,7 @@ fun PanelDueno(
         } else {
             item {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Todavía no hay movimientos",
+                    Text("TodavÃ­a no hay movimientos",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -575,7 +575,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        if (esSoloPago) "−" else "+",
+                        if (esSoloPago) "âˆ’" else "+",
                         style = MaterialTheme.typography.titleMedium,
                         color = if (esSoloPago) MaterialTheme.colorScheme.onPrimaryContainer
                                 else MaterialTheme.colorScheme.onErrorContainer
@@ -584,7 +584,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(
-                    visita.nombreCliente.ifBlank { "—" },
+                    visita.nombreCliente.ifBlank { "â€”" },
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1
@@ -595,7 +595,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text("·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Â·", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         if (esSoloPago) "Pago" else "Fiado",
                         style = MaterialTheme.typography.labelSmall,
@@ -605,7 +605,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    "${visita.items.size} ítem${if (visita.items.size != 1) "s" else ""}",
+                    "${visita.items.size} Ã­tem${if (visita.items.size != 1) "s" else ""}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -619,7 +619,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                 }
                 if (visita.totalPagos > 0) {
                     Text(
-                        "−$${"%.0f".format(visita.totalPagos)}",
+                        "âˆ’$${"%.0f".format(visita.totalPagos)}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF2E7D32)
@@ -637,7 +637,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 32.dp)
             ) {
-                // Encabezado: nombre izquierda, hora + quien anotó derecha
+                // Encabezado: nombre izquierda, hora + quien anotÃ³ derecha
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -674,7 +674,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
 
                 HorizontalDivider()
 
-                // Lista de ítems agrupados por nombre de producto
+                // Lista de Ã­tems agrupados por nombre de producto
                 data class ItemAgrupado(val nombre: String, val cantidad: Int, val monto: Double, val esCargo: Boolean)
                 val itemsAgrupados = visita.items
                     .groupBy { it.producto.ifBlank { if (it.tipo == "cargo") "Fiado" else "Pago" } }
@@ -704,7 +704,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                             modifier = Modifier.padding(horizontal = 12.dp).widthIn(min = 28.dp)
                         )
                         Text(
-                            "${if (item.esCargo) "+" else "−"}$${"%.0f".format(item.monto)}",
+                            "${if (item.esCargo) "+" else "âˆ’"}$${"%.0f".format(item.monto)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = if (item.esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
@@ -721,7 +721,7 @@ internal fun FilaVisitaDashboard(visita: VisitaResumen) {
                 ) {
                     Column {
                         Text(
-                            "${visita.items.size} ítem${if (visita.items.size != 1) "s" else ""}",
+                            "${visita.items.size} Ã­tem${if (visita.items.size != 1) "s" else ""}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -759,7 +759,7 @@ private fun SeccionCard(
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private fun resolverNombreAnotador(anotadoPorNombre: String, nombreLocal: String, nombreUsuario: String): String {
     val nombre = anotadoPorNombre.trim()
@@ -770,212 +770,7 @@ private fun resolverNombreAnotador(anotadoPorNombre: String, nombreLocal: String
     }
 }
 
-// ── Tab Resumen ───────────────────────────────────────────────────────────────
-
-@Composable
-private fun TabResumen(
-    clientes: List<Cliente>,
-    movimientos: List<Movimiento>,
-    movimientosHoy: List<Movimiento> = emptyList(),
-    onIrAClientes: () -> Unit,
-    onVerMovimiento: (String) -> Unit,
-    onAnotarFiado: () -> Unit = {},
-    onCobrar: () -> Unit = {},
-    nombreLocal: String = "",
-    nombreUsuario: String = "",
-    totalDeuda: Double = 0.0,
-    clientesConDeuda: Int = 0,
-    fiadoHoy: Double = 0.0,
-    cobradoHoy: Double = 0.0,
-    disputados: List<Movimiento> = emptyList(),
-    sobreLimite: List<Cliente> = emptyList()
-) {
-    val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
-    val alertaTotal = disputados.size + sobreLimite.size
-
-    val ultimoMov = movimientos.firstOrNull { !it.anulado }
-    val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Tarjeta total
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Te deben en total",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "$${"%.0f".format(totalDeuda)}",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (clientesConDeuda > 0) {
-                        TextButton(onClick = onIrAClientes, contentPadding = PaddingValues(0.dp)) {
-                            Text("$clientesConDeuda cliente${if (clientesConDeuda != 1) "s" else ""} con deuda  →",
-                                style = MaterialTheme.typography.labelMedium)
-                        }
-                    } else {
-                        Spacer(Modifier.height(4.dp))
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Fiado hoy",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("+$${"%.0f".format(fiadoHoy)}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.error)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Cobrado hoy",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("-$${"%.0f".format(cobradoHoy)}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF2E7D32))
-                        }
-                    }
-                }
-            }
-        }
-
-        // Acciones rápidas
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = onAnotarFiado, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Anotar fiado")
-                }
-                OutlinedButton(onClick = onCobrar, modifier = Modifier.weight(1f)) {
-                    Text("Cobrar")
-                }
-            }
-        }
-
-
-        // Alertas
-        if (alertaTotal > 0) {
-            item {
-                Text("PARA REVISAR · $alertaTotal",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            items(disputados, key = { "disp_${it.id}" }) { mov ->
-                val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "Cliente"
-                Card(modifier = Modifier.fillMaxWidth().clickable { onVerMovimiento(mov.id) }) {
-                    ListItem(
-                        leadingContent = {
-                            Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error)
-                        },
-                        headlineContent = {
-                            Text("$nombreCliente no reconoce un fiado de $${"%.0f".format(mov.monto)}",
-                                fontWeight = FontWeight.Medium)
-                        },
-                        supportingContent = {
-                            Text("anotó ${resolverNombreAnotador(mov.anotadoPorNombre, nombreLocal, nombreUsuario)} · ${fmtHora.format(mov.fecha.toDate())}")
-                        },
-                        trailingContent = { Icon(Icons.Default.ChevronRight, null) }
-                    )
-                }
-            }
-            items(sobreLimite, key = { "lim_${it.id}" }) { cliente ->
-                Card(modifier = Modifier.fillMaxWidth().clickable { onIrAClientes() }) {
-                    ListItem(
-                        leadingContent = {
-                            Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error)
-                        },
-                        headlineContent = {
-                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
-                        },
-                        supportingContent = {
-                            Text("Debe $${"%.0f".format(cliente.deudaTotal)} · límite $${"%.0f".format(cliente.limiteCredito)}")
-                        },
-                        trailingContent = { Icon(Icons.Default.ChevronRight, null) }
-                    )
-                }
-            }
-        }
-
-        // Movimientos de hoy / último movimiento
-        val seccionLabel = if (movimientosHoy.isNotEmpty()) "MOVIMIENTOS DE HOY · ${movimientosHoy.size}"
-                           else if (ultimoMov != null) "ÚLTIMO MOVIMIENTO"
-                           else null
-
-        if (seccionLabel != null) {
-            item {
-                Text(seccionLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-
-        val movsAMostrar = if (movimientosHoy.isNotEmpty()) movimientosHoy
-                           else if (ultimoMov != null) listOf(ultimoMov)
-                           else emptyList()
-
-        if (movsAMostrar.isNotEmpty()) {
-            items(movsAMostrar, key = { "res_${it.id}" }) { mov ->
-                val esCargo = mov.tipo == "cargo"
-                val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: ""
-                Card(modifier = Modifier.fillMaxWidth().clickable { onVerMovimiento(mov.id) }) {
-                    ListItem(
-                        leadingContent = {
-                            Surface(
-                                shape = MaterialTheme.shapes.medium,
-                                color = if (esCargo) MaterialTheme.colorScheme.errorContainer
-                                        else MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        if (esCargo) "+" else "−",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (esCargo) MaterialTheme.colorScheme.onErrorContainer
-                                                else MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                            }
-                        },
-                        headlineContent = {
-                            Text(
-                                "${mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" }} · $nombreCliente",
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        supportingContent = {
-                            Text("${fmtHora.format(mov.fecha.toDate())} · ${resolverNombreAnotador(mov.anotadoPorNombre, nombreLocal, nombreUsuario)}")
-                        },
-                        trailingContent = {
-                            Text(
-                                "${if (esCargo) "+" else "−"}$${"%.0f".format(mov.monto)}",
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
-                            )
-                        }
-                    )
-                }
-            }
-        } else {
-            item {
-                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                    Text("Todavía no hay movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-// ── Tab Clientes ──────────────────────────────────────────────────────────────
+// â”€â”€ Tab Clientes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun TabClientes(
@@ -1029,10 +824,10 @@ private fun TabClientes(
         ) {
             StatMiniCard("Deuda total", "$${"%.0f".format(deudaTotal)}", isError = deudaTotal > 0, modifier = Modifier.weight(1f))
             StatMiniCard("Deben", "$conDeuda", isError = conDeuda > 0, modifier = Modifier.weight(1f))
-            StatMiniCard("Al día", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
+            StatMiniCard("Al dÃ­a", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
         }
 
-        // Búsqueda + orden + agregar
+        // BÃºsqueda + orden + agregar
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1083,7 +878,7 @@ private fun TabClientes(
                         leadingIcon = { if (orden == "deuda") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
                     DropdownMenuItem(text = { Text("Por nombre") }, onClick = { orden = "nombre"; mostrarOrden = false },
                         leadingIcon = { if (orden == "nombre") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
-                    DropdownMenuItem(text = { Text("Última visita") }, onClick = { orden = "visita"; mostrarOrden = false },
+                    DropdownMenuItem(text = { Text("Ãšltima visita") }, onClick = { orden = "visita"; mostrarOrden = false },
                         leadingIcon = { if (orden == "visita") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
                 }
             }
@@ -1108,7 +903,7 @@ private fun TabClientes(
             data class Seg(val key: String, val num: Int, val label: String)
             val segs = listOf(
                 Seg("deuda", conDeuda, "Deben"),
-                Seg("aldia", alDia, "Al día"),
+                Seg("aldia", alDia, "Al dÃ­a"),
                 Seg("bloqueado", bloqueados, "Bloqueados"),
                 Seg("todos", clientes.size, "Todos")
             )
@@ -1147,7 +942,7 @@ private fun TabClientes(
         if (clientesFiltrados.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    if (clientes.isEmpty()) "Todavía no hay clientes\nTocá + para agregar el primero"
+                    if (clientes.isEmpty()) "TodavÃ­a no hay clientes\nTocÃ¡ + para agregar el primero"
                     else "Sin resultados para este filtro",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -1230,7 +1025,7 @@ private fun CardCliente(
         diasSinVenir == null -> "Nuevo"
         diasSinVenir == 0 -> "Hoy"
         diasSinVenir == 1 -> "Ayer"
-        diasSinVenir < 7 -> "Hace $diasSinVenir días"
+        diasSinVenir < 7 -> "Hace $diasSinVenir dÃ­as"
         else -> "Hace ${diasSinVenir / 7} sem."
     }
     val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0
@@ -1301,7 +1096,7 @@ private fun CardCliente(
                         color = accentColor
                     )
                 }
-                // Última visita con punto de color
+                // Ãšltima visita con punto de color
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1318,7 +1113,7 @@ private fun CardCliente(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                // Barra de límite de crédito (solo si tiene límite)
+                // Barra de lÃ­mite de crÃ©dito (solo si tiene lÃ­mite)
                 if (cliente.limiteCredito > 0) {
                     val progreso = (cliente.deudaTotal / cliente.limiteCredito).coerceIn(0.0, 1.0).toFloat()
                     val superado = cliente.deudaTotal > cliente.limiteCredito
@@ -1361,7 +1156,7 @@ private fun FilaCliente(
         diasSinVenir == null -> null
         diasSinVenir == 0 -> "Hoy"
         diasSinVenir == 1 -> "Ayer"
-        diasSinVenir < 7 -> "Hace $diasSinVenir días"
+        diasSinVenir < 7 -> "Hace $diasSinVenir dÃ­as"
         else -> "Hace ${diasSinVenir / 7} sem."
     }
     val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0
@@ -1373,7 +1168,7 @@ private fun FilaCliente(
             .height(IntrinsicSize.Min)
             .clickable { onVerCliente(cliente.id) }
     ) {
-        // Franja lateral — se estira al alto del contenido
+        // Franja lateral â€” se estira al alto del contenido
         Box(modifier = Modifier.width(3.dp).fillMaxHeight().background(accentColor))
         Row(
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp, vertical = 9.dp),
@@ -1395,7 +1190,7 @@ private fun FilaCliente(
                     )
                 }
             }
-            // Nombre + badges + barra límite
+            // Nombre + badges + barra lÃ­mite
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
@@ -1422,8 +1217,8 @@ private fun FilaCliente(
                         trackColor = MaterialTheme.colorScheme.outlineVariant
                     )
                     Text(
-                        if (superado) "Superó el límite de $${"%.0f".format(cliente.limiteCredito)}"
-                        else "${"%.0f".format(progreso * 100)}% del límite",
+                        if (superado) "SuperÃ³ el lÃ­mite de $${"%.0f".format(cliente.limiteCredito)}"
+                        else "${"%.0f".format(progreso * 100)}% del lÃ­mite",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (superado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1436,7 +1231,7 @@ private fun FilaCliente(
                         Text("$${"%.0f".format(cliente.deudaTotal)}", style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                     } else {
-                        Text("Al día", style = MaterialTheme.typography.bodySmall,
+                        Text("Al dÃ­a", style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium)
                     }
                     if (cliente.habilitado) {
@@ -1493,10 +1288,10 @@ private fun BadgeChip(text: String, isError: Boolean = false, isWarning: Boolean
     }
 }
 
-// ── Tab Productos ─────────────────────────────────────────────────────────────
+// â”€â”€ Tab Productos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
-private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emptyList()) {
+private fun TabProductos(vm: DuenoViewModel) {
     val productos by vm.productos.collectAsState()
     var mostrarDialogo by remember { mutableStateOf(false) }
     var productoEditar by remember { mutableStateOf<Producto?>(null) }
@@ -1514,7 +1309,7 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
     }
     var busqueda by remember { mutableStateOf("") }
 
-    // Secciones: categorías ordenadas alfabéticamente, sin categoría al final
+    // Secciones: categorÃ­as ordenadas alfabÃ©ticamente, sin categorÃ­a al final
     val secciones = remember(productos) {
         val cats = productos.map { it.categoria.trim() }
             .filter { it.isNotBlank() }.distinct().sorted()
@@ -1528,7 +1323,7 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Buscador compacto + botón nuevo
+        // Buscador compacto + botÃ³n nuevo
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1588,14 +1383,14 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
                         Text("No hay productos cargados",
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        Text("Tocá + para agregar el primero",
+                        Text("TocÃ¡ + para agregar el primero",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
             busqueda.isNotBlank() -> {
-                // Búsqueda activa: grid 3 columnas
+                // BÃºsqueda activa: grid 3 columnas
                 if (productosBusqueda.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Sin resultados", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1620,7 +1415,7 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
                 }
             }
             secciones.isEmpty() -> {
-                // Productos sin categoría, mostrar directamente como grid
+                // Productos sin categorÃ­a, mostrar directamente como grid
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     modifier = Modifier.fillMaxSize(),
@@ -1639,7 +1434,7 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
                 }
             }
             else -> {
-                // Secciones por categoría con scroll horizontal (como Rappi/PedidosYa)
+                // Secciones por categorÃ­a con scroll horizontal (como Rappi/PedidosYa)
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 80.dp)
@@ -1658,7 +1453,7 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    if (cat.isBlank()) "Sin categoría" else cat,
+                                    if (cat.isBlank()) "Sin categorÃ­a" else cat,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1715,7 +1510,7 @@ private fun TabProductos(vm: DuenoViewModel, movimientos: List<Movimiento> = emp
         AlertDialog(
             onDismissRequest = { productoAEliminar = null },
             title = { Text("Eliminar producto") },
-            text = { Text("¿Eliminar ${prod.nombre} de la lista?") },
+            text = { Text("Â¿Eliminar ${prod.nombre} de la lista?") },
             confirmButton = {
                 TextButton(onClick = { vm.eliminarProducto(prod.id); productoAEliminar = null }) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)
@@ -1738,7 +1533,7 @@ private fun CardProducto(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column {
-            // Imagen / inicial + overlay cámara + precio en esquina
+            // Imagen / inicial + overlay cÃ¡mara + precio en esquina
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1762,7 +1557,7 @@ private fun CardProducto(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-                // Overlay cámara (solo sin imagen)
+                // Overlay cÃ¡mara (solo sin imagen)
                 if (prod.imagenUrl.isBlank()) {
                     Box(
                         modifier = Modifier
@@ -1850,7 +1645,7 @@ private fun CardProducto(
     }
 }
 
-// ── Tab Equipo ─────────────────────────────────────────────────────────────────
+// â”€â”€ Tab Equipo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Composable
 private fun TabEquipo(
@@ -1863,8 +1658,8 @@ private fun TabEquipo(
     val vmCargando by vm.cargando.collectAsState()
     val vmError by vm.error.collectAsState()
     val nombreLocal by vm.nombreLocal.collectAsState()
-    var mostrarDialogNombre by remember { mutableStateOf(false) }
-    var codigoGenerado by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var mostrarDialogInvitar by remember { mutableStateOf(false) }
+    var codigoGenerado by remember { mutableStateOf<String?>(null) }
     var empleadoAEliminar by remember { mutableStateOf<Empleado?>(null) }
 
     val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
@@ -1880,7 +1675,7 @@ private fun TabEquipo(
         movimientos.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
     }
 
-    // Caja de hoy: stats por persona (uid → nombre, anotó N, cobró $X)
+    // Caja de hoy: stats por persona (uid â†’ nombre, anotÃ³ N, cobrÃ³ $X)
     data class StatPersona(val uid: String, val nombre: String, val anoto: Int, val cobro: Double)
 
     val statsHoy = remember(movsHoy, duenoUid) {
@@ -1900,7 +1695,7 @@ private fun TabEquipo(
 
     val totalCobradoHoy = remember(statsHoy) { statsHoy.sumOf { it.cobro } }
 
-    // Último movimiento por uid (sin anulados)
+    // Ãšltimo movimiento por uid (sin anulados)
     val fmtFecha = remember { SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()) }
     val ultimoMovPorUid = remember(movimientos) {
         movimientos
@@ -1950,15 +1745,15 @@ private fun TabEquipo(
                             Modifier.fillMaxWidth().padding(vertical = 6.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Quién",
+                            Text("QuiÃ©n",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f))
-                            Text("Anotó",
+                            Text("AnotÃ³",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.width(48.dp))
-                            Text("Cobró",
+                            Text("CobrÃ³",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.width(72.dp))
@@ -1996,14 +1791,18 @@ private fun TabEquipo(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("EMPLEADOS · ${empleados.size}",
+                Text("EMPLEADOS Â· ${empleados.size}",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { mostrarDialogNombre = true }) {
+                FilledTonalButton(
+                    onClick = { mostrarDialogInvitar = true },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
                     Icon(Icons.Default.Add, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Sumar")
+                    Text("Sumar", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -2019,7 +1818,7 @@ private fun TabEquipo(
                         Modifier.size(16.dp).padding(top = 2.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer)
                     Text(
-                        "Los empleados pueden anotar fiados y registrar pagos. Controlá los permisos por cliente desde el detalle de cada uno.",
+                        "Los empleados pueden anotar fiados y registrar pagos. ControlÃ¡ los permisos por cliente desde el detalle de cada uno.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -2029,81 +1828,95 @@ private fun TabEquipo(
 
         if (empleados.isEmpty()) {
             item {
-                Text("Sin empleados. Tocá + Sumar para generar un código.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Groups, null, Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        Text("Sin empleados todavÃ­a",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("TocÃ¡ + Sumar para invitar a alguien",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    }
+                }
             }
         } else {
             items(empleados, key = { it.id }) { emp ->
                 val ultimoMov = ultimoMovPorUid[emp.uid]
                 val reclamos = disputasPorUid[emp.uid] ?: 0
-                Card(Modifier.fillMaxWidth()) {
-                    val esActivoHoy = ultimoMov != null &&
-                        ultimoMov.fecha.toDate().time >= inicioDia
-                    ListItem(
-                        leadingContent = {
+                val esActivoHoy = ultimoMov != null && ultimoMov.fecha.toDate().time >= inicioDia
+
+                val avatarColors = listOf(
+                    MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer,
+                    MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer,
+                    MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                val (avatarBg, avatarFg) = avatarColors[Math.floorMod(emp.nombre.hashCode(), 3)]
+
+                ElevatedCard(Modifier.fillMaxWidth()) {
+                    Column(
+                        Modifier.padding(
+                            start = 12.dp, end = 4.dp, top = 10.dp,
+                            bottom = if (esActivoHoy || reclamos > 0) 8.dp else 10.dp
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                Modifier.size(44.dp).clip(CircleShape).background(avatarBg),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     emp.nombre.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = avatarFg
                                 )
                             }
-                        },
-                        headlineContent = {
-                            Text(emp.nombre, fontWeight = FontWeight.Medium)
-                        },
-                        supportingContent = {
-                            if (ultimoMov != null) {
-                                val accion = if (ultimoMov.tipo == "cargo") "Anotó fiado" else "Cobró"
-                                val esHoy = ultimoMov.fecha.toDate().time >= inicioDia
-                                val fechaStr = if (esHoy) "hoy ${fmtHora.format(ultimoMov.fecha.toDate())}"
-                                              else fmtFecha.format(ultimoMov.fecha.toDate())
-                                Text("Último: $fechaStr · $accion",
-                                    style = MaterialTheme.typography.bodySmall)
+                            Column(Modifier.weight(1f)) {
+                                Text(emp.nombre,
+                                    fontWeight = FontWeight.Medium,
+                                    style = MaterialTheme.typography.bodyLarge)
+                                if (ultimoMov != null) {
+                                    val accion = if (ultimoMov.tipo == "cargo") "AnotÃ³ fiado" else "CobrÃ³"
+                                    val esHoy = ultimoMov.fecha.toDate().time >= inicioDia
+                                    val fechaStr = if (esHoy) "hoy ${fmtHora.format(ultimoMov.fecha.toDate())}"
+                                                  else fmtFecha.format(ultimoMov.fecha.toDate())
+                                    Text("Ãšltimo: $fechaStr Â· $accion",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
-                        },
-                        trailingContent = {
                             IconButton(onClick = { empleadoAEliminar = emp }) {
                                 Icon(Icons.Default.Delete, "Desvincular",
                                     tint = MaterialTheme.colorScheme.error)
                             }
                         }
-                    )
-                    if (esActivoHoy || reclamos > 0) {
-                        Row(
-                            Modifier.padding(start = 68.dp, bottom = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            if (esActivoHoy) {
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Text(
-                                        "Activo hoy",
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
+                        if (esActivoHoy || reclamos > 0) {
+                            Row(
+                                Modifier.padding(start = 56.dp, top = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (esActivoHoy) {
+                                    Surface(shape = RoundedCornerShape(20.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer) {
+                                        Text("Activo hoy",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                    }
                                 }
-                            }
-                            if (reclamos > 0) {
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = MaterialTheme.colorScheme.errorContainer
-                                ) {
-                                    Text(
-                                        "$reclamos reclamo${if (reclamos != 1) "s" else ""}",
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
+                                if (reclamos > 0) {
+                                    Surface(shape = RoundedCornerShape(20.dp),
+                                        color = MaterialTheme.colorScheme.errorContainer) {
+                                        Text("$reclamos reclamo${if (reclamos != 1) "s" else ""}",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error)
+                                    }
                                 }
                             }
                         }
@@ -2113,16 +1926,16 @@ private fun TabEquipo(
         }
     }
 
-    if (mostrarDialogNombre) {
+    if (mostrarDialogInvitar) {
         val localContext = LocalContext.current
         DialogInvitarEmpleado(
             cargando = vmCargando,
             error = vmError,
             onGenerar = { whatsapp, email ->
                 vm.generarCodigoEmpleado { codigo ->
-                    mostrarDialogNombre = false
+                    mostrarDialogInvitar = false
                     val local = nombreLocal.ifBlank { "Kosking" }
-                    val mensaje = "👋 Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguí estos pasos:\n1️⃣ Descargá la app Kosking desde Play Store\n2️⃣ Registrate o iniciá sesión\n3️⃣ Tocá \"Soy empleado\" e ingresá el código:\n\n*$codigo*\n\nEl código es de un solo uso."
+                    val mensaje = "ðŸ‘‹ Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguÃ­ estos pasos:\n1ï¸âƒ£ DescargÃ¡ la app Kosking desde Play Store\n2ï¸âƒ£ Registrate o iniciÃ¡ sesiÃ³n\n3ï¸âƒ£ TocÃ¡ \"Soy empleado\" e ingresÃ¡ el cÃ³digo:\n\n*$codigo*\n\nEl cÃ³digo es de un solo uso."
                     if (whatsapp.isNotBlank()) {
                         val numero = whatsapp.replace(Regex("[^0-9]"), "")
                         try {
@@ -2135,16 +1948,16 @@ private fun TabEquipo(
                             localContext.startActivity(Intent(Intent.ACTION_SENDTO).apply {
                                 data = Uri.parse("mailto:")
                                 putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                                putExtra(Intent.EXTRA_SUBJECT, "Tu código de empleado - Kosking")
+                                putExtra(Intent.EXTRA_SUBJECT, "Tu cÃ³digo de empleado - Kosking")
                                 putExtra(Intent.EXTRA_TEXT, mensaje)
                             })
                         } catch (_: Exception) {}
                     } else {
-                        codigoGenerado = codigo to ""
+                        codigoGenerado = codigo
                     }
                 }
             },
-            onDismiss = { mostrarDialogNombre = false }
+            onDismiss = { mostrarDialogInvitar = false }
         )
     }
 
@@ -2152,7 +1965,7 @@ private fun TabEquipo(
         AlertDialog(
             onDismissRequest = { empleadoAEliminar = null },
             title = { Text("Eliminar empleado") },
-            text = { Text("¿Eliminar a ${emp.nombre}? Se va a desconectar del local.") },
+            text = { Text("Â¿Eliminar a ${emp.nombre}? Se va a desconectar del local.") },
             confirmButton = {
                 TextButton(onClick = { onEliminarEmpleado(emp.id); empleadoAEliminar = null }) {
                     Text("Eliminar", color = MaterialTheme.colorScheme.error)
@@ -2162,13 +1975,13 @@ private fun TabEquipo(
         )
     }
 
-    codigoGenerado?.let { (codigo, _) ->
+    codigoGenerado?.let { codigo ->
         AlertDialog(
             onDismissRequest = { codigoGenerado = null },
-            title = { Text("Código de invitación") },
+            title = { Text("CÃ³digo de invitaciÃ³n") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Compartí este código con el empleado:")
+                    Text("CompartÃ­ este cÃ³digo con el empleado:")
                     Text(codigo,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
@@ -2185,7 +1998,7 @@ private fun TabEquipo(
     }
 }
 
-// ── Panel embebido para usar dentro de PantallaExplorar (TabMás) ──────────────
+// â”€â”€ Panel embebido para usar dentro de PantallaExplorar (TabMÃ¡s) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -2212,7 +2025,7 @@ fun PanelDuenoEmbedido(
 
     BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
 
-    // tabSeleccionado == 0 → dashboard, 1..4 → sección
+    // tabSeleccionado == 0 â†’ dashboard, 1..4 â†’ secciÃ³n
     if (tabSeleccionado != 0) {
         when (tabSeleccionado) {
             1 -> TabClientes(
@@ -2223,7 +2036,7 @@ fun PanelDuenoEmbedido(
                 onAnotar = { clienteId -> onAbrirAgregarFiado(clienteId, "cargo") },
                 onCobrar = { clienteId -> onAbrirAgregarFiado(clienteId, "pago") }
             )
-            2 -> TabProductos(vm = vm, movimientos = movimientosLocal)
+            2 -> TabProductos(vm = vm)
             3 -> TabEquipo(
                 empleados = empleados,
                 movimientos = movimientosLocal,
@@ -2256,15 +2069,15 @@ fun PanelDuenoEmbedido(
 
     if (mostrarTodasVisitas) {
         BackHandler { mostrarTodasVisitas = false }
-        val fmtFecha = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+        val fmtHoraTodas = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
         val fmtDia = remember { SimpleDateFormat("dd 'de' MMMM", Locale("es", "AR")) }
         val clienteMapTodas = remember(clientes) { clientes.associateBy { it.id } }
         val todasVisitas = remember(movimientosLocal, clienteMapTodas) {
-            agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMapTodas, fmtFecha)
+            agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMapTodas, fmtHoraTodas)
         }
         val visitasPorFecha = remember(todasVisitas) {
             todasVisitas.groupBy { v ->
-                val mov = movimientosLocal.firstOrNull { m -> m.clienteId == v.clienteId && fmtFecha.format(m.fecha.toDate()) == v.hora }
+                val mov = movimientosLocal.firstOrNull { m -> m.clienteId == v.clienteId && fmtHoraTodas.format(m.fecha.toDate()) == v.hora }
                 mov?.fecha?.toDate()?.let {
                     val cal = java.util.Calendar.getInstance().apply { time = it }
                     Triple(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.DAY_OF_YEAR), fmtDia.format(it))
@@ -2326,7 +2139,7 @@ fun PanelDuenoEmbedido(
                         )
                     )
                 )
-                // Botones arriba a la derecha: horarios + cámara
+                // Botones arriba a la derecha: horarios + cÃ¡mara
                 Row(
                     modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -2357,7 +2170,7 @@ fun PanelDuenoEmbedido(
                     )
                     if (codigoLocal.isNotBlank()) {
                         Text(
-                            "Código para clientes: $codigoLocal",
+                            "CÃ³digo para clientes: $codigoLocal",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -2398,7 +2211,7 @@ fun PanelDuenoEmbedido(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            direccion.ifBlank { "Sin dirección" },
+                            direccion.ifBlank { "Sin direcciÃ³n" },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f, fill = false)
@@ -2430,7 +2243,7 @@ fun PanelDuenoEmbedido(
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "−$${"%.0f".format(cobradoHoyVal)} cobrado",
+                        "âˆ’$${"%.0f".format(cobradoHoyVal)} cobrado",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (cobradoHoyVal > 0) Color(0xFF2E7D32)
                                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -2440,7 +2253,7 @@ fun PanelDuenoEmbedido(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
 
-        // Card de estado de hoy (excepción)
+        // Card de estado de hoy (excepciÃ³n)
         item {
             val abiertoAhora = localData?.let { com.kosking.app.explorar.estaAbiertoAhora(it) } ?: false
             var mostrarTimePicker by remember { mutableStateOf("") } // "antes" o "mas"
@@ -2460,7 +2273,7 @@ fun PanelDuenoEmbedido(
                 AlertDialog(
                     onDismissRequest = { mostrarTimePicker = "" },
                     title = {
-                        Text(if (mostrarTimePicker == "antes") "¿Hasta qué hora cerrás hoy?" else "¿Hasta qué hora seguís abierto?")
+                        Text(if (mostrarTimePicker == "antes") "Â¿Hasta quÃ© hora cerrÃ¡s hoy?" else "Â¿Hasta quÃ© hora seguÃ­s abierto?")
                     },
                     text = { TimeInput(state = timeState) },
                     confirmButton = {
@@ -2511,13 +2324,13 @@ fun PanelDuenoEmbedido(
                         OutlinedButton(
                             onClick = { mostrarTimePicker = "mas" },
                             modifier = Modifier.weight(1f)
-                        ) { Text("Quedarme más", style = MaterialTheme.typography.labelMedium) }
+                        ) { Text("Quedarme mÃ¡s", style = MaterialTheme.typography.labelMedium) }
                     }
                 }
             }
         }
 
-        // Botón editar datos del local
+        // BotÃ³n editar datos del local
         item {
             OutlinedButton(
                 onClick = { editandoDatos = true },
@@ -2559,7 +2372,7 @@ fun PanelDuenoEmbedido(
                     ListItem(
                         leadingContent = { Icon(Icons.Default.Block, null, tint = MaterialTheme.colorScheme.error) },
                         headlineContent = {
-                            Text("${cliente.nombre} superó su límite", fontWeight = FontWeight.Medium)
+                            Text("${cliente.nombre} superÃ³ su lÃ­mite", fontWeight = FontWeight.Medium)
                         },
                         trailingContent = { Icon(Icons.Default.ChevronRight, null) }
                     )
@@ -2603,7 +2416,7 @@ fun PanelDuenoEmbedido(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "ÚLTIMAS VISITAS",
+                        "ÃšLTIMAS VISITAS",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -2622,7 +2435,7 @@ fun PanelDuenoEmbedido(
         } else {
             item {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Todavía no hay movimientos",
+                    Text("TodavÃ­a no hay movimientos",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -2633,7 +2446,7 @@ fun PanelDuenoEmbedido(
 
     if (editandoDatos) {
         val sheetDatos = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val tiposLocales = listOf("Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro")
+        val tiposLocales = listOf("Kiosco", "AlmacÃ©n", "Maxikiosco", "Ropa", "CorralÃ³n", "Farmacia", "VerdulerÃ­a", "Otro")
         var nombreEdit by remember { mutableStateOf(localData?.nombre.orEmpty()) }
         var tipoEdit by remember { mutableStateOf(localData?.tipo ?: "Kiosco") }
         var telefonoEdit by remember { mutableStateOf(localData?.telefono.orEmpty()) }
@@ -2696,7 +2509,7 @@ fun PanelDuenoEmbedido(
                 OutlinedTextField(
                     value = telefonoEdit,
                     onValueChange = { telefonoEdit = it },
-                    label = { Text("Teléfono") },
+                    label = { Text("TelÃ©fono") },
                     placeholder = { Text("Ej: 3884123456") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -2707,7 +2520,7 @@ fun PanelDuenoEmbedido(
                 OutlinedTextField(
                     value = descripcionEdit,
                     onValueChange = { descripcionEdit = it },
-                    label = { Text("Descripción") },
+                    label = { Text("DescripciÃ³n") },
                     placeholder = { Text("Ej: Kiosco 24hs, delivery al barrio") },
                     minLines = 2,
                     maxLines = 4,
@@ -2760,7 +2573,7 @@ fun PanelDuenoEmbedido(
     if (editandoHorarios) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val diasClaves = listOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
-        val diasEtiquetas = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+        val diasEtiquetas = listOf("Lunes", "Martes", "MiÃ©rcoles", "Jueves", "Viernes", "SÃ¡bado", "Domingo")
         var horariosEdit by remember {
             mutableStateOf(
                 diasClaves.associateWith { clave ->

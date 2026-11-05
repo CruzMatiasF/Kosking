@@ -70,7 +70,6 @@ fun PantallaExplorar(
     val locales by vm.locales.collectAsState()
     val todosLocales by vm.todosLocales.collectAsState()
     val busqueda by vm.busqueda.collectAsState()
-    val productosOferta by vm.productosOferta.collectAsState()
     val productosFiltrados by vm.productosFiltrados.collectAsState()
     val todosProductos by vm.todosProductos.collectAsState()
     val hayMasProductos by vm.hayMasProductos.collectAsState()
@@ -79,7 +78,6 @@ fun PantallaExplorar(
     val notificacionesNoLeidas by vm.notificacionesNoLeidas.collectAsState()
     val notificaciones by vm.notificaciones.collectAsState()
     val localesGuardados by clienteVm.localesGuardados.collectAsState()
-    val nombreLocal by duenoVm.nombreLocal.collectAsState()
 
     var mostrarNotificaciones by remember { mutableStateOf(false) }
     var mostrarDialogConectarCliente by remember { mutableStateOf(false) }
@@ -462,14 +460,12 @@ fun PantallaExplorar(
                     locales = locales,
                     todosLocales = todosLocales,
                     productosFiltrados = productosFiltrados,
-                    productosDestacados = productosOferta,
                     busqueda = busqueda,
                     localesGuardados = localesGuardados.isNotEmpty(),
                     hayMasProductos = hayMasProductos,
                     cargando = cargandoInicio,
                     onVerLocal = onVerLocal,
                     onVerMisLocales = onVerMisLocales,
-                    onVerOfertas = { tabActual = TabExplorar.TIENDAS },
                     onCargarMas = { vm.cargarMasProductos() },
                     isRefrescando = refrescando,
                     onRefrescar = { vm.refrescar() }

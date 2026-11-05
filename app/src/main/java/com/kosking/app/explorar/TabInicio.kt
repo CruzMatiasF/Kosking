@@ -38,14 +38,12 @@ internal fun TabInicio(
     locales: List<Local>,
     todosLocales: List<Local>,
     productosFiltrados: List<Producto>,
-    productosDestacados: List<Producto>,
     busqueda: String,
     localesGuardados: Boolean,
     hayMasProductos: Boolean = false,
     cargando: Boolean = false,
     onVerLocal: (String) -> Unit,
     onVerMisLocales: () -> Unit,
-    onVerOfertas: () -> Unit = {},
     onCargarMas: () -> Unit = {},
     isRefrescando: Boolean = false,
     onRefrescar: () -> Unit = {}
@@ -402,16 +400,17 @@ private fun TarjetaLocalH(local: Local, onClick: () -> Unit) {
             Text(local.tipo, style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             Spacer(Modifier.height(6.dp))
+            val abierto = estaAbiertoAhora(local)
             Box(
                 modifier = Modifier.clip(RoundedCornerShape(4.dp))
-                    .then(if (local.abierto) Modifier.background(MaterialTheme.colorScheme.onSurface)
+                    .then(if (abierto) Modifier.background(MaterialTheme.colorScheme.onSurface)
                           else Modifier.background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)))
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
-                Text(if (local.abierto) "Abierto" else "Cerrado",
+                Text(if (abierto) "Abierto" else "Cerrado",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (local.abierto) MaterialTheme.colorScheme.surface
+                    color = if (abierto) MaterialTheme.colorScheme.surface
                             else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -441,16 +440,17 @@ private fun FilaLocalPlana(local: Local, onClick: () -> Unit) {
                 Text(local.tipo, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            val abierto = estaAbiertoAhora(local)
             Box(
                 modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                    .then(if (local.abierto) Modifier.background(MaterialTheme.colorScheme.onSurface)
+                    .then(if (abierto) Modifier.background(MaterialTheme.colorScheme.onSurface)
                           else Modifier.background(MaterialTheme.colorScheme.surfaceVariant))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text(if (local.abierto) "Abierto" else "Cerrado",
+                Text(if (abierto) "Abierto" else "Cerrado",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (local.abierto) MaterialTheme.colorScheme.surface
+                    color = if (abierto) MaterialTheme.colorScheme.surface
                             else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

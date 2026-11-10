@@ -332,6 +332,14 @@ fun PantallaVidreraPublica(
 @Composable
 private fun TarjetaPrecioPublico(producto: Producto) {
     ListItem(
+        leadingContent = if (producto.imagenUrl.isNotBlank()) ({
+            AsyncImage(
+                model = producto.imagenUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+            )
+        }) else null,
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {

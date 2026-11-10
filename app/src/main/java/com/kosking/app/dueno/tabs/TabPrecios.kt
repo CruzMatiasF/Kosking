@@ -1,5 +1,8 @@
 package com.kosking.app.dueno.tabs
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,10 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +32,8 @@ internal fun TabPrecios(
     productos: List<Producto>,
     onAgregar: (nombre: String, precio: Double, categoria: String, descripcion: String, precioPublico: Boolean) -> Unit,
     onActualizar: (Producto) -> Unit,
-    onEliminar: (String) -> Unit
+    onEliminar: (String) -> Unit,
+    onSubirImagen: (Producto, android.net.Uri) -> Unit = { _, _ -> }
 ) {
     var busqueda by remember { mutableStateOf("") }
     var mostrarDialog by remember { mutableStateOf(false) }
@@ -139,6 +145,7 @@ internal fun TabPrecios(
     if (mostrarDialog) {
         DialogProducto(
             producto = productoEditar,
+            onSubirImagen = productoEditar?.let { p -> { uri -> onSubirImagen(p, uri) } },
             onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior, precioPublico, agotado ->
                 val p = productoEditar
                 if (p == null) {
@@ -171,6 +178,14 @@ private fun ProductoItemDueno(
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
 
     ListItem(
+        leadingContent = if (producto.imagenUrl.isNotBlank()) ({
+            AsyncImage(
+                model = producto.imagenUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp))
+            )
+        }) else null,
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -255,9 +270,13 @@ private fun ProductoItemDueno(
 @Composable
 private fun DialogProducto(
     producto: Producto?,
+    onSubirImagen: ((Uri) -> Unit)?,
     onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double, precioPublico: Boolean, agotado: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) onSubirImagen?.invoke(uri)
+    }
     var nombre by remember(producto) { mutableStateOf(producto?.nombre ?: "") }
     var precioTexto by remember(producto) { mutableStateOf(if (producto != null) "%.0f".format(producto.precio) else "") }
     var categoria by remember(producto) { mutableStateOf(producto?.categoria ?: "") }
@@ -276,6 +295,42 @@ private fun DialogProducto(
         title = { Text(if (producto == null) "Nuevo producto" else "Editar producto") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Imagen (solo al editar un producto existente)
+                if (onSubirImagen != null) {
+                    if (producto?.imagenUrl?.isNotBlank() == true) {
+                        Box(modifier = Modifier.fillMaxWidth().height(140.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { launcher.launch("image/*") }
+                        ) {
+                            AsyncImage(
+                                model = producto.imagenUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Box(
+                                modifier = Modifier.align(Alignment.BottomEnd)
+                                    .padding(6.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("Cambiar foto",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { launcher.launch("image/*") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.AddPhotoAlternate, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Agregar foto")
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it },

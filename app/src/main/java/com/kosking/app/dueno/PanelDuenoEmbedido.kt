@@ -143,6 +143,7 @@ fun PanelDuenoEmbedido(
                         vm.agregarProducto(nombre = nombre, precio = precio, descripcion = descripcion, categoria = categoria, precioPublico = precioPublico)
                     },
                     onActualizar = { vm.actualizarProducto(it) },
+                    onSubirImagen = { prod, uri -> vm.subirFotoProducto(prod, uri) {} },
                     onEliminar = { vm.eliminarProducto(it) }
                 )
                 4 -> TabMiLocal(

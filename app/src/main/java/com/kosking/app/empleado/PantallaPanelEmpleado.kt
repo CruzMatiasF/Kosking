@@ -19,12 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Store
+import coil.compose.AsyncImage
 import com.kosking.app.dueno.AnotarRapidoSheet
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Permisos
@@ -375,6 +377,14 @@ private fun TabPreciosSinBusqueda(productos: List<Producto>, busqueda: String) {
 @Composable
 private fun ProductoPrecioItem(producto: Producto) {
     ListItem(
+        leadingContent = if (producto.imagenUrl.isNotBlank()) ({
+            AsyncImage(
+                model = producto.imagenUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(6.dp))
+            )
+        }) else null,
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {

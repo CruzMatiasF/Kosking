@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,7 +46,7 @@ internal fun TabInicio(
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val fechaHoy = remember {
-        SimpleDateFormat("EEEE d 'de' MMMM", Locale("es", "AR")).format(java.util.Date()).replaceFirstChar { it.uppercase() }
+        SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es-AR")).format(java.util.Date()).replaceFirstChar { it.uppercase() }
     }
 
     val movimientosHoy = remember(movimientosLocal) {
@@ -376,7 +377,7 @@ internal fun TabInicio(
                                     onClick = { onWhatsAppCliente(cliente) },
                                     modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(Icons.Default.Send, "Avisar por WhatsApp",
+                                    Icon(Icons.AutoMirrored.Filled.Send, "Avisar por WhatsApp",
                                         Modifier.size(18.dp),
                                         tint = MaterialTheme.colorScheme.primary)
                                 }

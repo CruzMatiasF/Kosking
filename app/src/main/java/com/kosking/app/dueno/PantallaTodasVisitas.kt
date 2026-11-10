@@ -24,7 +24,7 @@ internal fun PantallaTodasVisitas(
     onVolver: () -> Unit
 ) {
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val fmtDia = remember { SimpleDateFormat("dd 'de' MMMM", Locale("es", "AR")) }
+    val fmtDia = remember { SimpleDateFormat("dd 'de' MMMM", Locale.forLanguageTag("es-AR")) }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val todasVisitas = remember(movimientosLocal, clienteMap) {
         agruparVisitas(movimientosLocal.filter { !it.anulado }, clienteMap, fmtHora)

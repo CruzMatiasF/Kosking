@@ -91,7 +91,7 @@ fun AnotarRapidoSheet(
                     readOnly = true,
                     label = { Text("Cliente") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirClientes) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = expandirClientes,

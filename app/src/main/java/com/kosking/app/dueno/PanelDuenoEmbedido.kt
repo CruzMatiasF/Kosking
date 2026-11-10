@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,6 +43,7 @@ fun PanelDuenoEmbedido(
     val localData by vm.localData.collectAsState()
     val localId by vm.localId.collectAsState()
     val productos by vm.productos.collectAsState()
+    val publicaciones by vm.publicaciones.collectAsState()
     val cargando by vm.cargando.collectAsState()
 
     BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
@@ -122,6 +124,16 @@ fun PanelDuenoEmbedido(
                     icon = { Icon(Icons.Default.Storefront, null) }, label = { Text("Precios") },
                     colors = navColors
                 )
+                NavigationBarItem(
+                    selected = tabSeleccionado == 4, onClick = { onTabChange(4) },
+                    icon = { Icon(Icons.Default.Campaign, null) }, label = { Text("Publicar") },
+                    colors = navColors
+                )
+                NavigationBarItem(
+                    selected = tabSeleccionado == 5, onClick = { onTabChange(5) },
+                    icon = { Icon(Icons.Default.Store, null) }, label = { Text("Mi Local") },
+                    colors = navColors
+                )
             }
         }
     ) { scaffoldPadding ->
@@ -152,7 +164,12 @@ fun PanelDuenoEmbedido(
                     onSubirImagen = { prod, uri -> vm.subirFotoProducto(prod, uri) {} },
                     onEliminar = { vm.eliminarProducto(it) }
                 )
-                4 -> TabMiLocal(
+                4 -> TabPublicaciones(
+                    publicaciones = publicaciones,
+                    onAgregar = { texto, etiqueta -> vm.agregarPublicacion(texto, etiqueta, {}) },
+                    onEliminar = { vm.eliminarPublicacion(it) }
+                )
+                5 -> TabMiLocal(
                     localData = localData,
                     onEditarDatos = { editandoDatos = true },
                     onEditarDireccion = { editandoDireccion = true },
@@ -350,7 +367,7 @@ fun PanelDuenoEmbedido(
                                 },
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Default.Send, null, Modifier.size(14.dp))
+                                Icon(Icons.AutoMirrored.Filled.Send, null, Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("WA", style = MaterialTheme.typography.labelSmall)
                             }
@@ -382,7 +399,7 @@ fun PanelDuenoEmbedido(
                 ExposedDropdownMenuBox(expanded = expandirTipo, onExpandedChange = { expandirTipo = it }) {
                     OutlinedTextField(value = tipoEdit, onValueChange = {}, readOnly = true, label = { Text("Tipo") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirTipo) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor())
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable))
                     ExposedDropdownMenu(expanded = expandirTipo, onDismissRequest = { expandirTipo = false }) {
                         tiposLocales.forEach { t -> DropdownMenuItem(text = { Text(t) }, onClick = { tipoEdit = t; expandirTipo = false }) }
                     }

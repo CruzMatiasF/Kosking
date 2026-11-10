@@ -93,6 +93,12 @@ internal fun TabClientes(
             StatMiniCard("Deuda total", "$${"%.0f".format(deudaTotal)}", isError = deudaTotal > 0, modifier = Modifier.weight(1f))
             StatMiniCard("Deben", "$conDeuda", isError = conDeuda > 0, modifier = Modifier.weight(1f))
             StatMiniCard("Al día", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
+            StatMiniCard(
+                "Clientes",
+                "${clientes.size}/15",
+                isError = clientes.size >= 15,
+                modifier = Modifier.weight(1f)
+            )
         }
 
         // Búsqueda + orden + agregar
@@ -158,7 +164,7 @@ internal fun TabClientes(
         // Segmented control
         val bloqueados = clientes.count { !it.habilitado }
         val mesNombre = remember {
-            java.text.SimpleDateFormat("MMM", java.util.Locale("es", "AR"))
+            java.text.SimpleDateFormat("MMM", java.util.Locale.forLanguageTag("es-AR"))
                 .format(java.util.Date()).replaceFirstChar { it.uppercase() }
         }
         Row(
@@ -174,7 +180,8 @@ internal fun TabClientes(
                 Seg("deuda", conDeuda, "Deben"),
                 Seg("aldia", alDia, "Al día"),
                 Seg("pagaron", pagaronEsteMes.size, mesNombre),
-                Seg("todos", clientes.size, "Todos")
+                Seg("todos", clientes.size, "Todos"),
+                Seg("bloqueado", bloqueados, "Bloq.")
             )
             segs.forEach { seg ->
                 val selected = filtro == seg.key

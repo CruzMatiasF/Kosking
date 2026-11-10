@@ -160,6 +160,7 @@ fun PanelDuenoEmbedido(
                     clientesConDeuda = clientesConDeuda,
                     localData = localData,
                     disputados = disputados,
+                    sobreLimite = sobreLimite,
                     onTabChange = onTabChange,
                     onAbrirDetalleCliente = onAbrirDetalleCliente,
                     onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,

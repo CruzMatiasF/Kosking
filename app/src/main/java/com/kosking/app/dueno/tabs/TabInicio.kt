@@ -31,6 +31,7 @@ internal fun TabInicio(
     clientesConDeuda: List<Cliente>,
     localData: Local?,
     disputados: List<Movimiento> = emptyList(),
+    sobreLimite: List<Cliente> = emptyList(),
     onTabChange: (Int) -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirDetalleMovimiento: (String) -> Unit = {},
@@ -170,6 +171,51 @@ internal fun TabInicio(
                         }
                         if (disputados.size > 3) {
                             Text("+ ${disputados.size - 3} más",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Alertas: clientes sobre límite
+        if (sobreLimite.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.CreditCard, null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp))
+                            Text(
+                                "${sobreLimite.size} cliente${if (sobreLimite.size != 1) "s" else ""} excedieron su límite",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        sobreLimite.take(3).forEach { c ->
+                            Text(
+                                "• ${c.nombre} — ${"$"}${"%.0f".format(c.deudaTotal)} / ${"$"}${"%.0f".format(c.limiteCredito)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onAbrirDetalleCliente(c.id) }
+                                    .padding(vertical = 2.dp)
+                            )
+                        }
+                        if (sobreLimite.size > 3) {
+                            Text("+ ${sobreLimite.size - 3} más",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer)
                         }

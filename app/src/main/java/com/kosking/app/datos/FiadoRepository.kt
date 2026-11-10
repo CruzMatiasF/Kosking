@@ -199,19 +199,6 @@ object FiadoRepository {
         awaitClose { sub.remove() }
     }
 
-    fun movimientosFlow(clienteId: String, diasAtras: Int = 60): Flow<List<Movimiento>> = callbackFlow {
-        val desdeTs = com.google.firebase.Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
-        val sub = db.collection("movimientos")
-            .whereEqualTo("clienteId", clienteId)
-            .whereGreaterThan("fecha", desdeTs)
-            .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(200)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
     suspend fun obtenerMovimiento(id: String): Movimiento? =
         db.collection("movimientos").document(id).get().await().toObject(Movimiento::class.java)
 

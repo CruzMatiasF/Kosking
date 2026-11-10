@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -134,6 +135,16 @@ fun PantallaDetalleCliente(
         },
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
     ) { padding ->
+        val frecuentes = remember(movimientos) {
+            movimientos
+                .filter { it.tipo == "cargo" && !it.anulado && it.producto.isNotBlank() }
+                .groupBy { it.producto }
+                .mapValues { (_, ms) -> ms.size }
+                .entries
+                .sortedByDescending { it.value }
+                .take(5)
+        }
+
         LazyColumn(
             modifier = Modifier.padding(padding),
             contentPadding = PaddingValues(bottom = 24.dp)
@@ -198,6 +209,32 @@ fun PantallaDetalleCliente(
                     }
                 }
                 item { ConfigTiles(it, vm) }
+            }
+
+            if (frecuentes.isNotEmpty()) {
+                item {
+                    Text(
+                        "Lo que más pide",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                    ) {
+                        items(frecuentes) { (nombre, veces) ->
+                            SuggestionChip(
+                                onClick = {},
+                                label = {
+                                    Text("$nombre · $veces×",
+                                        style = MaterialTheme.typography.labelMedium)
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             if (extracto.isEmpty()) {

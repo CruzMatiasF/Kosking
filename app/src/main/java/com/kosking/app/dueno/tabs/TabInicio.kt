@@ -1,0 +1,292 @@
+package com.kosking.app.dueno.tabs
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.kosking.app.dueno.FilaVisitaDashboard
+import com.kosking.app.dueno.SeccionCard
+import com.kosking.app.dueno.agruparVisitas
+import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.Local
+import com.kosking.app.modelo.Movimiento
+import com.kosking.app.ui.theme.Verde
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+
+@Composable
+internal fun TabInicio(
+    clientes: List<Cliente>,
+    movimientosLocal: List<Movimiento>,
+    totalDeuda: Double,
+    clientesConDeuda: List<Cliente>,
+    localData: Local?,
+    onTabChange: (Int) -> Unit,
+    onAbrirDetalleCliente: (String) -> Unit,
+    onAnotar: () -> Unit,
+    onMostrarQr: () -> Unit,
+    onRecordarTodos: () -> Unit,
+    onVerTodasVisitas: () -> Unit,
+    onWhatsAppCliente: (Cliente) -> Unit
+) {
+    val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
+    val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val fechaHoy = remember {
+        SimpleDateFormat("EEEE d 'de' MMMM", Locale("es", "AR")).format(java.util.Date()).replaceFirstChar { it.uppercase() }
+    }
+
+    val movimientosHoy = remember(movimientosLocal) {
+        val hoy = Calendar.getInstance()
+        movimientosLocal.filter { mov ->
+            if (mov.anulado) return@filter false
+            val cal = Calendar.getInstance().apply { time = mov.fecha.toDate() }
+            cal.get(Calendar.YEAR) == hoy.get(Calendar.YEAR) &&
+            cal.get(Calendar.DAY_OF_YEAR) == hoy.get(Calendar.DAY_OF_YEAR)
+        }.sortedByDescending { it.fecha.toDate().time }
+    }
+    val fiadoHoy = remember(movimientosHoy) { movimientosHoy.filter { it.tipo == "cargo" }.sumOf { it.monto } }
+    val cobradoHoy = remember(movimientosHoy) { movimientosHoy.filter { it.tipo == "pago" }.sumOf { it.monto } }
+
+    val diasSinPagar = remember(movimientosLocal, clientesConDeuda) {
+        val msPorDia = 86_400_000L
+        val ahora = System.currentTimeMillis()
+        val ultPago = movimientosLocal
+            .filter { it.tipo == "pago" && !it.anulado }
+            .groupBy { it.clienteId }
+            .mapValues { (_, ms) -> ms.maxOf { it.fecha.toDate().time } }
+        val primerCargo = movimientosLocal
+            .filter { it.tipo == "cargo" && !it.anulado }
+            .groupBy { it.clienteId }
+            .mapValues { (_, ms) -> ms.minOf { it.fecha.toDate().time } }
+        clientesConDeuda.associate { c ->
+            val ref = ultPago[c.id] ?: primerCargo[c.id]
+            c.id to (if (ref != null) ((ahora - ref) / msPorDia).toInt() else null)
+        }
+    }
+
+    val visitasHoy = agruparVisitas(movimientosHoy, clienteMap, fmtHora)
+
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+        // Cabecera: deuda total + botón anotar
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Deuda total", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "$${"%.0f".format(totalDeuda)}",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurface
+                    )
+                    if (clientesConDeuda.isNotEmpty()) {
+                        Text(
+                            "${clientesConDeuda.size} cliente${if (clientesConDeuda.size != 1) "s" else ""} deben",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (fiadoHoy > 0 || cobradoHoy > 0) {
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (fiadoHoy > 0) Text(
+                                "↑ $${"%.0f".format(fiadoHoy)} fiado hoy",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            if (cobradoHoy > 0) Text(
+                                "↓ $${"%.0f".format(cobradoHoy)} cobrado hoy",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Verde
+                            )
+                        }
+                    }
+                }
+                Button(
+                    onClick = onAnotar,
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                ) {
+                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Anotar", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+            HorizontalDivider()
+        }
+
+        // Accesos rápidos
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SeccionCard(icon = Icons.Default.Store, label = "Mi local",
+                    modifier = Modifier.weight(1f), onClick = { onTabChange(4) })
+                SeccionCard(icon = Icons.Default.QrCode, label = "QR del local",
+                    modifier = Modifier.weight(1f), onClick = onMostrarQr)
+            }
+            HorizontalDivider()
+        }
+
+        // Hoja del día
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(fechaHoy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (movimientosHoy.isNotEmpty()) {
+                    TextButton(onClick = onVerTodasVisitas,
+                        contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Text("Ver todo", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+
+        // Empty state primer uso
+        if (clientes.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Storefront, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(4.dp))
+                    Text("¡Bienvenido a Kosking!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Todavía no tenés clientes. Tocá \"Clientes\" arriba y agregá el primero para empezar a anotar fiaditos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Button(onClick = { onTabChange(1) }) {
+                        Icon(Icons.Default.PersonAdd, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Agregar primer cliente")
+                    }
+                }
+                HorizontalDivider()
+            }
+        }
+
+        if (visitasHoy.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                    Text("Todavía nada hoy", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                HorizontalDivider()
+            }
+        } else {
+            items(visitasHoy.take(6), key = { "hoy_${it.items.firstOrNull()?.id ?: it.hora}" }) {
+                FilaVisitaDashboard(it)
+            }
+            item { HorizontalDivider() }
+        }
+
+        // Lista de clientes con deuda
+        if (clientesConDeuda.isNotEmpty()) {
+            item {
+                val clientesConFono = remember(clientesConDeuda) {
+                    clientesConDeuda.filter { it.telefono.isNotBlank() }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Deudas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    if (clientesConFono.isNotEmpty()) {
+                        TextButton(
+                            onClick = onRecordarTodos,
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Text("Recordar a todos", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+            items(clientesConDeuda, key = { "deuda_${it.id}" }) { cliente ->
+                val dias = diasSinPagar[cliente.id]
+                ListItem(
+                    headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
+                    supportingContent = if (!cliente.notaInterna.isNullOrBlank() || dias == null || dias >= 7) ({
+                        Column {
+                            if (!cliente.notaInterna.isNullOrBlank()) {
+                                Text(
+                                    cliente.notaInterna!!,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (dias == null) {
+                                Text(
+                                    "Sin pagar hace más de 90 días",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            } else if (dias >= 7) {
+                                val colorDias = if (dias >= 30) MaterialTheme.colorScheme.error
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                Text(
+                                    if (dias >= 30) "Sin pagar hace $dias días" else "Hace $dias días",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colorDias
+                                )
+                            }
+                        }
+                    }) else null,
+                    trailingContent = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                "$${"%.0f".format(cliente.deudaTotal)}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            if (cliente.telefono.isNotBlank()) {
+                                IconButton(
+                                    onClick = { onWhatsAppCliente(cliente) },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(Icons.Default.Send, "Avisar por WhatsApp",
+                                        Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+            }
+        }
+
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}

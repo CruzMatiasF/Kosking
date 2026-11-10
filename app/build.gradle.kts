@@ -1,7 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+}
+
+val localProps = Properties().also { props ->
+    val f = rootProject.file("local.properties")
+    if (f.exists()) props.load(f.inputStream())
 }
 
 android {
@@ -20,19 +28,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += setOf("es", "en")
 
-        val mapsKey = rootProject.file("local.properties")
-            .takeIf { it.exists() }
-            ?.readLines()
-            ?.firstOrNull { it.startsWith("MAPS_API_KEY=") }
-            ?.substringAfter("=") ?: ""
-        manifestPlaceholders["MAPS_API_KEY"] = mapsKey
-        buildConfigField("String", "MAPS_API_KEY", "\"$mapsKey\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProps.getProperty("RELEASE_STORE_FILE", "kosking-release.jks"))
+            storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD", "")
+            keyAlias = localProps.getProperty("RELEASE_KEY_ALIAS", "kosking")
+            keyPassword = localProps.getProperty("RELEASE_KEY_PASSWORD", "")
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -72,6 +83,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
     implementation(libs.coil.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -86,9 +98,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.play.services)
-    implementation(libs.maps.compose)
-    implementation(libs.play.services.location)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.zxing.core)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -69,7 +69,6 @@ internal fun DialogEditarNota(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DialogEditarLimite(
     limiteActual: Double,
@@ -142,7 +141,6 @@ internal fun DialogEditarFechaPago(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DialogEditarCliente(
     cliente: Cliente,

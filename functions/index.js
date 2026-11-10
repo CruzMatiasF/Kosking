@@ -6,7 +6,25 @@ const { getMessaging } = require("firebase-admin/messaging");
 initializeApp();
 const db = getFirestore();
 
-// ── Notificación al cliente cuando se le agrega un fiado o pago ──────────────
+async function enviarNotificacion(uid, titulo, cuerpo, tipo, batch) {
+  const notifRef = db.collection("notificaciones").doc();
+  batch.set(notifRef, {
+    id: notifRef.id,
+    uid,
+    titulo,
+    cuerpo,
+    leida: false,
+    fecha: Timestamp.now(),
+    tipo,
+  });
+
+  const usuarioSnap = await db.collection("usuarios").doc(uid).get();
+  if (!usuarioSnap.exists) return null;
+  const token = usuarioSnap.data().fcmToken;
+  return token || null;
+}
+
+// ── Notificación cuando se anota un fiado o pago ─────────────────────────────
 exports.notificarMovimiento = onDocumentCreated(
   "movimientos/{movId}",
   async (event) => {
@@ -15,83 +33,49 @@ exports.notificarMovimiento = onDocumentCreated(
 
     const { clienteId, localId, tipo, monto, producto, anotadoPorNombre } = mov;
 
-    // Buscar al cliente para obtener su codigoAcceso y localidad
-    const clienteSnap = await db.collection("clientes").doc(clienteId).get();
-    if (!clienteSnap.exists) return;
-    const cliente = clienteSnap.data();
-
-    // Buscar el uid del cliente mediante su codigoAcceso
-    const codigoAcceso = cliente.codigoAcceso;
-    if (!codigoAcceso) return;
-
-    const codigoSnap = await db.collection("codigosCliente").doc(codigoAcceso).get();
-    if (!codigoSnap.exists) return;
-    const clienteUid = codigoSnap.data().clienteId
-      ? null // codigoAcceso doc tiene clienteId del cliente, no uid del usuario
-      : null;
-
-    // Buscar usuarios que tienen este cliente guardado
-    const usuariosSnap = await db.collectionGroup("localesGuardados")
-      .where("localId", "==", localId)
-      .where("clienteId", "==", clienteId)
-      .get();
-
-    if (usuariosSnap.empty) return;
-
-    // Buscar el local para el nombre
     const localSnap = await db.collection("locales").doc(localId).get();
     const nombreLocal = localSnap.exists ? localSnap.data().nombre : "Tu local";
 
     const montoStr = `$${Number(monto).toFixed(2)}`;
     const quien = anotadoPorNombre ? ` · por ${anotadoPorNombre}` : "";
 
-    let titulo, cuerpo, tipoNotif;
+    let titulo, cuerpo;
     if (tipo === "cargo") {
       titulo = `Nuevo fiado en ${nombreLocal}`;
-      cuerpo = producto
-        ? `${producto} — ${montoStr}${quien}`
-        : `${montoStr}${quien}`;
-      tipoNotif = "local";
+      cuerpo = producto ? `${producto} — ${montoStr}${quien}` : `${montoStr}${quien}`;
     } else {
       titulo = `Pago registrado en ${nombreLocal}`;
       cuerpo = `${montoStr} registrado${quien}`;
-      tipoNotif = "local";
     }
 
-    // Para cada usuario que tiene este local guardado, enviar notif y guardar en Firestore
     const batch = db.batch();
     const tokens = [];
 
-    for (const doc of usuariosSnap.docs) {
-      // El doc está en usuarios/{uid}/localesGuardados/{localId}
+    // Notificar al cliente que tiene este fiado guardado
+    const clienteLocalesSnap = await db.collectionGroup("localesGuardados")
+      .where("localId", "==", localId)
+      .where("clienteId", "==", clienteId)
+      .get();
+
+    for (const doc of clienteLocalesSnap.docs) {
       const uid = doc.ref.parent.parent.id;
+      const token = await enviarNotificacion(uid, titulo, cuerpo, "local", batch);
+      if (token) tokens.push(token);
+    }
 
-      // Guardar notificación en Firestore
-      const notifRef = db.collection("notificaciones").doc();
-      batch.set(notifRef, {
-        id: notifRef.id,
-        uid,
-        titulo,
-        cuerpo,
-        leida: false,
-        fecha: Timestamp.now(),
-        tipo: tipoNotif,
-      });
-
-      // Obtener FCM token del usuario
-      const usuarioSnap = await db.collection("usuarios").doc(uid).get();
-      if (usuarioSnap.exists) {
-        const token = usuarioSnap.data().fcmToken;
+    // Notificar también al dueño del local
+    if (localSnap.exists) {
+      const duenoUid = localSnap.data().duenoUid;
+      if (duenoUid) {
+        const token = await enviarNotificacion(duenoUid, titulo, cuerpo, "local", batch);
         if (token) tokens.push(token);
       }
     }
 
     await batch.commit();
 
-    // Enviar push notifications
     if (tokens.length > 0) {
-      const messaging = getMessaging();
-      await messaging.sendEachForMulticast({
+      await getMessaging().sendEachForMulticast({
         tokens,
         notification: { title: titulo, body: cuerpo },
         android: {
@@ -112,41 +96,25 @@ exports.notificarOferta = onDocumentCreated(
 
     const { localId, nombre, precio } = prod;
 
-    // Buscar todos los usuarios que tienen este local guardado
+    const localSnap = await db.collection("locales").doc(localId).get();
+    const nombreLocal = localSnap.exists ? localSnap.data().nombre : "Un local";
+
+    const titulo = `Oferta en ${nombreLocal}`;
+    const cuerpo = `${nombre} — $${Number(precio).toFixed(2)}`;
+
     const usuariosSnap = await db.collectionGroup("localesGuardados")
       .where("localId", "==", localId)
       .get();
 
     if (usuariosSnap.empty) return;
 
-    const localSnap = await db.collection("locales").doc(localId).get();
-    const nombreLocal = localSnap.exists ? localSnap.data().nombre : "Un local";
-
-    const titulo = `🔖 Oferta en ${nombreLocal}`;
-    const cuerpo = `${nombre} — $${Number(precio).toFixed(2)}`;
-
     const batch = db.batch();
     const tokens = [];
 
     for (const doc of usuariosSnap.docs) {
       const uid = doc.ref.parent.parent.id;
-
-      const notifRef = db.collection("notificaciones").doc();
-      batch.set(notifRef, {
-        id: notifRef.id,
-        uid,
-        titulo,
-        cuerpo,
-        leida: false,
-        fecha: Timestamp.now(),
-        tipo: "oferta",
-      });
-
-      const usuarioSnap = await db.collection("usuarios").doc(uid).get();
-      if (usuarioSnap.exists) {
-        const token = usuarioSnap.data().fcmToken;
-        if (token) tokens.push(token);
-      }
+      const token = await enviarNotificacion(uid, titulo, cuerpo, "oferta", batch);
+      if (token) tokens.push(token);
     }
 
     await batch.commit();

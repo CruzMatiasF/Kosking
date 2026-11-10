@@ -1,4 +1,4 @@
-﻿package com.kosking.app.dueno.tabs
+﻿package com.kosking.app.dueno
 
 import android.content.Intent
 import android.net.Uri
@@ -11,7 +11,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun DialogInvitarEmpleado(
+fun DialogInvitarEmpleado(
     cargando: Boolean,
     error: String?,
     onGenerar: (whatsapp: String, email: String) -> Unit,

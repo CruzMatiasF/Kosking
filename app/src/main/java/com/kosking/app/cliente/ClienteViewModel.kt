@@ -3,6 +3,7 @@ package com.kosking.app.cliente
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
@@ -10,6 +11,7 @@ import com.kosking.app.modelo.LocalGuardado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,12 +22,17 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ClienteViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
 
-    val error = MutableStateFlow<String?>(null)
-    val cargando = MutableStateFlow(false)
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+    fun clearError() { _error.value = null }
+
+    private val _cargando = MutableStateFlow(false)
+    val cargando: StateFlow<Boolean> = _cargando
 
     private val _uid = MutableStateFlow(
         auth.currentUser?.uid ?: ""
@@ -42,9 +49,13 @@ class ClienteViewModel : ViewModel() {
     private val _localSeleccionado = MutableStateFlow<LocalGuardado?>(null)
     val localSeleccionado: StateFlow<LocalGuardado?> = _localSeleccionado
 
-    val tieneLocales: Boolean get() = localesGuardados.value.isNotEmpty()
+    val tieneLocales: StateFlow<Boolean> = localesGuardados
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    var startupRedirectDone = false
+    private var startupRedirectDone = false
+    fun markStartupDone() { startupRedirectDone = true }
+    fun isStartupDone(): Boolean = startupRedirectDone
 
     private val authListener = FirebaseAuth.AuthStateListener { fa ->
         _uid.value = fa.currentUser?.uid ?: ""
@@ -77,12 +88,12 @@ class ClienteViewModel : ViewModel() {
 
     fun verificarPIN(localId: String, nombreLocal: String, pin: String, onExito: () -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
-            error.value = null
+            _cargando.value = true
+            _error.value = null
             try {
                 val uid = _uid.value
                 if (uid.isBlank()) {
-                    error.value = "Necesitás iniciar sesión primero"
+                    _error.value = "Necesitás iniciar sesión primero"
                     return@launch
                 }
                 val cliente = FiadoRepository.obtenerClientePorPin(localId, pin)
@@ -91,43 +102,45 @@ class ClienteViewModel : ViewModel() {
                     _localSeleccionado.value = LocalGuardado(localId, cliente.id, nombreLocal)
                     onExito()
                 } else {
-                    error.value = "PIN incorrecto. Verificá con el dueño del local"
+                    _error.value = "PIN incorrecto. Verificá con el dueño del local"
                 }
             } catch (e: Exception) {
-                error.value = "No se pudo verificar. Revisá tu conexión e intentá de nuevo"
+                CrashLogger.log(e, "verificarPIN")
+                _error.value = "No se pudo verificar. Revisá tu conexión e intentá de nuevo"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
 
     fun verificarPorCodigoAcceso(codigoAcceso: String, onExito: () -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
-            error.value = null
+            _cargando.value = true
+            _error.value = null
             try {
                 val uid = _uid.value
                 if (uid.isBlank()) {
-                    error.value = "Necesitás iniciar sesión primero"
+                    _error.value = "Necesitás iniciar sesión primero"
                     return@launch
                 }
                 val cliente = FiadoRepository.obtenerClientePorCodigoAcceso(codigoAcceso)
                 if (cliente == null) {
-                    error.value = "Código inválido. Pedíselo al dueño del local"
+                    _error.value = "Código inválido. Pedíselo al dueño del local"
                     return@launch
                 }
                 val local = FiadoRepository.obtenerLocal(cliente.localId)
                 if (local == null) {
-                    error.value = "No se pudo encontrar el local"
+                    _error.value = "No se pudo encontrar el local"
                     return@launch
                 }
                 FiadoRepository.guardarLocalCliente(uid, local.id, cliente.id, local.nombre)
                 _localSeleccionado.value = LocalGuardado(local.id, cliente.id, local.nombre)
                 onExito()
             } catch (e: Exception) {
-                error.value = "No se pudo conectar. Revisá tu conexión e intentá de nuevo"
+                CrashLogger.log(e, "verificarPorCodigoAcceso")
+                _error.value = "No se pudo conectar. Revisá tu conexión e intentá de nuevo"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -138,13 +151,13 @@ class ClienteViewModel : ViewModel() {
             if (uid.isBlank()) return@launch
             try {
                 FiadoRepository.quitarLocalCliente(uid, localId)
-            } catch (_: Exception) {}
+            } catch (e: Exception) { CrashLogger.log(e, "quitarLocal") }
         }
     }
 
     val movimientos: StateFlow<List<Movimiento>> = _localSeleccionado
         .flatMapLatest { lg ->
-            if (lg != null) FiadoRepository.movimentosClienteFlow(lg.clienteId) else flowOf(emptyList())
+            if (lg != null) FiadoRepository.movimientosClienteFlow(lg.clienteId) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -178,14 +191,15 @@ class ClienteViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val refrescando = MutableStateFlow(false)
+    private val _refrescando = MutableStateFlow(false)
+    val refrescando: StateFlow<Boolean> = _refrescando
 
     fun refrescar() {
-        if (refrescando.value) return
+        if (_refrescando.value) return
         viewModelScope.launch {
-            refrescando.value = true
+            _refrescando.value = true
             delay(800)
-            refrescando.value = false
+            _refrescando.value = false
         }
     }
 
@@ -194,7 +208,8 @@ class ClienteViewModel : ViewModel() {
             try {
                 FiadoRepository.marcarDisputado(movimientoId, true)
             } catch (e: Exception) {
-                error.value = "No se pudo enviar el reporte"
+                CrashLogger.log(e, "marcarDisputado cliente")
+                _error.value = "No se pudo enviar el reporte"
             }
         }
     }

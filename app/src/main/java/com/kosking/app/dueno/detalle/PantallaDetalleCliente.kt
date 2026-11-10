@@ -17,8 +17,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.kosking.app.ui.theme.Verde
+import com.kosking.app.ui.theme.VerdeClaro
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -49,6 +52,8 @@ fun PantallaDetalleCliente(
     val clientes by vm.clientes.collectAsState()
     val cliente = clientes.find { it.id == clienteId }
     val error by vm.error.collectAsState()
+    val localData by vm.localData.collectAsState()
+    val context = LocalContext.current
 
     val extracto = remember(movimientos) {
         construirExtracto(movimientos)
@@ -136,27 +141,59 @@ fun PantallaDetalleCliente(
             cliente?.let {
                 item { HeroCliente(it) }
                 item {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = { onAnotarFiado(clienteId) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Anotar fiado")
+                            Button(
+                                onClick = { onAnotarFiado(clienteId) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Anotar fiado")
+                            }
+                            OutlinedButton(
+                                onClick = { onCobrar(clienteId) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Cobrar")
+                            }
                         }
-                        OutlinedButton(
-                            onClick = { onCobrar(clienteId) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Cobrar")
+                        if (it.telefono.isNotBlank() && it.deudaTotal > 0) {
+                            OutlinedButton(
+                                onClick = {
+                                    val ultimos = movimientos
+                                        .filter { m -> !m.anulado }
+                                        .sortedByDescending { m -> m.fecha.toDate().time }
+                                        .take(5)
+                                        .map { m -> Triple(m.producto, m.monto, m.tipo) }
+                                    WhatsAppUtil.abrirWhatsApp(
+                                        context = context,
+                                        telefono = it.telefono,
+                                        mensaje = WhatsAppUtil.mensajeResumenDetallado(
+                                            nombreCliente = it.nombre,
+                                            nombreLocal = localData?.nombre ?: "el local",
+                                            deudaTotal = it.deudaTotal,
+                                            ultimosMovimientos = ultimos
+                                        )
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Phone, null, Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Recordar por WhatsApp — ${"$"}${"%.0f".format(it.deudaTotal)}")
+                            }
                         }
                     }
                 }
@@ -173,10 +210,9 @@ fun PantallaDetalleCliente(
             } else {
                 item {
                     Text(
-                        "HISTORIAL",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 1.sp,
+                        "Historial",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                     )
                 }
@@ -201,23 +237,29 @@ fun PantallaDetalleCliente(
 
 @Composable
 private fun HeroCliente(cliente: Cliente) {
+    val sinDeuda = cliente.deudaTotal <= 0
+    val bgColor = if (sinDeuda) MaterialTheme.colorScheme.tertiaryContainer
+                  else MaterialTheme.colorScheme.errorContainer
+    val onBgColor = if (sinDeuda) MaterialTheme.colorScheme.onTertiaryContainer
+                    else MaterialTheme.colorScheme.onErrorContainer
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp)
+            .background(bgColor)
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp)
     ) {
         Text(
             "Deuda total",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
+            color = onBgColor.copy(alpha = 0.65f),
             letterSpacing = 0.8.sp
         )
         Text(
             "$${"%.0f".format(cliente.deudaTotal)}",
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
-            color = if (cliente.deudaTotal > 0) Color(0xFFFF5252) else Color(0xFF69F0AE)
+            color = onBgColor
         )
 
         if (cliente.limiteCredito > 0) {
@@ -227,8 +269,8 @@ private fun HeroCliente(cliente: Cliente) {
             LinearProgressIndicator(
                 progress = { progreso },
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                color = if (superado) Color(0xFFFF5252) else Color(0xFFFFD740),
-                trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                color = if (superado) MaterialTheme.colorScheme.error else Verde,
+                trackColor = onBgColor.copy(alpha = 0.15f)
             )
             Spacer(Modifier.height(4.dp))
             Row(
@@ -238,12 +280,12 @@ private fun HeroCliente(cliente: Cliente) {
                 Text(
                     if (superado) "Superó el límite" else "${"%.0f".format(progreso * 100)}% usado",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    color = onBgColor.copy(alpha = 0.65f)
                 )
                 Text(
                     "Límite $${"%.0f".format(cliente.limiteCredito)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                    color = onBgColor.copy(alpha = 0.65f)
                 )
             }
         }
@@ -251,27 +293,27 @@ private fun HeroCliente(cliente: Cliente) {
         if (cliente.domicilio.isNotBlank() || cliente.telefono.isNotBlank()) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (cliente.domicilio.isNotBlank()) InfoChip(Icons.Default.Home, cliente.domicilio)
-                if (cliente.telefono.isNotBlank()) InfoChip(Icons.Default.Phone, cliente.telefono)
+                if (cliente.domicilio.isNotBlank()) InfoChip(Icons.Default.Home, cliente.domicilio, onBgColor)
+                if (cliente.telefono.isNotBlank()) InfoChip(Icons.Default.Phone, cliente.telefono, onBgColor)
             }
         }
     }
 }
 
 @Composable
-private fun InfoChip(icon: ImageVector, texto: String) {
+private fun InfoChip(icon: ImageVector, texto: String, onBgColor: androidx.compose.ui.graphics.Color) {
     Row(
         modifier = Modifier
             .background(
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                color = onBgColor.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(20.dp)
             )
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        Icon(icon, null, Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f))
-        Text(texto, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f))
+        Icon(icon, null, Modifier.size(13.dp), tint = onBgColor.copy(alpha = 0.7f))
+        Text(texto, style = MaterialTheme.typography.labelSmall, color = onBgColor.copy(alpha = 0.9f))
     }
 }
 
@@ -442,9 +484,9 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                         Text(
                             "$${"%.0f".format(disponible)} disp.",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF2E7D32),
+                            color = Verde,
                             modifier = Modifier
-                                .background(Color(0xFFE8F5E9), RoundedCornerShape(20.dp))
+                                .background(VerdeClaro, RoundedCornerShape(20.dp))
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         )
                     }
@@ -466,14 +508,14 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                     modifier = Modifier
                         .size(34.dp)
                         .background(
-                            color = if (cliente.notaInterna.isNotBlank()) Color(0xFFFFF8E1) else MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (cliente.notaInterna.isNotBlank()) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(10.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Edit, null, Modifier.size(18.dp),
-                        tint = if (cliente.notaInterna.isNotBlank()) Color(0xFFF57F17) else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (cliente.notaInterna.isNotBlank()) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {

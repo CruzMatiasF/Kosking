@@ -9,9 +9,6 @@ object Rutas {
     const val REGISTRO = "registro"
     const val CREAR_LOCAL = "crear_local"
 
-    // Dueño (bottom nav destinos)
-    const val PANEL_DUENO = "panel_dueno"
-
     // Empleado
     const val INGRESAR_CODIGO = "ingresar_codigo"
     const val PANEL_EMPLEADO = "panel_empleado"
@@ -27,10 +24,9 @@ object Rutas {
     const val DETALLE_MOVIMIENTO = "detalle_movimiento/{movimientoId}"
     const val CONFIGURAR_PERFIL = "configurar_perfil"
     const val CONFIGURACION = "configuracion"
-    const val NOTIFICACIONES = "notificaciones"
     const val ACERCA_DE = "acerca_de"
-    const val EDITAR_LOCAL = "editar_local"
-    const val HISTORIAL = "historial"
+    const val PRIVACIDAD = "privacidad"
+    const val ONBOARDING = "onboarding"
 
     fun vidreraPublica(localId: String) = "vidriera_publica/$localId"
     fun ingresarPIN(localId: String, nombreLocal: String) =

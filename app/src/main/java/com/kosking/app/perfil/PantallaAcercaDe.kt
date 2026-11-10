@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaAcercaDe(onVolver: () -> Unit) {
+fun PantallaAcercaDe(onVolver: () -> Unit, onPrivacidad: () -> Unit = {}) {
     val context = LocalContext.current
     Scaffold(
         topBar = {
@@ -150,6 +150,16 @@ fun PantallaAcercaDe(onVolver: () -> Unit) {
                 }
             }
 
+            item {
+                OutlinedButton(
+                    onClick = onPrivacidad,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.PrivacyTip, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Política de privacidad")
+                }
+            }
             item {
                 Spacer(Modifier.height(8.dp))
                 Text(

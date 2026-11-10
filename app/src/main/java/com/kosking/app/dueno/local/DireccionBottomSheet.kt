@@ -24,10 +24,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -65,14 +61,6 @@ fun DireccionBottomSheet(
 
     val tieneUbicacion = latSelec != null && lngSelec != null
 
-    val camaraState = rememberCameraPositionState {
-        if (tieneUbicacion) position = CameraPosition.fromLatLngZoom(LatLng(latSelec!!, lngSelec!!), 16f)
-    }
-
-    LaunchedEffect(latSelec, lngSelec) {
-        if (latSelec != null && lngSelec != null)
-            camaraState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(latSelec!!, lngSelec!!), 16f))
-    }
 
     fun buscar() {
         val texto = query.trim()
@@ -227,40 +215,24 @@ fun DireccionBottomSheet(
                 // Mini mapa de confirmación
                 Column(modifier = Modifier.weight(1f)) {
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Ubicación actual",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        GoogleMap(
-                            modifier = Modifier.fillMaxSize(),
-                            cameraPositionState = camaraState,
-                            uiSettings = MapUiSettings(
-                                zoomControlsEnabled = false,
-                                scrollGesturesEnabled = false,
-                                zoomGesturesEnabled = false,
-                                rotationGesturesEnabled = false,
-                                tiltGesturesEnabled = false
-                            )
-                        ) {
-                            Marker(state = MarkerState(LatLng(latSelec!!, lngSelec!!)), title = dirSelec)
-                        }
+                        Icon(
+                            Icons.Default.LocationOn,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            dirSelec,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        dirSelec,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
                 }
             } else {
                 Spacer(Modifier.weight(1f))

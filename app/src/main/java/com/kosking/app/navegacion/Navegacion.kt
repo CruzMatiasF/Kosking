@@ -16,31 +16,27 @@ import com.kosking.app.autenticacion.AuthViewModel
 import com.kosking.app.cliente.ClienteViewModel
 import com.kosking.app.cliente.PantallaEntradaCliente
 import com.kosking.app.cliente.PantallaIngresarPIN
+import com.kosking.app.cliente.PantallaVerFiado
 import com.kosking.app.dueno.local.PantallaCrearLocal
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.dueno.PanelDueno
 import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
 import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
-import com.kosking.app.explorar.ExplorarViewModel
-import com.kosking.app.explorar.PantallaExplorar
+import com.kosking.app.onboarding.PantallaHome
 import com.kosking.app.explorar.PantallaVidreraPublica
 import com.kosking.app.explorar.VidreraPublicaViewModel
 import com.kosking.app.datos.FiadoRepository
-import com.kosking.app.datos.PreferenciasRepository
+import com.kosking.app.datos.StartupUseCase
+import com.kosking.app.datos.StartupDestino
 import com.kosking.app.perfil.PantallaAcercaDe
 import com.kosking.app.perfil.PantallaConfigurarPerfil
 import com.kosking.app.perfil.PantallaConfiguracion
-import com.kosking.app.perfil.PantallaHistorial
-import com.kosking.app.perfil.PantallaNotificaciones
+import com.kosking.app.onboarding.PantallaOnboarding
+import com.kosking.app.perfil.PantallaPrivacidad
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -57,8 +53,6 @@ fun KoskingNavHost() {
     val duenoVm: DuenoViewModel = viewModel()
     val empleadoVm: EmpleadoViewModel = viewModel()
     val clienteVm: ClienteViewModel = viewModel()
-    val explorarVm: ExplorarViewModel = viewModel()
-
     var mostrarPanelDueno by remember { mutableStateOf(false) }
     var tabInicialDueno by remember { mutableStateOf(0) }
     var tabInicialEmpleado by remember { mutableStateOf(0) }
@@ -93,84 +87,85 @@ fun KoskingNavHost() {
 
     val context = LocalContext.current
 
-    NavHost(navController = nav, startDestination = Rutas.EXPLORAR) {
+    val onboardingVisto = remember {
+        context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
+            .getBoolean("onboarding_visto", false)
+    }
+
+    NavHost(
+        navController = nav,
+        startDestination = if (onboardingVisto) Rutas.EXPLORAR else Rutas.ONBOARDING
+    ) {
+
+        // ── Onboarding (solo primera vez) ─────────────────────────────────────
+        composable(Rutas.ONBOARDING) {
+            PantallaOnboarding(
+                onTerminar = {
+                    context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
+                        .edit().putBoolean("onboarding_visto", true).apply()
+                    nav.navigate(Rutas.EXPLORAR) {
+                        popUpTo(Rutas.ONBOARDING) { inclusive = true }
+                    }
+                }
+            )
+        }
 
         // ── Explorar (raíz) ───────────────────────────────────────────────────
 
         composable(Rutas.EXPLORAR) {
             val empleadoTieneSession by empleadoVm.tieneSession.collectAsState()
-            val localesGuardados by clienteVm.localesGuardados.collectAsState()
+            val duenoTieneSession by duenoVm.tieneSession.collectAsState()
             val context = LocalContext.current
 
-            // Redirigir según la pantalla de inicio configurada por el usuario
+            var startupResuelto by remember { mutableStateOf(clienteVm.isStartupDone()) }
+
             LaunchedEffect(Unit) {
-                if (clienteVm.startupRedirectDone) return@LaunchedEffect
-                clienteVm.startupRedirectDone = true
-                delay(600L)
-                val pantalla = PreferenciasRepository.getPantallaInicio(context)
-                when (pantalla) {
-                    PreferenciasRepository.PANTALLA_EMPLEADO -> {
-                        if (empleadoVm.tieneSession.value) {
-                            nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
-                        }
+                if (clienteVm.isStartupDone()) return@LaunchedEffect
+                clienteVm.markStartupDone()
+                val destino = StartupUseCase.resolver(
+                    context = context,
+                    empleadoTieneSession = empleadoVm.tieneSession.value,
+                    duenoLocalIdFlow = duenoVm.localId,
+                    localesGuardados = clienteVm.localesGuardados.value
+                )
+                when (destino) {
+                    StartupDestino.PanelEmpleado ->
+                        nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                    is StartupDestino.PanelEmpleadoConTab -> {
+                        tabInicialEmpleado = destino.tab
+                        nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
                     }
-                    PreferenciasRepository.PANTALLA_DUENO -> {
-                        // localId se carga asincrónicamente; esperamos hasta 3s a que llegue
-                        val localId = withTimeoutOrNull(3000L) {
-                            duenoVm.localId.filter { it.isNotBlank() }.first()
-                        }
-                        if (localId != null && FirebaseAuth.getInstance().currentUser != null) {
-                            mostrarPanelDueno = true
-                        }
+                    StartupDestino.PanelDueno -> mostrarPanelDueno = true
+                    is StartupDestino.PanelDuenoConTab -> {
+                        tabInicialDueno = destino.tab
+                        mostrarPanelDueno = true
                     }
-                    PreferenciasRepository.PANTALLA_PRODUCTOS -> {
-                        if (empleadoVm.tieneSession.value) {
-                            tabInicialEmpleado = 1
-                            nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
-                        } else {
-                            val localId = withTimeoutOrNull(3000L) {
-                                duenoVm.localId.filter { it.isNotBlank() }.first()
-                            }
-                            if (localId != null && FirebaseAuth.getInstance().currentUser != null) {
-                                tabInicialDueno = 2
-                                mostrarPanelDueno = true
-                            }
-                        }
-                    }
-                    PreferenciasRepository.PANTALLA_FIADO -> {
-                        if (clienteVm.localesGuardados.value.isNotEmpty()) {
-                            nav.navigate(Rutas.VER_FIADO) { popUpTo(Rutas.EXPLORAR) }
-                        }
-                    }
-                    else -> {
-                        // Sin preferencia guardada: redirigir automáticamente según rol
-                        when {
-                            empleadoVm.tieneSession.value -> {
-                                nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
-                            }
-                            else -> {
-                                val localId = withTimeoutOrNull(3000L) {
-                                    duenoVm.localId.filter { it.isNotBlank() }.first()
-                                }
-                                if (localId != null && FirebaseAuth.getInstance().currentUser != null) {
-                                    mostrarPanelDueno = true
-                                }
-                            }
-                        }
-                    }
+                    StartupDestino.VerFiado ->
+                        nav.navigate(Rutas.VER_FIADO) { popUpTo(Rutas.EXPLORAR) }
+                    null -> {}
                 }
+                startupResuelto = true
             }
 
-            PantallaExplorar(
-                onVerLocal = { localId -> nav.navigate(Rutas.vidreraPublica(localId)) },
-                onConfigurarPerfil = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
+            if (!startupResuelto) return@composable
+
+            PantallaHome(
+                estaLogueado = estaLogueado,
+                nombreUsuario = nombreUsuario,
+                esDueno = esDueno.isNotBlank(),
+                esEmpleado = esEmpleado,
+                clienteVm = clienteVm,
+                duenoVm = duenoVm,
+                mostrarPanelDueno = mostrarPanelDueno,
+                onCerrarPanelDueno = { mostrarPanelDueno = false },
+                tabInicialDueno = tabInicialDueno,
                 onSoyDueno = {
                     when {
                         !estaLogueado -> {
                             destinoPostLogin = DestinoPostLogin.PanelDueno
                             nav.navigate(Rutas.LOGIN)
                         }
-                        duenoVm.tieneSession -> mostrarPanelDueno = true
+                        duenoTieneSession -> mostrarPanelDueno = true
                         else -> nav.navigate(Rutas.CREAR_LOCAL)
                     }
                 },
@@ -191,10 +186,6 @@ fun KoskingNavHost() {
                         nav.navigate(Rutas.VER_FIADO)
                     }
                 },
-                onConfiguracion = { nav.navigate(Rutas.CONFIGURACION) },
-                onNotificaciones = { nav.navigate(Rutas.NOTIFICACIONES) },
-                onAcercaDe = { nav.navigate(Rutas.ACERCA_DE) },
-                onHistorial = { nav.navigate(Rutas.HISTORIAL) },
                 onIniciarSesion = {
                     destinoPostLogin = null
                     nav.navigate(Rutas.LOGIN)
@@ -205,17 +196,9 @@ fun KoskingNavHost() {
                     mostrarPanelDueno = false
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
-                estaLogueado = estaLogueado,
-                nombreUsuario = nombreUsuario,
-                emailUsuario = emailUsuario,
-                esDueno = esDueno.isNotBlank(),
-                esEmpleado = esEmpleado,
-                clienteVm = clienteVm,
-                duenoVm = duenoVm,
-                mostrarPanelDueno = mostrarPanelDueno,
-                onCerrarPanelDueno = { mostrarPanelDueno = false },
-                tabInicialDueno = tabInicialDueno,
-                vm = explorarVm
+                onConfigurarPerfil = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
+                onConfiguracion = { nav.navigate(Rutas.CONFIGURACION) },
+                onAcercaDe = { nav.navigate(Rutas.ACERCA_DE) },
             )
         }
 
@@ -287,17 +270,6 @@ fun KoskingNavHost() {
                     nav.popBackStack(Rutas.EXPLORAR, inclusive = false)
                     mostrarPanelDueno = true
                 },
-                vm = duenoVm
-            )
-        }
-
-        composable(Rutas.PANEL_DUENO) {
-            PanelDueno(
-                onCerrarSesion = {
-                    duenoVm.cerrarSesion()
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
-                },
-                onVolver = { nav.popBackStack() },
                 vm = duenoVm
             )
         }
@@ -411,7 +383,7 @@ fun KoskingNavHost() {
         }
 
         composable(Rutas.VER_FIADO) {
-            com.kosking.app.cliente.PantallaVerFiado(
+            PantallaVerFiado(
                 onVolver = { nav.popBackStack() },
                 vm = clienteVm
             )
@@ -437,19 +409,15 @@ fun KoskingNavHost() {
             )
         }
 
-        composable(Rutas.NOTIFICACIONES) {
-            PantallaNotificaciones(onVolver = { nav.popBackStack() })
-        }
-
         composable(Rutas.ACERCA_DE) {
-            PantallaAcercaDe(onVolver = { nav.popBackStack() })
+            PantallaAcercaDe(
+                onVolver = { nav.popBackStack() },
+                onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) }
+            )
         }
 
-        composable(Rutas.HISTORIAL) {
-            PantallaHistorial(
-                onVolver = { nav.popBackStack() },
-                onVerLocal = { localId -> nav.navigate(Rutas.vidreraPublica(localId)) }
-            )
+        composable(Rutas.PRIVACIDAD) {
+            com.kosking.app.perfil.PantallaPrivacidad(onVolver = { nav.popBackStack() })
         }
     }
 }

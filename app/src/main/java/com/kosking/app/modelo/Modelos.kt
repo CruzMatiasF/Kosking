@@ -8,7 +8,7 @@ import com.google.firebase.firestore.Exclude
 data class Permisos(
     val anotarFiados: Boolean = true,
     val registrarPagos: Boolean = true,
-    val verTotal: Boolean = false
+    val verTotal: Boolean = true  // true = el empleado puede ver el monto; false = solo ve "Tiene deuda"
 )
 
 // "HH:mm" o "" si está cerrado ese día
@@ -56,7 +56,8 @@ data class Cliente(
     val limiteCredito: Double = 0.0,
     val fechaPago: Timestamp? = null,
     val notaInterna: String = "",
-    val visitantesConocidos: List<String> = emptyList()
+    val visitantesConocidos: List<String> = emptyList(),
+    val alertaEmpleado: Boolean = false
 )
 
 @Immutable
@@ -98,8 +99,8 @@ data class Producto(
     val precioAnterior: Double = 0.0,
     val imagenUrl: String = "",
     val agotado: Boolean = false,
-    val estadoStock: String = "",
-    val categoria: String = ""
+    val categoria: String = "",
+    val precioPublico: Boolean = false
 )
 
 @Immutable
@@ -118,6 +119,16 @@ data class Usuario(
     val empleadoLocalId: String = "",
     val empleadoNombreLocal: String = "",
     val fcmToken: String = ""
+)
+
+@Immutable
+data class Publicacion(
+    val id: String = "",
+    val localId: String = "",
+    val texto: String = "",
+    val imagenUrl: String = "",
+    val etiqueta: String = "novedad",  // "promo", "aviso", "novedad"
+    val fecha: Timestamp = Timestamp.now()
 )
 
 @Immutable

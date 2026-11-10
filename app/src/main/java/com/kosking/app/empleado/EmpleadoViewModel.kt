@@ -4,11 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Permisos
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,9 +19,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class EmpleadoViewModel : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
@@ -27,7 +32,8 @@ class EmpleadoViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
     fun clearError() { _error.value = null }
-    val cargando = MutableStateFlow(false)
+    private val _cargando = MutableStateFlow(false)
+    val cargando: StateFlow<Boolean> = _cargando
 
     private val _localId = MutableStateFlow("")
     val localId: StateFlow<String> = _localId
@@ -71,12 +77,12 @@ class EmpleadoViewModel : ViewModel() {
             }
             val usuario = FiadoRepository.obtenerUsuario(uid)
             _nombreEmpleado.value = usuario?.nombre ?: auth.currentUser?.displayName ?: ""
-        } catch (_: Exception) {}
+        } catch (e: Exception) { CrashLogger.log(e, "cargarEmpleoDeFirestore") }
     }
 
     fun verificarCodigo(codigo: String, onExito: () -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val user = auth.currentUser
@@ -117,9 +123,10 @@ class EmpleadoViewModel : ViewModel() {
 
                 onExito()
             } catch (e: Exception) {
+                CrashLogger.log(e, "verificarCodigo empleado")
                 _error.value = "No se pudo verificar el código. Intentá de nuevo"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -129,7 +136,7 @@ class EmpleadoViewModel : ViewModel() {
             try {
                 val uid = auth.currentUser?.uid
                 if (uid != null) FiadoRepository.limpiarEmpleoEnUsuario(uid)
-            } catch (_: Exception) {}
+            } catch (e: Exception) { CrashLogger.log(e, "cerrarSesion") }
             _localId.value = ""
             _nombreLocal.value = ""
             _nombreEmpleado.value = ""
@@ -143,6 +150,7 @@ class EmpleadoViewModel : ViewModel() {
                 FiadoRepository.actualizarNombreEmpleadoPorUid(uid, _localId.value, nombre)
                 _nombreEmpleado.value = nombre
             } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarMiNombre")
                 _error.value = "No se pudo actualizar el nombre"
             }
         }
@@ -150,7 +158,7 @@ class EmpleadoViewModel : ViewModel() {
 
     fun desvincularme(onExito: () -> Unit) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
@@ -162,9 +170,10 @@ class EmpleadoViewModel : ViewModel() {
                 _nombreEmpleado.value = ""
                 onExito()
             } catch (e: Exception) {
+                CrashLogger.log(e, "desvincularme")
                 _error.value = "No se pudo desvincular"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }
@@ -174,6 +183,13 @@ class EmpleadoViewModel : ViewModel() {
             if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val permisos: StateFlow<Permisos> = _localId
+        .flatMapLatest { id ->
+            if (id.isNotBlank()) FiadoRepository.localFlow(id).map { it?.permisos ?: Permisos() }
+            else flowOf(Permisos())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Permisos())
 
     val clientesHabilitados: StateFlow<List<Cliente>> = _localId
         .flatMapLatest { id ->
@@ -187,32 +203,34 @@ class EmpleadoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, agotado: Boolean = false, estadoStock: String = "", categoria: String = "") {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "", precioPublico: Boolean = false) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 FiadoRepository.agregarProducto(
                     Producto(localId = _localId.value, nombre = nombre, precio = precio,
                         descripcion = descripcion, habilitado = habilitado,
-                        esOferta = esOferta, precioAnterior = precioAnterior, agotado = agotado,
-                        estadoStock = estadoStock, categoria = categoria)
+                        esOferta = esOferta, precioAnterior = precioAnterior,
+                        categoria = categoria, precioPublico = precioPublico)
                 )
             } catch (e: Exception) {
+                CrashLogger.log(e, "agregarProducto empleado")
                 _error.value = "No se pudo agregar el producto"
-            } finally { cargando.value = false }
+            } finally { _cargando.value = false }
         }
     }
 
     fun actualizarProducto(producto: Producto) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
                 FiadoRepository.actualizarProducto(producto)
             } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarProducto empleado")
                 _error.value = "No se pudo actualizar el producto"
-            } finally { cargando.value = false }
+            } finally { _cargando.value = false }
         }
     }
 
@@ -224,9 +242,18 @@ class EmpleadoViewModel : ViewModel() {
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
-            cargando.value = true
+            _cargando.value = true
             _error.value = null
             try {
+                val permisosActuales = permisos.value
+                if (tipo == "cargo" && !permisosActuales.anotarFiados) {
+                    _error.value = "El dueño no habilitó anotar fiaditos en este local"
+                    return@launch
+                }
+                if (tipo == "pago" && !permisosActuales.registrarPagos) {
+                    _error.value = "El dueño no habilitó registrar pagos en este local"
+                    return@launch
+                }
                 val grupoId = java.util.UUID.randomUUID().toString()
                 val movs = items.map { (producto, cantidad, monto) ->
                     Movimiento(
@@ -244,9 +271,10 @@ class EmpleadoViewModel : ViewModel() {
                 FiadoRepository.agregarMovimientos(movs)
                 onExito()
             } catch (e: Exception) {
+                CrashLogger.log(e, "agregarMovimientos empleado")
                 _error.value = "No se pudo guardar"
             } finally {
-                cargando.value = false
+                _cargando.value = false
             }
         }
     }

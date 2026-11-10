@@ -1,7 +1,9 @@
 ﻿package com.kosking.app.dueno.tabs
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,18 +18,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.ui.theme.Verde
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun TabClientes(
     clientes: List<Cliente>,
     movimientos: List<Movimiento> = emptyList(),
     onVerCliente: (String) -> Unit,
-    onAgregarCliente: () -> Unit
+    onAgregarCliente: () -> Unit,
+    onAnotarRapido: ((Cliente) -> Unit)? = null
 ) {
     var filtro by remember { mutableStateOf("deuda") }
     var busqueda by remember { mutableStateOf("") }
@@ -44,15 +48,31 @@ internal fun TabClientes(
             .mapValues { (_, movs) -> movs.maxByOrNull { it.fecha.toDate() }?.fecha?.toDate() }
     }
 
-    val ahora = remember { System.currentTimeMillis() }
+    // Clientes que pagaron este mes calendario
+    val pagaronEsteMes = remember(movimientos) {
+        val cal = java.util.Calendar.getInstance()
+        val mesActual = cal.get(java.util.Calendar.MONTH)
+        val anioActual = cal.get(java.util.Calendar.YEAR)
+        movimientos
+            .filter { !it.anulado && it.tipo == "pago" }
+            .filter {
+                val c = java.util.Calendar.getInstance().apply { time = it.fecha.toDate() }
+                c.get(java.util.Calendar.MONTH) == mesActual && c.get(java.util.Calendar.YEAR) == anioActual
+            }
+            .map { it.clienteId }
+            .toSet()
+    }
 
-    val clientesFiltrados = remember(clientes, filtro, busqueda, orden, ultimaVisita) {
+    val ahora = System.currentTimeMillis()
+
+    val clientesFiltrados = remember(clientes, filtro, busqueda, orden, ultimaVisita, pagaronEsteMes) {
         clientes
             .filter { c ->
                 when (filtro) {
                     "deuda" -> c.deudaTotal > 0 && c.habilitado
                     "aldia" -> c.deudaTotal <= 0 && c.habilitado
                     "bloqueado" -> !c.habilitado
+                    "pagaron" -> c.id in pagaronEsteMes
                     else -> true
                 }
             }
@@ -137,6 +157,10 @@ internal fun TabClientes(
 
         // Segmented control
         val bloqueados = clientes.count { !it.habilitado }
+        val mesNombre = remember {
+            java.text.SimpleDateFormat("MMM", java.util.Locale("es", "AR"))
+                .format(java.util.Date()).replaceFirstChar { it.uppercase() }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,7 +173,7 @@ internal fun TabClientes(
             val segs = listOf(
                 Seg("deuda", conDeuda, "Deben"),
                 Seg("aldia", alDia, "Al día"),
-                Seg("bloqueado", bloqueados, "Bloqueados"),
+                Seg("pagaron", pagaronEsteMes.size, mesNombre),
                 Seg("todos", clientes.size, "Todos")
             )
             segs.forEach { seg ->
@@ -206,7 +230,8 @@ internal fun TabClientes(
                         cliente = cliente,
                         ultimaVisitaDate = ultimaVisita[cliente.id],
                         ahoraMs = ahora,
-                        onVerCliente = onVerCliente
+                        onVerCliente = onVerCliente,
+                        onAnotarRapido = if (onAnotarRapido != null) ({ onAnotarRapido(cliente) }) else null
                     )
                 }
                 item { Spacer(Modifier.height(80.dp)) }
@@ -237,7 +262,7 @@ private fun StatMiniCard(
                 fontWeight = FontWeight.Bold,
                 color = when {
                     isError -> MaterialTheme.colorScheme.error
-                    isSuccess -> Color(0xFF2E7D32)
+                    isSuccess -> Verde
                     else -> MaterialTheme.colorScheme.onSurface
                 }
             )
@@ -245,12 +270,14 @@ private fun StatMiniCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CardCliente(
     cliente: Cliente,
     ultimaVisitaDate: java.util.Date?,
     ahoraMs: Long,
-    onVerCliente: (String) -> Unit
+    onVerCliente: (String) -> Unit,
+    onAnotarRapido: (() -> Unit)? = null
 ) {
     val diasSinVenir = remember(ultimaVisitaDate, ahoraMs) {
         if (ultimaVisitaDate == null) null
@@ -261,31 +288,36 @@ private fun CardCliente(
         !cliente.habilitado -> MaterialTheme.colorScheme.outlineVariant
         cliente.limiteCredito > 0 && cliente.deudaTotal > cliente.limiteCredito -> MaterialTheme.colorScheme.error
         cliente.deudaTotal > 300 -> MaterialTheme.colorScheme.error
-        cliente.deudaTotal > 50 -> Color(0xFFE65100)
-        cliente.deudaTotal > 0 -> Color(0xFF2E7D32)
+        cliente.deudaTotal > 50 -> MaterialTheme.colorScheme.secondary
+        cliente.deudaTotal > 0 -> Verde
         else -> MaterialTheme.colorScheme.outlineVariant
     }
 
     val visitaTexto = when {
+        diasSinVenir == null && cliente.deudaTotal > 0 -> "+90 días"
         diasSinVenir == null -> "Nuevo"
         diasSinVenir == 0 -> "Hoy"
         diasSinVenir == 1 -> "Ayer"
         diasSinVenir < 7 -> "Hace $diasSinVenir días"
         else -> "Hace ${diasSinVenir / 7} sem."
     }
-    val visitaEsAlerta = diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0
+    val visitaEsAlerta = (diasSinVenir == null && cliente.deudaTotal > 0) ||
+        (diasSinVenir != null && diasSinVenir >= 7 && cliente.deudaTotal > 0)
     val visitaEsWarning = diasSinVenir != null && diasSinVenir in 3..6 && cliente.deudaTotal > 0
 
     val dotColor = when {
         visitaEsAlerta -> MaterialTheme.colorScheme.error
-        visitaEsWarning -> Color(0xFFE65100)
-        else -> Color(0xFF2E7D32)
+        visitaEsWarning -> MaterialTheme.colorScheme.secondary
+        else -> Verde
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onVerCliente(cliente.id) },
+            .combinedClickable(
+                onClick = { onVerCliente(cliente.id) },
+                onLongClick = onAnotarRapido
+            ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {

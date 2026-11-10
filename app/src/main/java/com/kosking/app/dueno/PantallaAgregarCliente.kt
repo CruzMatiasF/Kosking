@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,28 @@ fun PantallaAgregarCliente(
     var limiteTexto by remember { mutableStateOf("") }
     var usarLimite by remember { mutableStateOf(false) }
     var codigoMostrar by remember { mutableStateOf<String?>(null) }
+    var mostrarUpgrade by remember { mutableStateOf(false) }
+
+    if (mostrarUpgrade) {
+        AlertDialog(
+            onDismissRequest = { mostrarUpgrade = false; vm.clearError() },
+            icon = { Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Límite del plan gratuito") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("El plan gratuito incluye hasta ${DuenoViewModel.LIMITE_CLIENTES_GRATIS} clientes.")
+                    Text(
+                        "Próximamente vas a poder desbloquear clientes ilimitados con Kosking Pro.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mostrarUpgrade = false; vm.clearError() }) { Text("Entendido") }
+            }
+        )
+    }
 
     codigoMostrar?.let { codigo ->
         AlertDialog(
@@ -122,14 +145,22 @@ fun PantallaAgregarCliente(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+            val telefonoValido = telefono.filter { it.isDigit() }.length >= 8
             OutlinedTextField(
                 value = telefono,
                 onValueChange = { telefono = it },
-                label = { Text("Teléfono (opcional)") },
+                label = { Text("Teléfono *") },
                 leadingIcon = { Icon(Icons.Default.Phone, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                supportingText = {
+                    if (telefono.isNotBlank() && !telefonoValido)
+                        Text("Mínimo 8 dígitos — ej: 1134567890", color = MaterialTheme.colorScheme.error)
+                    else
+                        Text("Ej: 1134567890 (sin 0 ni 15)")
+                },
+                isError = telefono.isNotBlank() && !telefonoValido
             )
             OutlinedTextField(
                 value = domicilio,
@@ -179,8 +210,9 @@ fun PantallaAgregarCliente(
                 }
             }
 
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            // El error de límite se muestra como dialog; otros errores como texto
+            LaunchedEffect(error) {
+                if (error?.contains("Límite") == true) mostrarUpgrade = true
             }
 
             Spacer(Modifier.height(4.dp))
@@ -192,7 +224,7 @@ fun PantallaAgregarCliente(
                         codigoMostrar = codigoAcceso
                     }
                 },
-                enabled = !cargando && nombre.isNotBlank(),
+                enabled = !cargando && nombre.isNotBlank() && telefonoValido,
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
                 if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)

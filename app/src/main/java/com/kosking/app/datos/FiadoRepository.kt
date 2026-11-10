@@ -6,12 +6,14 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.util.PinUtil
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.LocalGuardado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Notificacion
 import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.Publicacion
 import com.kosking.app.modelo.Usuario
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -177,7 +179,7 @@ object FiadoRepository {
     suspend fun obtenerClientePorPin(localId: String, pin: String): Cliente? {
         val snap = db.collection("clientes")
             .whereEqualTo("localId", localId)
-            .whereEqualTo("pin", pin)
+            .whereEqualTo("pin", PinUtil.hash(pin))
             .get().await()
         return snap.toObjects(Cliente::class.java).firstOrNull()
     }
@@ -213,7 +215,7 @@ object FiadoRepository {
     suspend fun obtenerMovimiento(id: String): Movimiento? =
         db.collection("movimientos").document(id).get().await().toObject(Movimiento::class.java)
 
-    fun movimentosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
+    fun movimientosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
             .orderBy("fecha", Query.Direction.DESCENDING)
@@ -233,17 +235,18 @@ object FiadoRepository {
 
     suspend fun agregarMovimientos(movimientos: List<Movimiento>) {
         if (movimientos.isEmpty()) return
+        val clienteId = movimientos.first().clienteId
+        val tipo = movimientos.first().tipo
+        val total = movimientos.sumOf { it.monto }
+        val delta = if (tipo == "cargo") total else -total
         val batch = db.batch()
         movimientos.forEach { mov ->
             val ref = db.collection("movimientos").document()
             batch.set(ref, mov.copy(id = ref.id))
         }
+        val clienteRef = db.collection("clientes").document(clienteId)
+        batch.update(clienteRef, "deudaTotal", com.google.firebase.firestore.FieldValue.increment(delta))
         batch.commit().await()
-        // Actualizar deuda una sola vez con el total
-        val clienteId = movimientos.first().clienteId
-        val tipo = movimientos.first().tipo
-        val total = movimientos.sumOf { it.monto }
-        actualizarDeuda(clienteId, total, tipo)
     }
 
     suspend fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {
@@ -435,6 +438,34 @@ object FiadoRepository {
         db.collection("usuarios").document(uid)
             .collection("localesGuardados").document(localId)
             .delete().await()
+    }
+
+    // ── Publicaciones de vidriera ────────────────────────────────────────────
+
+    fun publicacionesFlow(localId: String): Flow<List<Publicacion>> = callbackFlow {
+        val sub = db.collection("publicaciones")
+            .whereEqualTo("localId", localId)
+            .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(30)
+            .addSnapshotListener { snap, _ ->
+                trySend(snap?.toObjects(Publicacion::class.java) ?: emptyList())
+            }
+        awaitClose { sub.remove() }
+    }
+
+    suspend fun agregarPublicacion(publicacion: Publicacion) {
+        val ref = db.collection("publicaciones").document()
+        ref.set(publicacion.copy(id = ref.id)).await()
+    }
+
+    suspend fun eliminarPublicacion(publicacionId: String) {
+        db.collection("publicaciones").document(publicacionId).delete().await()
+    }
+
+    suspend fun subirImagenPublicacion(localId: String, publicacionId: String, uri: android.net.Uri): String {
+        val ref = storage.reference.child("locales/$localId/publicaciones/$publicacionId.jpg")
+        ref.putFile(uri).await()
+        return ref.downloadUrl.await().toString()
     }
 
     // ── Empleo del usuario ───────────────────────────────────────────────────

@@ -313,16 +313,6 @@ object FiadoRepository {
         awaitClose { sub.remove() }
     }
 
-    fun todosProductosFlow(limite: Int = 20): Flow<List<Producto>> = callbackFlow {
-        val sub = db.collection("productos")
-            .whereEqualTo("habilitado", true)
-            .limit(limite.toLong())
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
     fun productosPublicosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
         val sub = db.collection("productos")
             .whereEqualTo("localId", localId)

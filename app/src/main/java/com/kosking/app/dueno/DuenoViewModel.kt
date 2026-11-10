@@ -457,7 +457,8 @@ class DuenoViewModel : ViewModel() {
                     esOferta = esOferta,
                     precioAnterior = precioAnterior,
                     categoria = categoria,
-                    precioPublico = precioPublico
+                    precioPublico = precioPublico,
+                    updatedAt = System.currentTimeMillis()
                 )
                 FiadoRepository.agregarProducto(producto)
             } catch (e: Exception) {
@@ -470,7 +471,7 @@ class DuenoViewModel : ViewModel() {
     fun actualizarProducto(producto: Producto) {
         viewModelScope.launch {
             try {
-                FiadoRepository.actualizarProducto(producto)
+                FiadoRepository.actualizarProducto(producto.copy(updatedAt = System.currentTimeMillis()))
             } catch (e: Exception) {
                 CrashLogger.log(e, "actualizarProducto dueno")
                 _error.value = "No se pudo actualizar el producto"

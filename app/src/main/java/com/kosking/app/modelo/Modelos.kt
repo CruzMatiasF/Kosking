@@ -100,7 +100,8 @@ data class Producto(
     val imagenUrl: String = "",
     val agotado: Boolean = false,
     val categoria: String = "",
-    val precioPublico: Boolean = false
+    val precioPublico: Boolean = false,
+    val updatedAt: Long = 0L
 )
 
 @Immutable

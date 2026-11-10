@@ -139,8 +139,8 @@ fun PanelDuenoEmbedido(
                 )
                 3 -> TabPrecios(
                     productos = productos,
-                    onAgregar = { nombre, precio, categoria, descripcion ->
-                        vm.agregarProducto(nombre = nombre, precio = precio, descripcion = descripcion, categoria = categoria)
+                    onAgregar = { nombre, precio, categoria, descripcion, precioPublico ->
+                        vm.agregarProducto(nombre = nombre, precio = precio, descripcion = descripcion, categoria = categoria, precioPublico = precioPublico)
                     },
                     onActualizar = { vm.actualizarProducto(it) },
                     onEliminar = { vm.eliminarProducto(it) }

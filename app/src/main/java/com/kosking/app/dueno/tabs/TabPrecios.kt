@@ -25,7 +25,7 @@ import com.kosking.app.modelo.Producto
 @Composable
 internal fun TabPrecios(
     productos: List<Producto>,
-    onAgregar: (nombre: String, precio: Double, categoria: String, descripcion: String) -> Unit,
+    onAgregar: (nombre: String, precio: Double, categoria: String, descripcion: String, precioPublico: Boolean) -> Unit,
     onActualizar: (Producto) -> Unit,
     onEliminar: (String) -> Unit
 ) {
@@ -139,10 +139,10 @@ internal fun TabPrecios(
     if (mostrarDialog) {
         DialogProducto(
             producto = productoEditar,
-            onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior ->
+            onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior, precioPublico ->
                 val p = productoEditar
                 if (p == null) {
-                    onAgregar(nombre, precio, categoria, descripcion)
+                    onAgregar(nombre, precio, categoria, descripcion, precioPublico)
                 } else {
                     onActualizar(p.copy(
                         nombre = nombre,
@@ -150,7 +150,8 @@ internal fun TabPrecios(
                         categoria = categoria,
                         descripcion = descripcion,
                         esOferta = esOferta,
-                        precioAnterior = precioAnterior
+                        precioAnterior = precioAnterior,
+                        precioPublico = precioPublico
                     ))
                 }
                 mostrarDialog = false
@@ -245,7 +246,7 @@ private fun ProductoItemDueno(
 @Composable
 private fun DialogProducto(
     producto: Producto?,
-    onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double) -> Unit,
+    onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double, precioPublico: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nombre by remember(producto) { mutableStateOf(producto?.nombre ?: "") }
@@ -253,6 +254,7 @@ private fun DialogProducto(
     var categoria by remember(producto) { mutableStateOf(producto?.categoria ?: "") }
     var descripcion by remember(producto) { mutableStateOf(producto?.descripcion ?: "") }
     var esOferta by remember(producto) { mutableStateOf(producto?.esOferta ?: false) }
+    var precioPublico by remember(producto) { mutableStateOf(producto?.precioPublico ?: false) }
     var precioAnteriorTexto by remember(producto) { mutableStateOf(if (producto?.precioAnterior != null && producto.precioAnterior > 0) "%.0f".format(producto.precioAnterior) else "") }
 
     val precio = precioTexto.toDoubleOrNull() ?: -1.0
@@ -303,6 +305,18 @@ private fun DialogProducto(
                     Text("Es oferta", modifier = Modifier.weight(1f))
                     Switch(checked = esOferta, onCheckedChange = { esOferta = it })
                 }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Precio público")
+                        Text("Visible en la vidriera del local",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = precioPublico, onCheckedChange = { precioPublico = it })
+                }
                 if (esOferta) {
                     OutlinedTextField(
                         value = precioAnteriorTexto,
@@ -325,7 +339,8 @@ private fun DialogProducto(
                         categoria.trim(),
                         descripcion.trim(),
                         esOferta,
-                        precioAnteriorTexto.toDoubleOrNull() ?: 0.0
+                        precioAnteriorTexto.toDoubleOrNull() ?: 0.0,
+                        precioPublico
                     )
                 },
                 enabled = nombreValido && precioValido

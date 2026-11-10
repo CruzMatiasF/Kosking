@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Local
+import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Publicacion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,5 +36,9 @@ class VidreraPublicaViewModel : ViewModel() {
 
     fun publicacionesFlow(localId: String): StateFlow<List<Publicacion>> =
         FiadoRepository.publicacionesFlow(localId)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun productosPublicosFlow(localId: String): StateFlow<List<Producto>> =
+        FiadoRepository.productosPublicosFlow(localId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 }

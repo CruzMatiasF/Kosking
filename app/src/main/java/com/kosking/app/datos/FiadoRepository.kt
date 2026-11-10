@@ -323,6 +323,17 @@ object FiadoRepository {
         awaitClose { sub.remove() }
     }
 
+    fun productosPublicosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
+        val sub = db.collection("productos")
+            .whereEqualTo("localId", localId)
+            .whereEqualTo("precioPublico", true)
+            .whereEqualTo("habilitado", true)
+            .addSnapshotListener { snap, _ ->
+                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
+            }
+        awaitClose { sub.remove() }
+    }
+
     suspend fun agregarProducto(producto: Producto) {
         val ref = db.collection("productos").document()
         ref.set(producto.copy(id = ref.id)).await()

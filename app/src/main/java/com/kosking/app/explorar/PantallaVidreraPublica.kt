@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.kosking.app.modelo.HorarioDia
+import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Publicacion
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -108,6 +109,7 @@ fun PantallaVidreraPublica(
     val local by vm.local.collectAsState()
     val cargando by vm.cargando.collectAsState()
     val publicaciones by remember(localId) { vm.publicacionesFlow(localId) }.collectAsState()
+    val productosPublicos by remember(localId) { vm.productosPublicosFlow(localId) }.collectAsState()
 
     var mostrarHorarios by remember { mutableStateOf(false) }
 
@@ -263,6 +265,37 @@ fun PantallaVidreraPublica(
             }
         }
 
+        // Sección precios públicos
+        if (productosPublicos.isNotEmpty()) {
+            item {
+                Text(
+                    "Precios",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                )
+            }
+            val porCategoria = productosPublicos
+                .sortedBy { it.nombre }
+                .groupBy { it.categoria.ifBlank { "General" } }
+                .toSortedMap()
+            porCategoria.forEach { (categoria, items) ->
+                item(key = "pcat_$categoria") {
+                    Text(
+                        categoria,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+                items(items, key = { "pp_${it.id}" }) { p ->
+                    TarjetaPrecioPublico(p)
+                    HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                }
+            }
+            item { Spacer(Modifier.height(8.dp)) }
+        }
+
         // Título sección publicaciones
         item {
             Text(
@@ -294,6 +327,49 @@ fun PantallaVidreraPublica(
 
         item { Spacer(Modifier.navigationBarsPadding()) }
     }
+}
+
+@Composable
+private fun TarjetaPrecioPublico(producto: Producto) {
+    ListItem(
+        headlineContent = {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(producto.nombre, fontWeight = FontWeight.Medium)
+                if (producto.esOferta) {
+                    Surface(shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.errorContainer) {
+                        Text("OFERTA", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                    }
+                }
+            }
+        },
+        supportingContent = if (producto.descripcion.isNotBlank()) ({
+            Text(producto.descripcion, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }) else null,
+        trailingContent = {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "$${"%.0f".format(producto.precio)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (producto.esOferta) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurface
+                )
+                if (producto.esOferta && producto.precioAnterior > 0) {
+                    Text(
+                        "$${"%.0f".format(producto.precioAnterior)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                    )
+                }
+            }
+        }
+    )
 }
 
 @Composable

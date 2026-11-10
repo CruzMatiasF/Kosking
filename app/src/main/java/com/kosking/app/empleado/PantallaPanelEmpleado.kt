@@ -392,9 +392,26 @@ private fun ProductoPrecioItem(producto: Producto) {
                 }
             }
         },
-        supportingContent = if (producto.descripcion.isNotBlank()) ({
-            Text(producto.descripcion, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        supportingContent = if (producto.descripcion.isNotBlank() || producto.updatedAt > 0) ({
+            Column {
+                if (producto.descripcion.isNotBlank()) {
+                    Text(producto.descripcion, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (producto.updatedAt > 0) {
+                    val diff = System.currentTimeMillis() - producto.updatedAt
+                    val texto = when {
+                        diff < 3_600_000L -> "actualizado hace ${diff / 60_000} min"
+                        diff < 86_400_000L -> "actualizado hace ${diff / 3_600_000}h"
+                        diff < 7 * 86_400_000L -> "actualizado hace ${diff / 86_400_000} días"
+                        else -> null
+                    }
+                    texto?.let {
+                        Text(it, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
         }) else null,
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {

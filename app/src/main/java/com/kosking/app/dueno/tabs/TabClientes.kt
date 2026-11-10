@@ -187,7 +187,7 @@ internal fun TabClientes(
                                 .then(Modifier.padding(1.dp))
                             else Modifier
                         )
-                        .clickable { filtro = seg.key }
+                        .clickable { filtro = seg.key; busqueda = "" }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {

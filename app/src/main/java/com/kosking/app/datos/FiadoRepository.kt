@@ -53,15 +53,6 @@ object FiadoRepository {
         db.collection("locales").document(local.id).set(local).await()
     }
 
-    fun localesFlow(limite: Int = 30): Flow<List<Local>> = callbackFlow {
-        val sub = db.collection("locales")
-            .limit(limite.toLong())
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Local::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
     suspend fun obtenerLocal(localId: String): Local? {
         return db.collection("locales").document(localId).get().await()
             .toObject(Local::class.java)

@@ -38,6 +38,8 @@ internal fun TabPrecios(
     var busqueda by remember { mutableStateOf("") }
     var mostrarDialog by remember { mutableStateOf(false) }
     var productoEditar by remember { mutableStateOf<Producto?>(null) }
+    var orden by remember { mutableStateOf("nombre") } // "nombre" | "precio_asc" | "precio_desc"
+    var mostrarOrden by remember { mutableStateOf(false) }
 
     val productosFiltrados = remember(productos, busqueda) {
         if (busqueda.isBlank()) productos
@@ -47,49 +49,84 @@ internal fun TabPrecios(
         }
     }
 
-    val porCategoria = remember(productosFiltrados) {
-        productosFiltrados
-            .sortedBy { it.nombre }
+    val porCategoria = remember(productosFiltrados, orden) {
+        val sorted = when (orden) {
+            "precio_asc" -> productosFiltrados.sortedBy { it.precio }
+            "precio_desc" -> productosFiltrados.sortedByDescending { it.precio }
+            else -> productosFiltrados.sortedBy { it.nombre }
+        }
+        sorted
             .groupBy { it.categoria.ifBlank { "Sin categoría" } }
             .toSortedMap()
     }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            // Buscador
+            // Buscador + orden
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Search, null, Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                BasicTextField(
-                    value = busqueda,
-                    onValueChange = { busqueda = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface),
-                    decorationBox = { inner ->
-                        Box {
-                            if (busqueda.isEmpty()) Text("Buscar producto...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            inner()
-                        }
-                    }
-                )
-                if (busqueda.isNotEmpty()) {
-                    Icon(Icons.Default.Close, "Limpiar",
-                        Modifier.size(18.dp).clickable { busqueda = "" },
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Search, null, Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BasicTextField(
+                        value = busqueda,
+                        onValueChange = { busqueda = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface),
+                        decorationBox = { inner ->
+                            Box {
+                                if (busqueda.isEmpty()) Text("Buscar producto...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                inner()
+                            }
+                        }
+                    )
+                    if (busqueda.isNotEmpty()) {
+                        Icon(Icons.Default.Close, "Limpiar",
+                            Modifier.size(18.dp).clickable { busqueda = "" },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Box {
+                    IconButton(
+                        onClick = { mostrarOrden = true },
+                        modifier = Modifier.size(44.dp),
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) { Icon(Icons.Default.SwapVert, "Ordenar", Modifier.size(20.dp)) }
+                    DropdownMenu(expanded = mostrarOrden, onDismissRequest = { mostrarOrden = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Nombre A–Z") },
+                            onClick = { orden = "nombre"; mostrarOrden = false },
+                            leadingIcon = { if (orden == "nombre") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Precio menor") },
+                            onClick = { orden = "precio_asc"; mostrarOrden = false },
+                            leadingIcon = { if (orden == "precio_asc") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Precio mayor") },
+                            onClick = { orden = "precio_desc"; mostrarOrden = false },
+                            leadingIcon = { if (orden == "precio_desc") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) }
+                        )
+                    }
                 }
             }
 

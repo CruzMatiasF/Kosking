@@ -96,9 +96,15 @@ fun PanelDuenoEmbedido(
                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
             NavigationBar {
+                val alertasInicio = disputados.size + sobreLimite.size
                 NavigationBarItem(
                     selected = tabSeleccionado == 0, onClick = { onTabChange(0) },
-                    icon = { Icon(Icons.Default.Home, null) }, label = { Text("Inicio") },
+                    icon = {
+                        BadgedBox(badge = {
+                            if (alertasInicio > 0) Badge { Text("$alertasInicio") }
+                        }) { Icon(Icons.Default.Home, null) }
+                    },
+                    label = { Text("Inicio") },
                     colors = navColors
                 )
                 NavigationBarItem(
@@ -168,6 +174,20 @@ fun PanelDuenoEmbedido(
                     onMostrarQr = { mostrarQr = true },
                     onRecordarTodos = { mostrarRecordarTodos = true },
                     onVerTodasVisitas = { mostrarTodasVisitas = true },
+                    onCompartirResumen = {
+                        val resumen = vm.resumenHoy.value
+                        val (movHoy, fiadoHoy, cobradoHoy) = resumen
+                        val cantFiados = movHoy.count { it.tipo == "cargo" }
+                        val cantPagos = movHoy.count { it.tipo == "pago" }
+                        val texto = WhatsAppUtil.mensajeResumenDia(
+                            nombreLocal = localData?.nombre ?: "Mi local",
+                            fiadoHoy = fiadoHoy,
+                            cobradoHoy = cobradoHoy,
+                            cantFiados = cantFiados,
+                            cantPagos = cantPagos
+                        )
+                        WhatsAppUtil.compartir(context, texto)
+                    },
                     onWhatsAppCliente = { clienteWhatsApp = it }
                 )
             }

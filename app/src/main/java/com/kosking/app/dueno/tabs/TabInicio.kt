@@ -30,8 +30,10 @@ internal fun TabInicio(
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     localData: Local?,
+    disputados: List<Movimiento> = emptyList(),
     onTabChange: (Int) -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
+    onAbrirDetalleMovimiento: (String) -> Unit = {},
     onAnotar: () -> Unit,
     onMostrarQr: () -> Unit,
     onRecordarTodos: () -> Unit,
@@ -127,6 +129,53 @@ internal fun TabInicio(
                 }
             }
             HorizontalDivider()
+        }
+
+        // Alertas: disputas pendientes
+        if (disputados.isNotEmpty()) {
+            item {
+                val clienteMap2 = remember(clientes) { clientes.associateBy { it.id } }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.Warning, null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp))
+                            Text(
+                                "${disputados.size} movimiento${if (disputados.size != 1) "s" else ""} en disputa",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        disputados.take(3).forEach { mov ->
+                            val nombreCliente = clienteMap2[mov.clienteId]?.nombre ?: "Cliente"
+                            Text(
+                                "• $nombreCliente — ${mov.producto.ifBlank { "$${"%.0f".format(mov.monto)}" }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onAbrirDetalleMovimiento(mov.id) }
+                                    .padding(vertical = 2.dp)
+                            )
+                        }
+                        if (disputados.size > 3) {
+                            Text("+ ${disputados.size - 3} más",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                    }
+                }
+            }
         }
 
         // Accesos rápidos

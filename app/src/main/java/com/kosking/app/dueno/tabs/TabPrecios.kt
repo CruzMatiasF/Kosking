@@ -139,7 +139,7 @@ internal fun TabPrecios(
     if (mostrarDialog) {
         DialogProducto(
             producto = productoEditar,
-            onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior, precioPublico ->
+            onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior, precioPublico, agotado ->
                 val p = productoEditar
                 if (p == null) {
                     onAgregar(nombre, precio, categoria, descripcion, precioPublico)
@@ -151,7 +151,8 @@ internal fun TabPrecios(
                         descripcion = descripcion,
                         esOferta = esOferta,
                         precioAnterior = precioAnterior,
-                        precioPublico = precioPublico
+                        precioPublico = precioPublico,
+                        agotado = agotado
                     ))
                 }
                 mostrarDialog = false
@@ -178,6 +179,14 @@ private fun ProductoItemDueno(
                     Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
                         Text("Oculto", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                if (producto.agotado) {
+                    Surface(shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant) {
+                        Text("AGOTADO", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                     }
                 }
                 if (producto.esOferta) {
@@ -246,7 +255,7 @@ private fun ProductoItemDueno(
 @Composable
 private fun DialogProducto(
     producto: Producto?,
-    onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double, precioPublico: Boolean) -> Unit,
+    onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double, precioPublico: Boolean, agotado: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nombre by remember(producto) { mutableStateOf(producto?.nombre ?: "") }
@@ -255,6 +264,7 @@ private fun DialogProducto(
     var descripcion by remember(producto) { mutableStateOf(producto?.descripcion ?: "") }
     var esOferta by remember(producto) { mutableStateOf(producto?.esOferta ?: false) }
     var precioPublico by remember(producto) { mutableStateOf(producto?.precioPublico ?: false) }
+    var agotado by remember(producto) { mutableStateOf(producto?.agotado ?: false) }
     var precioAnteriorTexto by remember(producto) { mutableStateOf(if (producto?.precioAnterior != null && producto.precioAnterior > 0) "%.0f".format(producto.precioAnterior) else "") }
 
     val precio = precioTexto.toDoubleOrNull() ?: -1.0
@@ -309,6 +319,13 @@ private fun DialogProducto(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    Text("Sin stock (agotado)", modifier = Modifier.weight(1f))
+                    Switch(checked = agotado, onCheckedChange = { agotado = it })
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Precio público")
                         Text("Visible en la vidriera del local",
@@ -340,7 +357,8 @@ private fun DialogProducto(
                         descripcion.trim(),
                         esOferta,
                         precioAnteriorTexto.toDoubleOrNull() ?: 0.0,
-                        precioPublico
+                        precioPublico,
+                        agotado
                     )
                 },
                 enabled = nombreValido && precioValido

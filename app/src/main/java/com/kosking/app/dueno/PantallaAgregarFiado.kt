@@ -100,7 +100,7 @@ private fun PantallaAgregarFiadoUI(
     var monto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var visitante by remember { mutableStateOf("") }
-    var productoSeleccionado by remember { mutableStateOf<Producto?>(null) }
+    val carrito = remember { mutableStateListOf<Pair<Producto, Int>>() }
     var modoOtro by remember { mutableStateOf(false) }
     val montoFocus = remember { FocusRequester() }
     val descripcionFocus = remember { FocusRequester() }
@@ -110,8 +110,11 @@ private fun PantallaAgregarFiadoUI(
     LaunchedEffect(Unit) { if (!tieneProductos) montoFocus.requestFocus() }
 
     val montoDouble = monto.toDoubleOrNull() ?: 0.0
-    val deudaFinal = if (tipo == "cargo") deudaActual + montoDouble
-                     else deudaActual - montoDouble
+    val totalCarrito = carrito.sumOf { (prod, qty) -> prod.ultimoPrecio * qty }
+    val totalConOtro = totalCarrito + (if ((modoOtro || !tieneProductos) && montoDouble > 0) montoDouble else 0.0)
+    val montoEfectivo = if (tipo == "cargo") totalConOtro else montoDouble
+    val deudaFinal = if (tipo == "cargo") deudaActual + totalConOtro
+                     else (deudaActual - montoDouble).coerceAtLeast(0.0)
     val superaLimite = limiteCredito > 0 && tipo == "cargo" && deudaFinal > limiteCredito
 
     Scaffold(
@@ -138,7 +141,7 @@ private fun PantallaAgregarFiadoUI(
             Surface(shadowElevation = 8.dp) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (montoDouble > 0) {
+                    if (montoEfectivo > 0) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Va a quedar debiendo", style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -160,19 +163,24 @@ private fun PantallaAgregarFiadoUI(
                     }
                     Button(
                         onClick = {
-                            onConfirmar(
-                                listOf(Pair(descripcion.trim(), montoDouble)),
-                                tipo,
-                                visitante.trim()
-                            )
+                            val items = buildList {
+                                carrito.forEach { (prod, qty) ->
+                                    add(Pair(prod.nombre, prod.ultimoPrecio * qty))
+                                }
+                                if (tipo == "cargo" && (modoOtro || !tieneProductos) && montoDouble > 0)
+                                    add(Pair(descripcion.trim(), montoDouble))
+                                if (tipo == "pago" && montoDouble > 0)
+                                    add(Pair("", montoDouble))
+                            }
+                            onConfirmar(items, tipo, visitante.trim())
                         },
-                        enabled = !cargando && !superaLimite && montoDouble > 0,
+                        enabled = !cargando && !superaLimite && montoEfectivo > 0,
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) {
                         if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         else Text(
-                            if (tipo == "cargo") "Confirmar fiado $${"%.0f".format(montoDouble)}"
-                            else "Registrar pago $${"%.0f".format(montoDouble)}"
+                            if (tipo == "cargo") "Confirmar fiado $${"%.0f".format(montoEfectivo)}"
+                            else "Registrar pago $${"%.0f".format(montoEfectivo)}"
                         )
                     }
                 }
@@ -209,31 +217,50 @@ private fun PantallaAgregarFiadoUI(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     productos.take(10).forEach { prod ->
-                        FilterChip(
-                            selected = productoSeleccionado?.id == prod.id,
+                        val qty = carrito.firstOrNull { it.first.id == prod.id }?.second ?: 0
+                        val enCarrito = qty > 0
+                        InputChip(
+                            selected = enCarrito,
                             onClick = {
-                                productoSeleccionado = prod
+                                val idx = carrito.indexOfFirst { it.first.id == prod.id }
+                                if (idx >= 0) carrito[idx] = carrito[idx].copy(second = carrito[idx].second + 1)
+                                else carrito.add(Pair(prod, 1))
                                 modoOtro = false
-                                descripcion = prod.nombre
-                                if (prod.ultimoPrecio > 0) monto = "%.0f".format(prod.ultimoPrecio)
                             },
                             label = {
-                                Text(
-                                    if (prod.ultimoPrecio > 0)
-                                        "${prod.nombre} · ${"$"}${"%.0f".format(prod.ultimoPrecio)}"
-                                    else prod.nombre,
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            }
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(
+                                        prod.nombre + if (qty > 1) " ×$qty" else "",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (enCarrito) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                    if (prod.ultimoPrecio > 0) Text(
+                                        "$${"%.0f".format(prod.ultimoPrecio * qty.coerceAtLeast(1))}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (enCarrito) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            trailingIcon = if (enCarrito) ({
+                                IconButton(
+                                    onClick = {
+                                        val idx = carrito.indexOfFirst { it.first.id == prod.id }
+                                        if (idx >= 0) {
+                                            if (carrito[idx].second > 1) carrito[idx] = carrito[idx].copy(second = carrito[idx].second - 1)
+                                            else carrito.removeAt(idx)
+                                        }
+                                    },
+                                    modifier = Modifier.size(20.dp)
+                                ) { Icon(Icons.Default.Clear, null, Modifier.size(12.dp)) }
+                            }) else null
                         )
                     }
                     FilterChip(
                         selected = modoOtro,
                         onClick = {
-                            modoOtro = true
-                            productoSeleccionado = null
-                            descripcion = ""
-                            monto = ""
+                            modoOtro = !modoOtro
+                            if (!modoOtro) { descripcion = ""; monto = "" }
                         },
                         label = { Text("Otro") },
                         leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(14.dp)) }

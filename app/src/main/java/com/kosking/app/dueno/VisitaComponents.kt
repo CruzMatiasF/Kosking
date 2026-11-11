@@ -58,6 +58,7 @@ data class VisitaResumen(
     val clienteId: String,
     val clienteNombre: String,
     val hora: String,
+    val fechaMs: Long,
     val items: List<ItemVisita>,
     val totalCargo: Double,
     val totalPago: Double
@@ -78,14 +79,13 @@ fun agruparVisitas(
                 clienteId = mov0.clienteId,
                 clienteNombre = cliente?.nombre ?: "Cliente",
                 hora = fmt.format(mov0.fecha.toDate()),
+                fechaMs = mov0.fecha.toDate().time,
                 items = items,
                 totalCargo = items.filter { it.tipo != "pago" }.sumOf { it.monto },
                 totalPago = items.filter { it.tipo == "pago" }.sumOf { it.monto }
             )
         }
-        .sortedByDescending { visita ->
-            movimientos.firstOrNull { it.clienteId == visita.clienteId }?.fecha?.toDate()?.time ?: 0L
-        }
+        .sortedByDescending { it.fechaMs }
 }
 
 @Composable

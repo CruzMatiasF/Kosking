@@ -52,6 +52,15 @@ fun PanelDuenoEmbedido(
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
 
+    // Actualiza las prefs que lee NotificacionDeudaWorker para las notificaciones semanales
+    LaunchedEffect(totalDeuda, clientesConDeuda.size) {
+        context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE).edit()
+            .putFloat("total_deuda", totalDeuda.toFloat())
+            .putInt("clientes_con_deuda", clientesConDeuda.size)
+            .putLong("prefs_timestamp", System.currentTimeMillis())
+            .apply()
+    }
+
     // Wizard primer uso: aparece solo si SharedPrefs dice que no fue completado
     // Y además no tiene ni clientes ni productos (reinstalación en teléfono nuevo)
     var wizardCompletado by remember { mutableStateOf(PreferenciasRepository.isWizardCompletado(context)) }

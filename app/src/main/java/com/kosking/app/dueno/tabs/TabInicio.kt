@@ -39,7 +39,8 @@ internal fun TabInicio(
     onAnotar: () -> Unit,
     onRecordarTodos: () -> Unit,
     onCompartirResumen: () -> Unit = {},
-    onWhatsAppCliente: (Cliente) -> Unit
+    onWhatsAppCliente: (Cliente) -> Unit,
+    onRegistrarPago: (Cliente) -> Unit = {}
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -256,16 +257,23 @@ internal fun TabInicio(
                     Spacer(Modifier.height(4.dp))
                     Text("¡Bienvenido a Kosking!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Todavía no tenés clientes. Tocá \"Clientes\" arriba y agregá el primero para empezar a anotar fiaditos.",
+                        "Para empezar: agregá tus productos con precio en la pestaña Productos, después sumá tus clientes. Así anotar un fiado es solo tocar.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                     Spacer(Modifier.height(4.dp))
-                    Button(onClick = { onTabChange(1) }) {
-                        Icon(Icons.Default.PersonAdd, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Agregar primer cliente")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { onTabChange(2) }) {
+                            Icon(Icons.Default.Storefront, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Productos")
+                        }
+                        Button(onClick = { onTabChange(1) }) {
+                            Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Clientes")
+                        }
                     }
                 }
                 HorizontalDivider()
@@ -342,21 +350,30 @@ internal fun TabInicio(
                     trailingContent = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                "$${"%.0f".format(cliente.deudaTotal)}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "$${"%.0f".format(cliente.deudaTotal)}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            FilledTonalButton(
+                                onClick = { onRegistrarPago(cliente) },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text("Cobrar", style = MaterialTheme.typography.labelSmall)
+                            }
                             if (cliente.telefono.isNotBlank()) {
                                 IconButton(
                                     onClick = { onWhatsAppCliente(cliente) },
-                                    modifier = Modifier.size(36.dp)
+                                    modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Send, "Avisar por WhatsApp",
-                                        Modifier.size(18.dp),
+                                        Modifier.size(16.dp),
                                         tint = MaterialTheme.colorScheme.primary)
                                 }
                             }

@@ -1,9 +1,7 @@
 ﻿package com.kosking.app.dueno.tabs
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,7 +24,6 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun TabClientes(
     clientes: List<Cliente>,
@@ -279,7 +276,6 @@ private fun StatMiniCard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CardCliente(
     cliente: Cliente,
@@ -323,10 +319,7 @@ private fun CardCliente(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = { onVerCliente(cliente.id) },
-                onLongClick = onAnotarRapido
-            ),
+            .clickable { onVerCliente(cliente.id) },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {

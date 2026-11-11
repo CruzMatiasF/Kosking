@@ -29,6 +29,7 @@ fun AnotarRapidoSheet(
     cargando: Boolean,
     clienteInicial: Cliente? = null,
     productos: List<Producto> = emptyList(),
+    tipoInicial: String = "cargo",
     onGuardar: (clienteId: String, items: List<Pair<String, Double>>, tipo: String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -40,7 +41,7 @@ fun AnotarRapidoSheet(
         mutableStateOf(clienteInicial ?: clientesOrdenados.firstOrNull())
     }
     var expandirClientes by remember { mutableStateOf(false) }
-    var esCargo by remember { mutableStateOf(true) }
+    var esCargo by remember { mutableStateOf(tipoInicial == "cargo") }
 
     val carrito = remember { mutableStateListOf<ItemCarrito>() }
 

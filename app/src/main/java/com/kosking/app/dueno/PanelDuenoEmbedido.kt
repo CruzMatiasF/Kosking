@@ -49,6 +49,7 @@ fun PanelDuenoEmbedido(
 
     var mostrarAnotar by remember { mutableStateOf(false) }
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
+    var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
 
     // Wizard primer uso: aparece solo si SharedPrefs dice que no fue completado
@@ -147,7 +148,8 @@ fun PanelDuenoEmbedido(
                     onTabChange = onTabChange,
                     onAbrirDetalleCliente = onAbrirDetalleCliente,
                     onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
-                    onAnotar = { mostrarAnotar = true },
+                    onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
+                    onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
                     onRecordarTodos = { mostrarRecordarTodos = true },
                     onCompartirResumen = {
                         val resumen = vm.resumenHoy.value
@@ -197,6 +199,7 @@ fun PanelDuenoEmbedido(
             cargando = cargando,
             clienteInicial = clientePreseleccionado,
             productos = productos,
+            tipoInicial = tipoAnotar,
             onGuardar = { clienteId, items, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,
@@ -243,7 +246,7 @@ fun PanelDuenoEmbedido(
                     }
                 )
             },
-            onDismiss = { mostrarAnotar = false; clientePreseleccionado = null }
+            onDismiss = { mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo" }
         )
     }
 

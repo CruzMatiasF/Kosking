@@ -424,9 +424,9 @@ private fun ResumenPeriodoSheet(
         calMesAnt.add(Calendar.MONTH, -1)
         listOf(
             Periodo("hoy", "Hoy", calHoy.timeInMillis),
-            Periodo("semana", "Esta semana", calSemana.timeInMillis),
+            Periodo("semana", "Semana", calSemana.timeInMillis),
             Periodo("mes", "Este mes", calMes.timeInMillis),
-            Periodo("mes_ant", "Mes anterior", calMesAnt.timeInMillis)
+            Periodo("mes_ant", "Mes ant.", calMesAnt.timeInMillis)
         )
     }
 

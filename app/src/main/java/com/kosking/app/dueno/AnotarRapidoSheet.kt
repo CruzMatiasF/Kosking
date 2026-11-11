@@ -1,6 +1,7 @@
 package com.kosking.app.dueno
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -118,7 +119,10 @@ fun AnotarRapidoSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 32.dp)
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
+                    if (mostrarListaClientes) { mostrarListaClientes = false; busquedaCliente = "" }
+                },
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // ── Header ──────────────────────────────────────────────────────
@@ -180,11 +184,64 @@ fun AnotarRapidoSheet(
                 }
             }
 
+            // ── Selector de cliente con búsqueda ─────────────────────────────
+            if (clienteInicial == null) {
+                Column {
+                    OutlinedTextField(
+                        value = if (mostrarListaClientes) busquedaCliente else clienteSeleccionado?.nombre ?: "",
+                        onValueChange = { busquedaCliente = it; mostrarListaClientes = true },
+                        label = { Text("Cliente") },
+                        placeholder = { Text("Buscar cliente...") },
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            if (mostrarListaClientes && busquedaCliente.isNotEmpty()) {
+                                IconButton(onClick = { busquedaCliente = ""; mostrarListaClientes = false }) {
+                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { mostrarListaClientes = true }
+                    )
+                    if (mostrarListaClientes && clientesFiltrados.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
+                        ) {
+                            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
+                                items(clientesFiltrados, key = { it.id }) { cliente ->
+                                    ListItem(
+                                        headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
+                                        trailingContent = if (cliente.deudaTotal > 0) ({
+                                            Text(
+                                                "$${"%.0f".format(cliente.deudaTotal)}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }) else null,
+                                        modifier = Modifier.clickable {
+                                            clienteSeleccionado = cliente
+                                            busquedaCliente = ""
+                                            mostrarListaClientes = false
+                                        }
+                                    )
+                                    HorizontalDivider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ── Toggle Fiado / Pago ──────────────────────────────────────────
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = esCargo,
                     onClick = {
+                        mostrarListaClientes = false
                         if (!esCargo) {
                             // volver a Fiado no limpia nada
                             esCargo = true
@@ -197,6 +254,7 @@ fun AnotarRapidoSheet(
                 FilterChip(
                     selected = !esCargo,
                     onClick = {
+                        mostrarListaClientes = false
                         if (esCargo) {
                             val hayItems = carrito.isNotEmpty() || (mostrarOtro && montoOtroTexto.isNotBlank())
                             if (hayItems) pedirConfirmCambio = true
@@ -379,58 +437,6 @@ fun AnotarRapidoSheet(
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
-            }
-
-            // ── Selector de cliente con búsqueda ─────────────────────────────
-            if (clienteInicial == null) {
-                Column {
-                    OutlinedTextField(
-                        value = if (mostrarListaClientes) busquedaCliente else clienteSeleccionado?.nombre ?: "",
-                        onValueChange = { busquedaCliente = it; mostrarListaClientes = true },
-                        label = { Text("Cliente") },
-                        placeholder = { Text("Buscar cliente...") },
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
-                        trailingIcon = {
-                            if (mostrarListaClientes && busquedaCliente.isNotEmpty()) {
-                                IconButton(onClick = { busquedaCliente = ""; mostrarListaClientes = false }) {
-                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { mostrarListaClientes = true }
-                    )
-                    if (mostrarListaClientes && clientesFiltrados.isNotEmpty()) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
-                        ) {
-                            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
-                                items(clientesFiltrados, key = { it.id }) { cliente ->
-                                    ListItem(
-                                        headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
-                                        trailingContent = if (cliente.deudaTotal > 0) ({
-                                            Text(
-                                                "$${"%.0f".format(cliente.deudaTotal)}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        }) else null,
-                                        modifier = Modifier.clickable {
-                                            clienteSeleccionado = cliente
-                                            busquedaCliente = ""
-                                            mostrarListaClientes = false
-                                        }
-                                    )
-                                    HorizontalDivider()
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             // ── Botón guardar ────────────────────────────────────────────────

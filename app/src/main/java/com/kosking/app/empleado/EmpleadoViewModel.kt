@@ -238,6 +238,10 @@ class EmpleadoViewModel : ViewModel() {
 
     fun agregarCliente(nombre: String, telefono: String, onExito: () -> Unit) {
         viewModelScope.launch {
+            if (clientesHabilitados.value.size >= 15) {
+                _error.value = "Límite de 15 clientes alcanzado. El dueño debe ampliar el plan."
+                return@launch
+            }
             _cargando.value = true
             _error.value = null
             try {

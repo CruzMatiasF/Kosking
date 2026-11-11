@@ -63,7 +63,6 @@ fun PanelDuenoEmbedido(
 
     var mostrarAnotar by remember { mutableStateOf(false) }
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
-    var mostrarTodasVisitas by remember { mutableStateOf(false) }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var editandoDatos by remember { mutableStateOf(false) }
@@ -73,16 +72,6 @@ fun PanelDuenoEmbedido(
     val scope = rememberCoroutineScope()
     data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String)
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
-
-    if (mostrarTodasVisitas) {
-        BackHandler { mostrarTodasVisitas = false }
-        PantallaTodasVisitas(
-            movimientosLocal = movimientosLocal,
-            clientes = clientes,
-            onVolver = { mostrarTodasVisitas = false }
-        )
-        return
-    }
 
     Scaffold(
         bottomBar = {
@@ -176,7 +165,6 @@ fun PanelDuenoEmbedido(
                     onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
                     onAnotar = { mostrarAnotar = true },
                     onRecordarTodos = { mostrarRecordarTodos = true },
-                    onVerTodasVisitas = { mostrarTodasVisitas = true },
                     onCompartirResumen = {
                         val resumen = vm.resumenHoy.value
                         val (movHoy, fiadoHoy, cobradoHoy) = resumen

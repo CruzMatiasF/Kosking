@@ -38,7 +38,6 @@ internal fun TabInicio(
     onAbrirDetalleMovimiento: (String) -> Unit = {},
     onAnotar: () -> Unit,
     onRecordarTodos: () -> Unit,
-    onVerTodasVisitas: () -> Unit,
     onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit
 ) {
@@ -249,15 +248,9 @@ internal fun TabInicio(
                     Text(fechaHoy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (movimientosHoy.isNotEmpty()) {
-                    Row {
-                        TextButton(onClick = onCompartirResumen,
-                            contentPadding = PaddingValues(horizontal = 8.dp)) {
-                            Text("Compartir", style = MaterialTheme.typography.labelSmall)
-                        }
-                        TextButton(onClick = onVerTodasVisitas,
-                            contentPadding = PaddingValues(horizontal = 8.dp)) {
-                            Text("Ver todo", style = MaterialTheme.typography.labelSmall)
-                        }
+                    TextButton(onClick = onCompartirResumen,
+                        contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Text("Compartir", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }

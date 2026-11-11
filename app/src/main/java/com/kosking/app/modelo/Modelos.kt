@@ -2,20 +2,12 @@ package com.kosking.app.modelo
 
 import androidx.compose.runtime.Immutable
 import com.google.firebase.Timestamp
-@Immutable
-data class Permisos(
-    val anotarFiados: Boolean = true,
-    val registrarPagos: Boolean = true,
-    val verTotal: Boolean = true,
-    val editarPrecios: Boolean = false
-)
 
 @Immutable
 data class Local(
     val id: String = "",
     val nombre: String = "",
     val duenoUid: String = "",
-    val permisos: Permisos = Permisos(),
     val telefono: String = "",
     val tipo: String = "Kiosco",
     val direccion: String = ""
@@ -64,22 +56,6 @@ data class Empleado(
 )
 
 @Immutable
-data class Producto(
-    val id: String = "",
-    val localId: String = "",
-    val nombre: String = "",
-    val precio: Double = 0.0,
-    val descripcion: String = "",
-    val habilitado: Boolean = true,
-    val esOferta: Boolean = false,
-    val precioAnterior: Double = 0.0,
-    val imagenUrl: String = "",
-    val agotado: Boolean = false,
-    val categoria: String = "",
-    val updatedAt: Long = 0L
-)
-
-@Immutable
 data class Usuario(
     val uid: String = "",
     val nombre: String = "",
@@ -90,13 +66,3 @@ data class Usuario(
     val fcmToken: String = ""
 )
 
-@Immutable
-data class Notificacion(
-    val id: String = "",
-    val uid: String = "",
-    val titulo: String = "",
-    val cuerpo: String = "",
-    val leida: Boolean = false,
-    val fecha: Timestamp = Timestamp.now(),
-    val tipo: String = "sistema"   // "oferta", "sistema", "local"
-)

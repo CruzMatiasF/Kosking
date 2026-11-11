@@ -9,8 +9,6 @@ import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.modelo.Permisos
-import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -178,19 +176,6 @@ class EmpleadoViewModel : ViewModel() {
         }
     }
 
-    val productos: StateFlow<List<Producto>> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val permisos: StateFlow<Permisos> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.localFlow(id).map { it?.permisos ?: Permisos() }
-            else flowOf(Permisos())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Permisos())
-
     val clientesHabilitados: StateFlow<List<Cliente>> = _localId
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.clientesFlow(id) else flowOf(emptyList())
@@ -203,48 +188,6 @@ class EmpleadoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "") {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                FiadoRepository.agregarProducto(
-                    Producto(localId = _localId.value, nombre = nombre, precio = precio,
-                        descripcion = descripcion, habilitado = habilitado,
-                        esOferta = esOferta, precioAnterior = precioAnterior,
-                        categoria = categoria)
-                )
-            } catch (e: Exception) {
-                CrashLogger.log(e, "agregarProducto empleado")
-                _error.value = "No se pudo agregar el producto"
-            } finally { _cargando.value = false }
-        }
-    }
-
-    fun actualizarProducto(producto: Producto) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                FiadoRepository.actualizarProducto(producto)
-            } catch (e: Exception) {
-                CrashLogger.log(e, "actualizarProducto empleado")
-                _error.value = "No se pudo actualizar el producto"
-            } finally { _cargando.value = false }
-        }
-    }
-
-    fun actualizarPrecio(producto: Producto, nuevoPrecio: Double) {
-        viewModelScope.launch {
-            try {
-                FiadoRepository.actualizarProducto(producto.copy(precio = nuevoPrecio))
-            } catch (e: Exception) {
-                CrashLogger.log(e, "actualizarPrecio empleado")
-                _error.value = "No se pudo actualizar el precio"
-            }
-        }
-    }
-
     fun agregarMovimientos(
         clienteId: String,
         items: List<Triple<String, Int, Double>>, // producto, cantidad, monto
@@ -256,15 +199,6 @@ class EmpleadoViewModel : ViewModel() {
             _cargando.value = true
             _error.value = null
             try {
-                val permisosActuales = permisos.value
-                if (tipo == "cargo" && !permisosActuales.anotarFiados) {
-                    _error.value = "El dueño no habilitó anotar fiaditos en este local"
-                    return@launch
-                }
-                if (tipo == "pago" && !permisosActuales.registrarPagos) {
-                    _error.value = "El dueño no habilitó registrar pagos en este local"
-                    return@launch
-                }
                 val grupoId = java.util.UUID.randomUUID().toString()
                 val movs = items.map { (producto, cantidad, monto) ->
                     Movimiento(

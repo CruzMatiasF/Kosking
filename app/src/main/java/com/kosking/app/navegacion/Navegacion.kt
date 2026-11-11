@@ -239,7 +239,6 @@ fun KoskingNavHost() {
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
                 onVolver = { nav.popBackStack() },
-                tabInicial = tabInicialEmpleado,
                 vm = empleadoVm
             )
         }
@@ -251,7 +250,6 @@ fun KoskingNavHost() {
             val clienteId = back.arguments?.getString("clienteId") ?: return@composable
             val cargando by empleadoVm.cargando.collectAsState()
             val error by empleadoVm.error.collectAsState()
-            val productos by empleadoVm.productos.collectAsState()
             val nombreEmpleado by empleadoVm.nombreEmpleado.collectAsState()
             val clientes by empleadoVm.clientesHabilitados.collectAsState()
             val cliente = remember(clientes, clienteId) { clientes.find { it.id == clienteId } }
@@ -259,7 +257,6 @@ fun KoskingNavHost() {
                 onVolver = { nav.popBackStack() },
                 cargando = cargando,
                 error = error,
-                productos = productos,
                 deudaActual = cliente?.deudaTotal ?: 0.0,
                 limiteCredito = cliente?.limiteCredito ?: 0.0,
                 nombreCliente = cliente?.nombre ?: "",

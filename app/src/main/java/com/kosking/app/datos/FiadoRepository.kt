@@ -1,16 +1,12 @@
 package com.kosking.app.datos
 
-import android.net.Uri
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.storage.FirebaseStorage
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.modelo.Notificacion
-import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Usuario
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -20,29 +16,6 @@ import kotlinx.coroutines.tasks.await
 object FiadoRepository {
 
     private val db = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
-
-    // ── Storage ──────────────────────────────────────────────────────────────
-
-    suspend fun subirImagenLocal(localId: String, uri: Uri): String {
-        val ref = storage.reference.child("locales/$localId/portada.jpg")
-        ref.putFile(uri).await()
-        return ref.downloadUrl.await().toString()
-    }
-
-    suspend fun subirImagenProducto(localId: String, productoId: String, uri: Uri): String {
-        val ref = storage.reference.child("locales/$localId/productos/$productoId.jpg")
-        ref.putFile(uri).await()
-        return ref.downloadUrl.await().toString()
-    }
-
-    suspend fun actualizarImagenLocal(localId: String, imagenUrl: String) {
-        db.collection("locales").document(localId).update("imagenUrl", imagenUrl).await()
-    }
-
-    suspend fun actualizarImagenProducto(productoId: String, imagenUrl: String) {
-        db.collection("productos").document(productoId).update("imagenUrl", imagenUrl).await()
-    }
 
     // ── Local ────────────────────────────────────────────────────────────────
 
@@ -65,13 +38,6 @@ object FiadoRepository {
                 trySend(snap?.toObject(Local::class.java))
             }
         awaitClose { sub.remove() }
-    }
-
-    suspend fun obtenerLocalPorCodigo(codigo: String): Local? {
-        val snap = db.collection("locales")
-            .whereEqualTo("codigo", codigo.uppercase())
-            .get().await()
-        return snap.toObjects(Local::class.java).firstOrNull()
     }
 
     // ── Usuario ──────────────────────────────────────────────────────────────
@@ -241,40 +207,6 @@ object FiadoRepository {
         db.collection("empleados").document(empleadoId).delete().await()
     }
 
-    // ── Productos ────────────────────────────────────────────────────────────
-
-    fun productosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
-        val sub = db.collection("productos")
-            .whereEqualTo("localId", localId)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
-    fun productosOfertaFlow(): Flow<List<Producto>> = callbackFlow {
-        val sub = db.collection("productos")
-            .whereEqualTo("esOferta", true)
-            .whereEqualTo("habilitado", true)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
-    suspend fun agregarProducto(producto: Producto) {
-        val ref = db.collection("productos").document()
-        ref.set(producto.copy(id = ref.id)).await()
-    }
-
-    suspend fun actualizarProducto(producto: Producto) {
-        db.collection("productos").document(producto.id).set(producto).await()
-    }
-
-    suspend fun eliminarProducto(productoId: String) {
-        db.collection("productos").document(productoId).delete().await()
-    }
-
     suspend fun guardarCodigoEmpleado(localId: String, nombreLocal: String, codigo: String) {
         val datos = mapOf(
             "localId" to localId,
@@ -300,34 +232,6 @@ object FiadoRepository {
             .get().await()
         snap.documents.forEach { it.reference.delete().await() }
     }
-
-    // ── Notificaciones ───────────────────────────────────────────────────────
-
-    fun notificacionesFlow(uid: String): Flow<List<Notificacion>> = callbackFlow {
-        val sub = db.collection("notificaciones")
-            .whereEqualTo("uid", uid)
-            .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(50)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Notificacion::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
-    suspend fun marcarNotificacionLeida(id: String) {
-        db.collection("notificaciones").document(id).update("leida", true).await()
-    }
-
-    suspend fun marcarTodasLeidas(uid: String) {
-        val snap = db.collection("notificaciones")
-            .whereEqualTo("uid", uid)
-            .whereEqualTo("leida", false)
-            .get().await()
-        val batch = db.batch()
-        snap.documents.forEach { batch.update(it.reference, "leida", true) }
-        batch.commit().await()
-    }
-
 
     // ── Empleo del usuario ───────────────────────────────────────────────────
 

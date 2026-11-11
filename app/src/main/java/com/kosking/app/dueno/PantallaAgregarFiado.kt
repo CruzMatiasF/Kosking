@@ -1,16 +1,6 @@
 package com.kosking.app.dueno
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,24 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kosking.app.modelo.Producto
 
-private data class ItemCarrito(
-    val productoId: String,
-    val nombre: String,
-    val precioUnitario: Double,
-    var cantidad: Int = 1
-) {
-    val total: Double get() = precioUnitario * cantidad
-}
-
-/** Wrapper fino para el flujo de dueño — lee del ViewModel y delega al composable unificado. */
+/** Wrapper para el flujo de dueño — lee del ViewModel y delega al composable unificado. */
 @Composable
 fun PantallaAgregarFiado(
     clienteId: String,
@@ -47,14 +26,12 @@ fun PantallaAgregarFiado(
 ) {
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
-    val productos by vm.productos.collectAsState()
     val clientes by vm.clientes.collectAsState()
     val cliente = clientes.find { it.id == clienteId }
 
     PantallaAgregarFiadoUI(
         tipoInicial = tipoInicial,
         onVolver = onVolver,
-        productos = productos,
         cargando = cargando,
         error = error,
         deudaActual = cliente?.deudaTotal ?: 0.0,
@@ -73,7 +50,6 @@ fun PantallaAgregarFiado(
 fun PantallaAgregarFiadoConLambda(
     onVolver: () -> Unit,
     onConfirmar: (items: List<Triple<String, Int, Double>>, tipo: String, visitante: String) -> Unit,
-    productos: List<Producto> = emptyList(),
     cargando: Boolean = false,
     error: String? = null,
     deudaActual: Double = 0.0,
@@ -83,7 +59,6 @@ fun PantallaAgregarFiadoConLambda(
 ) {
     PantallaAgregarFiadoUI(
         onVolver = onVolver,
-        productos = productos,
         cargando = cargando,
         error = error,
         deudaActual = deudaActual,
@@ -100,7 +75,6 @@ fun PantallaAgregarFiadoConLambda(
 private fun PantallaAgregarFiadoUI(
     tipoInicial: String = "cargo",
     onVolver: (() -> Unit)? = null,
-    productos: List<Producto> = emptyList(),
     cargando: Boolean = false,
     error: String? = null,
     deudaActual: Double = 0.0,
@@ -112,20 +86,13 @@ private fun PantallaAgregarFiadoUI(
     onConfirmar: (items: List<Triple<String, Int, Double>>, tipo: String, visitante: String) -> Unit
 ) {
     val tipo = tipoInicial
-    val carrito = remember { mutableStateListOf<ItemCarrito>() }
-    var montoPago by remember { mutableStateOf("") }
+    var monto by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
     var visitante by remember { mutableStateOf("") }
-    var busqueda by remember { mutableStateOf("") }
 
-    val productosHabilitados = remember(productos) { productos.filter { it.habilitado && !it.agotado } }
-    val productosFiltrados = remember(productosHabilitados, busqueda) {
-        if (busqueda.isBlank()) productosHabilitados
-        else productosHabilitados.filter { it.nombre.contains(busqueda, ignoreCase = true) }
-    }
-    val totalCarrito = carrito.sumOf { it.total }
-    val montoFinal = if (tipo == "cargo") totalCarrito else montoPago.toDoubleOrNull() ?: 0.0
-    val deudaFinal = if (tipo == "cargo") deudaActual + totalCarrito
-                     else deudaActual - (montoPago.toDoubleOrNull() ?: 0.0)
+    val montoDouble = monto.toDoubleOrNull() ?: 0.0
+    val deudaFinal = if (tipo == "cargo") deudaActual + montoDouble
+                     else deudaActual - montoDouble
     val superaLimite = limiteCredito > 0 && tipo == "cargo" && deudaFinal > limiteCredito
 
     Scaffold(
@@ -149,11 +116,10 @@ private fun PantallaAgregarFiadoUI(
             )
         },
         bottomBar = {
-            // Barra inferior con resumen + botón confirmar
             Surface(shadowElevation = 8.dp) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (montoFinal > 0) {
+                    if (montoDouble > 0) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Va a quedar debiendo", style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -173,298 +139,86 @@ private fun PantallaAgregarFiadoUI(
                     error?.let {
                         Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     }
-                    val habilitado = !cargando && !superaLimite && montoFinal > 0
                     Button(
                         onClick = {
-                            val items = if (tipo == "cargo")
-                                carrito.map { Triple(it.nombre, it.cantidad, it.total) }
-                            else
-                                listOf(Triple("", 1, montoPago.toDoubleOrNull() ?: 0.0))
-                            onConfirmar(items, tipo, visitante.trim())
+                            onConfirmar(
+                                listOf(Triple(descripcion.trim(), 1, montoDouble)),
+                                tipo,
+                                visitante.trim()
+                            )
                         },
-                        enabled = habilitado,
+                        enabled = !cargando && !superaLimite && montoDouble > 0,
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) {
                         if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         else Text(
-                            if (tipo == "cargo") "Confirmar fiado $${"%.0f".format(totalCarrito)}"
-                            else "Registrar pago $${"%.0f".format(montoPago.toDoubleOrNull() ?: 0.0)}"
+                            if (tipo == "cargo") "Confirmar fiado $${"%.0f".format(montoDouble)}"
+                            else "Registrar pago $${"%.0f".format(montoDouble)}"
                         )
                     }
                 }
             }
         }
     ) { padding ->
-        if (tipo == "pago") {
-            // ── Pantalla de pago ──────────────────────────────────────────
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (notaInterna.isNotBlank()) {
-                    NotaInternaCard(notaInterna)
-                }
-                if (deudaActual > 0) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text("Deuda actual", style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("$${"%.0f".format(deudaActual)}", style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
-                    }
-                    HorizontalDivider()
-                }
-                Text("Monto pagado", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(
-                    value = montoPago,
-                    onValueChange = { montoPago = it },
-                    placeholder = { Text("0", fontSize = 28.sp) },
-                    prefix = { Text("$", fontSize = 28.sp, fontWeight = FontWeight.SemiBold) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    textStyle = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2E7D32)
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                if (nombreEmpleado.isNotBlank()) {
-                    Text("Recibido por: $nombreEmpleado", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (notaInterna.isNotBlank()) {
+                NotaInternaCard(notaInterna)
             }
-        } else {
-            // ── Pantalla de fiado ─────────────────────────────────────────
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                if (notaInterna.isNotBlank()) {
-                    NotaInternaCard(notaInterna, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+            if (deudaActual > 0) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("Deuda actual", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$${"%.0f".format(deudaActual)}", style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
                 }
-                // Buscador
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Default.Search, null, Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    BasicTextField(
-                        value = busqueda,
-                        onValueChange = { busqueda = it },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface),
-                        decorationBox = { inner ->
-                            Box {
-                                if (busqueda.isEmpty()) Text("Buscar producto...",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                inner()
-                            }
-                        }
-                    )
-                    if (busqueda.isNotEmpty()) {
-                        Icon(Icons.Default.Close, "Limpiar",
-                            Modifier.size(16.dp).clickable { busqueda = "" },
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+                HorizontalDivider()
+            }
 
-                // Grilla de productos
-                if (productosFiltrados.isEmpty()) {
-                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(
-                            if (productosHabilitados.isEmpty()) "No hay productos cargados"
-                            else "Sin resultados para \"$busqueda\"",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(productosFiltrados, key = { it.id }) { prod ->
-                            val itemEnCarrito = carrito.find { it.productoId == prod.id }
-                            val enCarrito = itemEnCarrito != null
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .then(if (!enCarrito) Modifier.clickable {
-                                        carrito.add(ItemCarrito(prod.id, prod.nombre, prod.precio))
-                                    } else Modifier),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (enCarrito) MaterialTheme.colorScheme.primaryContainer
-                                                     else MaterialTheme.colorScheme.surface
-                                ),
-                                border = if (enCarrito)
-                                    androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                                else
-                                    androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp).fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(prod.nombre, style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        maxLines = 2,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        color = if (enCarrito) MaterialTheme.colorScheme.onPrimaryContainer
-                                                else MaterialTheme.colorScheme.onSurface)
-                                    Text("$${"%.0f".format(prod.precio)}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (enCarrito) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant)
-                                    if (enCarrito) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            IconButton(
-                                                onClick = {
-                                                    val idx = carrito.indexOfFirst { it.productoId == prod.id }
-                                                    if (idx >= 0) {
-                                                        if (carrito[idx].cantidad > 1)
-                                                            carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
-                                                        else carrito.removeAt(idx)
-                                                    }
-                                                },
-                                                modifier = Modifier.size(28.dp)
-                                            ) { Icon(Icons.Default.Remove, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
-                                            Text(
-                                                "${itemEnCarrito!!.cantidad}",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                modifier = Modifier.padding(horizontal = 4.dp)
-                                            )
-                                            IconButton(
-                                                onClick = {
-                                                    val idx = carrito.indexOfFirst { it.productoId == prod.id }
-                                                    if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
-                                                },
-                                                modifier = Modifier.size(28.dp)
-                                            ) { Icon(Icons.Default.Add, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        item { Spacer(Modifier.height(8.dp)) }
-                        item { Spacer(Modifier.height(8.dp)) }
-                    }
-                }
+            OutlinedTextField(
+                value = monto,
+                onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' } },
+                label = { Text("Monto $") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (tipo == "cargo") MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                )
+            )
 
-                // Lista de productos seleccionados
-                if (carrito.isNotEmpty()) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shadowElevation = 4.dp,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow
-                    ) {
-                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "${carrito.sumOf { it.cantidad }} producto${if (carrito.sumOf { it.cantidad } != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    "Total $${"%.0f".format(totalCarrito)}",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 180.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                items(carrito, key = { it.productoId }) { item ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(item.nombre,
-                                            modifier = Modifier.weight(1f),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                        IconButton(
-                                            onClick = {
-                                                val idx = carrito.indexOfFirst { it.productoId == item.productoId }
-                                                if (idx >= 0) {
-                                                    if (carrito[idx].cantidad > 1) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
-                                                    else carrito.removeAt(idx)
-                                                }
-                                            },
-                                            modifier = Modifier.size(24.dp)
-                                        ) { Icon(Icons.Default.Remove, null, Modifier.size(12.dp)) }
-                                        Text("${item.cantidad}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.widthIn(min = 20.dp),
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                        IconButton(
-                                            onClick = {
-                                                val idx = carrito.indexOfFirst { it.productoId == item.productoId }
-                                                if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
-                                            },
-                                            modifier = Modifier.size(24.dp)
-                                        ) { Icon(Icons.Default.Add, null, Modifier.size(12.dp)) }
-                                        Text("$${"%.0f".format(item.total)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.widthIn(min = 48.dp),
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.End)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            if (tipo == "cargo") {
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    label = { Text("Descripción (opcional)") },
+                    placeholder = { Text("Ej: pan, leche, aceite...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-                // Quién vino
-                if (mostrarVisitante) {
-                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("¿Quién vino? (opcional)", style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        OutlinedTextField(
-                            value = visitante,
-                            onValueChange = { visitante = it },
-                            label = { Text("Nombre de quien vino") },
-                            placeholder = { Text("Ej: María, la hija") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = if (visitante.isNotBlank()) {
-                                { IconButton(onClick = { visitante = "" }) { Icon(Icons.Default.Clear, null, Modifier.size(16.dp)) } }
-                            } else null
-                        )
-                    }
-                }
+            if (nombreEmpleado.isNotBlank()) {
+                Text("Recibido por: $nombreEmpleado", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            if (mostrarVisitante) {
+                OutlinedTextField(
+                    value = visitante,
+                    onValueChange = { visitante = it },
+                    label = { Text("¿Quién vino? (opcional)") },
+                    placeholder = { Text("Ej: María, la hija") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = if (visitante.isNotBlank()) {
+                        { IconButton(onClick = { visitante = "" }) { Icon(Icons.Default.Clear, null, Modifier.size(16.dp)) } }
+                    } else null
+                )
             }
         }
     }
@@ -474,7 +228,6 @@ private fun PantallaAgregarFiadoUI(
 private fun NotaInternaCard(nota: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
     ) {
         Row(

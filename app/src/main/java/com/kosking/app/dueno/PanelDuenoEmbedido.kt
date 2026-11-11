@@ -1,7 +1,6 @@
 ﻿package com.kosking.app.dueno
 
 import com.kosking.app.dueno.tabs.*
-import com.kosking.app.dueno.local.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -40,8 +39,6 @@ fun PanelDuenoEmbedido(
     val disputados by vm.disputados.collectAsState()
     val sobreLimite by vm.sobreLimite.collectAsState()
     val localData by vm.localData.collectAsState()
-    val localId by vm.localId.collectAsState()
-    val productos by vm.productos.collectAsState()
     val cargando by vm.cargando.collectAsState()
 
     BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
@@ -65,8 +62,6 @@ fun PanelDuenoEmbedido(
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
-    var editandoDatos by remember { mutableStateOf(false) }
-    var editandoDireccion by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -104,16 +99,6 @@ fun PanelDuenoEmbedido(
                     icon = { Icon(Icons.Default.Badge, null) }, label = { Text("Equipo") },
                     colors = navColors
                 )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 3, onClick = { onTabChange(3) },
-                    icon = { Icon(Icons.Default.Storefront, null) }, label = { Text("Precios") },
-                    colors = navColors
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 4, onClick = { onTabChange(4) },
-                    icon = { Icon(Icons.Default.Store, null) }, label = { Text("Mi Local") },
-                    colors = navColors
-                )
             }
         }
     ) { scaffoldPadding ->
@@ -133,24 +118,7 @@ fun PanelDuenoEmbedido(
                     empleados = empleados,
                     movimientos = movimientosLocal,
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
-                    permisosGlobales = localData?.permisos ?: com.kosking.app.modelo.Permisos(),
-                    onCambiarPermisos = { vm.actualizarPermisosGlobales(it) },
                     vm = vm
-                )
-                3 -> TabPrecios(
-                    productos = productos,
-                    onAgregar = { nombre, precio, categoria, descripcion ->
-                        vm.agregarProducto(nombre = nombre, precio = precio, descripcion = descripcion, categoria = categoria)
-                    },
-                    onActualizar = { vm.actualizarProducto(it) },
-                    onSubirImagen = { prod, uri -> vm.subirFotoProducto(prod, uri) {} },
-                    onEliminar = { vm.eliminarProducto(it) }
-                )
-                4 -> TabMiLocal(
-                    localData = localData,
-                    onEditarDatos = { editandoDatos = true },
-                    onEditarDireccion = { editandoDireccion = true },
-                    onEditarHorarios = {},
                 )
                 else -> TabInicio(
                     clientes = clientes,
@@ -208,7 +176,6 @@ fun PanelDuenoEmbedido(
     if (mostrarAnotar) {
         AnotarRapidoSheet(
             clientes = clientes,
-            productos = productos,
             cargando = cargando,
             clienteInicial = clientePreseleccionado,
             onGuardar = { clienteId, producto, monto, tipo ->
@@ -342,58 +309,4 @@ fun PanelDuenoEmbedido(
             }
         }
     }
-
-    // Sheet editar datos
-    if (editandoDatos) {
-        val tiposLocales = listOf("Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro")
-        var nombreEdit by remember { mutableStateOf(localData?.nombre.orEmpty()) }
-        var tipoEdit by remember { mutableStateOf(localData?.tipo ?: "Kiosco") }
-        var telefonoEdit by remember { mutableStateOf(localData?.telefono.orEmpty()) }
-        var expandirTipo by remember { mutableStateOf(false) }
-
-        ModalBottomSheet(onDismissRequest = { editandoDatos = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text("Datos del local", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
-                OutlinedTextField(value = nombreEdit, onValueChange = { nombreEdit = it }, label = { Text("Nombre del local") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(10.dp))
-                ExposedDropdownMenuBox(expanded = expandirTipo, onExpandedChange = { expandirTipo = it }) {
-                    OutlinedTextField(value = tipoEdit, onValueChange = {}, readOnly = true, label = { Text("Tipo") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirTipo) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable))
-                    ExposedDropdownMenu(expanded = expandirTipo, onDismissRequest = { expandirTipo = false }) {
-                        tiposLocales.forEach { t -> DropdownMenuItem(text = { Text(t) }, onClick = { tipoEdit = t; expandirTipo = false }) }
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(value = telefonoEdit, onValueChange = { telefonoEdit = it }, label = { Text("Teléfono") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        val local = localData ?: return@Button
-                        vm.actualizarLocal(nombre = nombreEdit.trim(), tipo = tipoEdit, direccion = local.direccion,
-                            telefono = telefonoEdit.trim(), onExito = {})
-                        editandoDatos = false
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Guardar") }
-            }
-        }
-    }
-
-    if (editandoDireccion) {
-        DireccionBottomSheet(
-            direccionActual = localData?.direccion.orEmpty(),
-            onGuardar = { dir ->
-                val local = localData ?: return@DireccionBottomSheet
-                vm.actualizarLocal(nombre = local.nombre, tipo = local.tipo, direccion = dir,
-                    telefono = local.telefono, onExito = {})
-                editandoDireccion = false
-            },
-            onDismiss = { editandoDireccion = false }
-        )
-    }
-
 }

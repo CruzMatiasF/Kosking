@@ -16,13 +16,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
-import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnotarRapidoSheet(
     clientes: List<Cliente>,
-    productos: List<Producto>,
     cargando: Boolean,
     clienteInicial: Cliente? = null,
     onGuardar: (clienteId: String, producto: String, monto: Double, tipo: String) -> Unit,

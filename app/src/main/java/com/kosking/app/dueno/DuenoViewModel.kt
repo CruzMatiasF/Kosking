@@ -1,6 +1,5 @@
 ﻿package com.kosking.app.dueno
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -11,7 +10,6 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -107,14 +105,6 @@ class DuenoViewModel : ViewModel() {
             } finally {
                 _cargando.value = false
             }
-        }
-    }
-
-    fun actualizarPermisosGlobales(permisos: com.kosking.app.modelo.Permisos) {
-        viewModelScope.launch {
-            val local = localData.value ?: return@launch
-            try { FiadoRepository.actualizarLocal(local.copy(permisos = permisos)) }
-            catch (e: Exception) { CrashLogger.log(e, "actualizarPermisosGlobales") }
         }
     }
 
@@ -396,92 +386,6 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 CrashLogger.log(e, "generarCodigoEmpleado")
                 _error.value = "No se pudo generar el código"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
-    // ── Productos ────────────────────────────────────────────────────────────
-
-    val productos: StateFlow<List<Producto>> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "") {
-        viewModelScope.launch {
-            try {
-                val producto = Producto(
-                    localId = _localId.value,
-                    nombre = nombre,
-                    precio = precio,
-                    descripcion = descripcion,
-                    habilitado = habilitado,
-                    esOferta = esOferta,
-                    precioAnterior = precioAnterior,
-                    categoria = categoria,
-                    updatedAt = System.currentTimeMillis()
-                )
-                FiadoRepository.agregarProducto(producto)
-            } catch (e: Exception) {
-                CrashLogger.log(e, "agregarProducto dueno")
-                _error.value = "No se pudo agregar el producto"
-            }
-        }
-    }
-
-    fun actualizarProducto(producto: Producto) {
-        viewModelScope.launch {
-            try {
-                FiadoRepository.actualizarProducto(producto.copy(updatedAt = System.currentTimeMillis()))
-            } catch (e: Exception) {
-                CrashLogger.log(e, "actualizarProducto dueno")
-                _error.value = "No se pudo actualizar el producto"
-            }
-        }
-    }
-
-    fun eliminarProducto(productoId: String) {
-        viewModelScope.launch {
-            try {
-                FiadoRepository.eliminarProducto(productoId)
-            } catch (e: Exception) {
-                CrashLogger.log(e, "eliminarProducto dueno")
-                _error.value = "No se pudo eliminar el producto"
-            }
-        }
-    }
-
-    fun subirFotoLocal(uri: Uri, onExito: (String) -> Unit) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                val url = FiadoRepository.subirImagenLocal(_localId.value, uri)
-                FiadoRepository.actualizarImagenLocal(_localId.value, url)
-                onExito(url)
-            } catch (e: Exception) {
-                CrashLogger.log(e, "subirFotoLocal")
-                _error.value = "No se pudo subir la foto"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
-    fun subirFotoProducto(producto: Producto, uri: Uri, onExito: (String) -> Unit) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                val url = FiadoRepository.subirImagenProducto(_localId.value, producto.id, uri)
-                FiadoRepository.actualizarImagenProducto(producto.id, url)
-                onExito(url)
-            } catch (e: Exception) {
-                CrashLogger.log(e, "subirFotoProducto")
-                _error.value = "No se pudo subir la foto"
             } finally {
                 _cargando.value = false
             }

@@ -224,18 +224,6 @@ internal fun TabInicio(
             }
         }
 
-        // Accesos rápidos
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SeccionCard(icon = Icons.Default.Store, label = "Mi local",
-                    modifier = Modifier.fillMaxWidth(), onClick = { onTabChange(4) })
-            }
-            HorizontalDivider()
-        }
-
         // Hoja del día
         item {
             Row(

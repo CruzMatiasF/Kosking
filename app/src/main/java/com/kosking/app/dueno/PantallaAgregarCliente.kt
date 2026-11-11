@@ -95,11 +95,11 @@ fun PantallaAgregarCliente(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            val telefonoValido = telefono.filter { it.isDigit() }.length >= 8
+            val telefonoValido = telefono.isBlank() || telefono.filter { it.isDigit() }.length >= 8
             OutlinedTextField(
                 value = telefono,
                 onValueChange = { telefono = it },
-                label = { Text("Teléfono *") },
+                label = { Text("Teléfono (opcional)") },
                 leadingIcon = { Icon(Icons.Default.Phone, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
@@ -108,7 +108,7 @@ fun PantallaAgregarCliente(
                     if (telefono.isNotBlank() && !telefonoValido)
                         Text("Mínimo 8 dígitos — ej: 1134567890", color = MaterialTheme.colorScheme.error)
                     else
-                        Text("Ej: 1134567890 (sin 0 ni 15)")
+                        Text("Para recordarle la deuda por WhatsApp")
                 },
                 isError = telefono.isNotBlank() && !telefonoValido
             )

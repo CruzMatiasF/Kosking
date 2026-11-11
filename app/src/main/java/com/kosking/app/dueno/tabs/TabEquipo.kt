@@ -310,7 +310,7 @@ internal fun TabEquipo(
                 vm.generarCodigoEmpleado { codigo ->
                     mostrarDialogInvitar = false
                     val local = nombreLocal.ifBlank { "Kosking" }
-                    val mensaje = "ðŸ‘‹ Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguí estos pasos:\n1ï¸âƒ£ Descargá la app Kosking desde Play Store\n2ï¸âƒ£ Registrate o iniciá sesión\n3ï¸âƒ£ Tocá \"Soy empleado\" e ingresá el código:\n\n*$codigo*\n\nEl código es de un solo uso."
+                    val mensaje = " Te invitan a unirte como empleado a *$local* en Kosking.\n\nSeguí estos pasos:\n1. Descargá la app Kosking desde Play Store\n2. Registrate o iniciá sesión\n3. Tocá \"Soy empleado\" e ingresá el código:\n\n*$codigo*\n\nEl código es de un solo uso."
                     if (whatsapp.isNotBlank()) {
                         val numero = whatsapp.replace(Regex("[^0-9]"), "")
                         try {

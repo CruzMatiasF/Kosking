@@ -225,27 +225,26 @@ fun PanelDuenoEmbedido(
     }
 
     // WhatsApp desde lista de clientes
-    clienteWhatsApp?.let { cliente ->
+    LaunchedEffect(clienteWhatsApp) {
+        val cliente = clienteWhatsApp ?: return@LaunchedEffect
         val nombreLocal = localData?.nombre ?: "el local"
-        scope.launch {
-            val resultado = snackbarHostState.showSnackbar(
-                message = "Deuda de ${cliente.nombre}: ${"$"}${"%.0f".format(cliente.deudaTotal)}",
-                actionLabel = "Avisar por WA",
-                duration = SnackbarDuration.Long
-            )
-            if (resultado == SnackbarResult.ActionPerformed) {
-                WhatsAppUtil.abrirWhatsApp(
-                    context = context,
-                    telefono = cliente.telefono,
-                    mensaje = WhatsAppUtil.mensajeResumen(
-                        nombreCliente = cliente.nombre,
-                        nombreLocal = nombreLocal,
-                        deudaTotal = cliente.deudaTotal
-                    )
+        val resultado = snackbarHostState.showSnackbar(
+            message = "Deuda de ${cliente.nombre}: ${"$"}${"%.0f".format(cliente.deudaTotal)}",
+            actionLabel = "Avisar por WA",
+            duration = SnackbarDuration.Long
+        )
+        if (resultado == SnackbarResult.ActionPerformed) {
+            WhatsAppUtil.abrirWhatsApp(
+                context = context,
+                telefono = cliente.telefono,
+                mensaje = WhatsAppUtil.mensajeResumen(
+                    nombreCliente = cliente.nombre,
+                    nombreLocal = nombreLocal,
+                    deudaTotal = cliente.deudaTotal
                 )
-            }
-            clienteWhatsApp = null
+            )
         }
+        clienteWhatsApp = null
     }
 
     // BottomSheet recordar a todos

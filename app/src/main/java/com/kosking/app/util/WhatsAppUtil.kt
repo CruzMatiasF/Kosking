@@ -71,6 +71,31 @@ object WhatsAppUtil {
         return sb.toString()
     }
 
+    fun mensajeResumenPeriodo(
+        nombreLocal: String,
+        labelPeriodo: String,
+        fiadoTotal: Double,
+        cobradoTotal: Double,
+        cantFiados: Int,
+        cantPagos: Int,
+        topClientes: List<Pair<String, Double>>
+    ): String {
+        val saldo = cobradoTotal - fiadoTotal
+        val sb = StringBuilder()
+        sb.append("📊 Resumen $labelPeriodo — $nombreLocal\n\n")
+        if (fiadoTotal > 0) sb.append("🔴 Fiado: \$${"%.0f".format(fiadoTotal)} ($cantFiados op.)\n")
+        if (cobradoTotal > 0) sb.append("✅ Cobrado: \$${"%.0f".format(cobradoTotal)} ($cantPagos pagos)\n")
+        sb.append("Saldo neto: ${if (saldo >= 0) "+" else ""}\$${"%.0f".format(saldo)}\n")
+        if (topClientes.isNotEmpty()) {
+            sb.append("\nTop clientes:\n")
+            topClientes.take(5).forEach { (nombre, monto) ->
+                sb.append("• $nombre — \$${"%.0f".format(monto)}\n")
+            }
+        }
+        sb.append("\n📱 Kosking")
+        return sb.toString()
+    }
+
     fun compartir(context: Context, texto: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"

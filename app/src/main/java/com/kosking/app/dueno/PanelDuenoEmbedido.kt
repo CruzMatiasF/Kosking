@@ -134,6 +134,7 @@ fun PanelDuenoEmbedido(
                 3 -> TabEquipo(
                     empleados = empleados,
                     movimientos = movimientosLocal,
+                    clientes = clientes,
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                     vm = vm
                 )

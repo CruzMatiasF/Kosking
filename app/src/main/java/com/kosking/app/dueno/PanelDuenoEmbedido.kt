@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.launch
@@ -45,15 +44,6 @@ fun PanelDuenoEmbedido(
 
     val context = LocalContext.current
 
-    LaunchedEffect(totalDeuda, clientesConDeuda) {
-        val prefs = context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
-        prefs.edit()
-            .putFloat("total_deuda", totalDeuda.toFloat())
-            .putInt("clientes_con_deuda", clientesConDeuda.size)
-            .putLong("prefs_timestamp", System.currentTimeMillis())
-            .apply()
-    }
-
     var mostrarAnotar by remember { mutableStateOf(false) }
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
@@ -61,7 +51,7 @@ fun PanelDuenoEmbedido(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String)
+    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double)
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
     Scaffold(
@@ -184,7 +174,9 @@ fun PanelDuenoEmbedido(
                         clientePreseleccionado = null
                         val cliente = clientes.find { it.id == clienteId }
                         if (cliente != null && cliente.telefono.isNotBlank()) {
-                            ultimoAnotado = UltimoAnotado(cliente, monto, producto, tipo)
+                            val deudaNueva = if (tipo == "cargo") cliente.deudaTotal + monto
+                                            else (cliente.deudaTotal - monto).coerceAtLeast(0.0)
+                            ultimoAnotado = UltimoAnotado(cliente, monto, producto, tipo, deudaNueva)
                             val accion = if (tipo == "cargo") "fiado" else "pago"
                             val montoFmt = "%.0f".format(monto)
                             scope.launch {
@@ -204,7 +196,7 @@ fun PanelDuenoEmbedido(
                                                 monto = ua.monto,
                                                 descripcion = desc,
                                                 nombreLocal = localData?.nombre ?: "el local",
-                                                deudaTotal = ua.cliente.deudaTotal,
+                                                deudaTotal = ua.deudaNueva,
                                                 tipo = ua.tipo
                                             )
                                         )

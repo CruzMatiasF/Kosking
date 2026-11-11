@@ -1,6 +1,7 @@
 package com.kosking.app.navegacion
 
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,8 +29,8 @@ import com.kosking.app.perfil.PantallaConfigurarPerfil
 import com.kosking.app.perfil.PantallaConfiguracion
 import com.kosking.app.onboarding.PantallaOnboarding
 import com.kosking.app.perfil.PantallaPrivacidad
-import android.content.Context
 import androidx.compose.ui.platform.LocalContext
+import com.kosking.app.datos.PreferenciasRepository
 import kotlinx.coroutines.launch
 
 private sealed class DestinoPostLogin {
@@ -74,10 +75,7 @@ fun KoskingNavHost() {
 
     val context = LocalContext.current
 
-    val onboardingVisto = remember {
-        context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
-            .getBoolean("onboarding_visto", false)
-    }
+    val onboardingVisto = remember { PreferenciasRepository.isOnboardingVisto(context) }
 
     NavHost(
         navController = nav,
@@ -87,8 +85,7 @@ fun KoskingNavHost() {
         composable(Rutas.ONBOARDING) {
             PantallaOnboarding(
                 onTerminar = {
-                    context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
-                        .edit().putBoolean("onboarding_visto", true).apply()
+                    PreferenciasRepository.marcarOnboardingVisto(context)
                     nav.navigate(Rutas.EXPLORAR) {
                         popUpTo(Rutas.ONBOARDING) { inclusive = true }
                     }
@@ -100,7 +97,7 @@ fun KoskingNavHost() {
             val empleadoTieneSession by empleadoVm.tieneSession.collectAsState()
             val duenoTieneSession by duenoVm.tieneSession.collectAsState()
             val ctx = LocalContext.current
-            var startupResuelto by remember { mutableStateOf(false) }
+            var startupResuelto by rememberSaveable { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
                 if (startupResuelto) return@LaunchedEffect

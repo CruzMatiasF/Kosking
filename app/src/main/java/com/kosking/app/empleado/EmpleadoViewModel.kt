@@ -138,6 +138,7 @@ class EmpleadoViewModel : ViewModel() {
             _localId.value = ""
             _nombreLocal.value = ""
             _nombreEmpleado.value = ""
+            auth.signOut()
         }
     }
 

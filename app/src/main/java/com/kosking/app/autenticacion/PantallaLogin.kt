@@ -1,11 +1,15 @@
 package com.kosking.app.autenticacion
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -23,6 +27,7 @@ fun PantallaLogin(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var mostrarRecuperar by remember { mutableStateOf(false) }
+    val passwordFocus = remember { FocusRequester() }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -39,7 +44,9 @@ fun PantallaLogin(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -50,8 +57,13 @@ fun PantallaLogin(
             onValueChange = { password = it },
             label = { Text("Contraseña") },
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth()
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = {
+                if (email.isNotBlank() && password.isNotBlank() && !cargando)
+                    vm.login(email, password) { onLoginExitoso() }
+            }),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus)
         )
 
         error?.let {

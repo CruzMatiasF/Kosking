@@ -3,6 +3,7 @@ package com.kosking.app.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.kosking.app.modelo.Movimiento
 
 object WhatsAppUtil {
 
@@ -35,7 +36,7 @@ object WhatsAppUtil {
         nombreCliente: String,
         nombreLocal: String,
         deudaTotal: Double,
-        ultimosMovimientos: List<Triple<String, Double, String>> // (descripcion, monto, tipo)
+        ultimosMovimientos: List<Movimiento>
     ): String {
         val totalFmt = "%.0f".format(deudaTotal)
         val sb = StringBuilder()
@@ -43,10 +44,10 @@ object WhatsAppUtil {
         sb.append("Tu deuda en $nombreLocal es *\$$totalFmt*.\n")
         if (ultimosMovimientos.isNotEmpty()) {
             sb.append("\nÚltimos movimientos:\n")
-            ultimosMovimientos.take(5).forEach { (desc, monto, tipo) ->
-                val signo = if (tipo == "pago") "✅ −" else "🔴 +"
-                val montoFmt = "%.0f".format(monto)
-                val concepto = desc.ifBlank { if (tipo == "pago") "Pago" else "Fiado" }
+            ultimosMovimientos.take(5).forEach { mov ->
+                val signo = if (mov.tipo == "pago") "✅ −" else "🔴 +"
+                val montoFmt = "%.0f".format(mov.monto)
+                val concepto = mov.producto.ifBlank { if (mov.tipo == "pago") "Pago" else "Fiado" }
                 sb.append("$signo\$$montoFmt $concepto\n")
             }
         }

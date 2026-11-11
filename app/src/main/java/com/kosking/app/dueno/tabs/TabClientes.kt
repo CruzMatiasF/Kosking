@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,9 +35,9 @@ internal fun TabClientes(
     onAgregarCliente: () -> Unit,
     onAnotarRapido: ((Cliente) -> Unit)? = null
 ) {
-    var filtro by remember { mutableStateOf("deuda") }
-    var busqueda by remember { mutableStateOf("") }
-    var orden by remember { mutableStateOf("deuda") }
+    var filtro by rememberSaveable { mutableStateOf("deuda") }
+    var busqueda by rememberSaveable { mutableStateOf("") }
+    var orden by rememberSaveable { mutableStateOf("deuda") }
     var mostrarOrden by remember { mutableStateOf(false) }
 
     val conDeuda = remember(clientes) { clientes.count { it.deudaTotal > 0 && it.habilitado } }

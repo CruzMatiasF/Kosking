@@ -45,7 +45,7 @@ fun PantallaDetalleCliente(
     onVerMovimiento: (String) -> Unit = {},
     onAnotarFiado: (String) -> Unit = {},
     onCobrar: (String) -> Unit = {},
-    vm: DuenoViewModel = viewModel()
+    vm: DuenoViewModel
 ) {
     LaunchedEffect(clienteId) { vm.seleccionarCliente(clienteId) }
 
@@ -187,7 +187,6 @@ fun PantallaDetalleCliente(
                                         .filter { m -> !m.anulado }
                                         .sortedByDescending { m -> m.fecha.toDate().time }
                                         .take(5)
-                                        .map { m -> Triple(m.producto, m.monto, m.tipo) }
                                     WhatsAppUtil.abrirWhatsApp(
                                         context = context,
                                         telefono = it.telefono,

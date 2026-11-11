@@ -49,7 +49,7 @@ class NotificacionDeudaWorker(
         val texto = "$clientesConDeuda cliente${if (clientesConDeuda != 1) "s" else ""} te deben \$$totalFmt en total"
 
         val notif = NotificationCompat.Builder(ctx, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Deuda pendiente de cobrar 💰")
             .setContentText(texto)
             .setStyle(NotificationCompat.BigTextStyle().bigText(texto))

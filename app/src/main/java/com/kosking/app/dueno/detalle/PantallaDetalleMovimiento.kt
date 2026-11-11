@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kosking.app.modelo.Movimiento
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -23,7 +22,7 @@ import java.util.Locale
 fun PantallaDetalleMovimiento(
     movimientoId: String,
     onVolver: () -> Unit,
-    vm: DuenoViewModel = viewModel()
+    vm: DuenoViewModel
 ) {
     LaunchedEffect(movimientoId) { vm.seleccionarMovimiento(movimientoId) }
     val mov by vm.movimientoSeleccionado.collectAsState()
@@ -164,8 +163,8 @@ fun PantallaDetalleMovimiento(
         )
     }
 
-    if (mostrarDialogAnular) {
-        val m = mov ?: return
+    val movParaAnular = mov
+    if (mostrarDialogAnular && movParaAnular != null) {
         AlertDialog(
             onDismissRequest = { mostrarDialogAnular = false },
             title = { Text("Anular movimiento") },
@@ -180,8 +179,8 @@ fun PantallaDetalleMovimiento(
                 TextButton(
                     onClick = {
                         vm.anularMovimiento(
-                            movimientoId = m.id, clienteId = m.clienteId,
-                            monto = m.monto, tipo = m.tipo, motivo = motivoAnulacion
+                            movimientoId = movParaAnular.id, clienteId = movParaAnular.clienteId,
+                            monto = movParaAnular.monto, tipo = movParaAnular.tipo, motivo = motivoAnulacion
                         ) {
                             mostrarDialogAnular = false
                             onVolver()

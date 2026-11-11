@@ -49,7 +49,7 @@ class KoskingMessagingService : FirebaseMessagingService() {
         )
 
         val notif = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(titulo)
             .setContentText(cuerpo)
             .setAutoCancel(true)

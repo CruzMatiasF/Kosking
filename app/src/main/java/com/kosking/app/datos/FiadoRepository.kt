@@ -141,13 +141,6 @@ object FiadoRepository {
         awaitClose { sub.remove() }
     }
 
-    suspend fun agregarMovimiento(movimiento: Movimiento) {
-        val ref = db.collection("movimientos").document()
-        val conId = movimiento.copy(id = ref.id)
-        ref.set(conId).await()
-        actualizarDeuda(movimiento.clienteId, movimiento.monto, movimiento.tipo)
-    }
-
     suspend fun agregarMovimientos(movimientos: List<Movimiento>) {
         if (movimientos.isEmpty()) return
         val clienteId = movimientos.first().clienteId
@@ -165,26 +158,16 @@ object FiadoRepository {
     }
 
     suspend fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {
-        db.collection("movimientos").document(movimientoId)
-            .update("anulado", true, "motivoAnulacion", motivo).await()
-        // Revertir el efecto en la deuda
-        val tipoInverso = if (tipo == "cargo") "pago" else "cargo"
-        actualizarDeuda(clienteId, monto, tipoInverso)
+        val delta = if (tipo == "cargo") -monto else monto
+        val batch = db.batch()
+        batch.update(db.collection("movimientos").document(movimientoId), "anulado", true, "motivoAnulacion", motivo)
+        batch.update(db.collection("clientes").document(clienteId), "deudaTotal", com.google.firebase.firestore.FieldValue.increment(delta))
+        batch.commit().await()
     }
 
     suspend fun marcarDisputado(movimientoId: String, disputado: Boolean) {
         db.collection("movimientos").document(movimientoId)
             .update("disputado", disputado).await()
-    }
-
-    private suspend fun actualizarDeuda(clienteId: String, monto: Double, tipo: String) {
-        val ref = db.collection("clientes").document(clienteId)
-        db.runTransaction { tx ->
-            val snap = tx.get(ref)
-            val actual = snap.getDouble("deudaTotal") ?: 0.0
-            val nueva = if (tipo == "cargo") actual + monto else (actual - monto).coerceAtLeast(0.0)
-            tx.update(ref, "deudaTotal", nueva)
-        }.await()
     }
 
     // ── Empleados ────────────────────────────────────────────────────────────

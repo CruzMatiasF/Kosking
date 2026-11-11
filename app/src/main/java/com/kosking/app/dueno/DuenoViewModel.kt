@@ -50,7 +50,7 @@ class DuenoViewModel : ViewModel() {
     private val _codigoLocal = MutableStateFlow("")
     val codigoLocal: StateFlow<String> = _codigoLocal
 
-    private val _nombreUsuario = MutableStateFlow("")
+    private val _nombreDueno = MutableStateFlow("")
 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val uid = firebaseAuth.currentUser?.uid
@@ -65,11 +65,12 @@ class DuenoViewModel : ViewModel() {
 
     override fun onCleared() {
         auth.removeAuthStateListener(authListener)
+        super.onCleared()
     }
 
     private suspend fun cargarDatos(uid: String) {
         val usuario = FiadoRepository.obtenerUsuario(uid) ?: return
-        _nombreUsuario.value = usuario.nombre
+        _nombreDueno.value = usuario.nombre
         if (usuario.localId.isNotBlank()) {
             _localId.value = usuario.localId
             val local = FiadoRepository.obtenerLocal(usuario.localId)
@@ -254,7 +255,7 @@ class DuenoViewModel : ViewModel() {
                         producto = producto,
                         monto = monto,
                         anotadoPorUid = uid,
-                        anotadoPorNombre = _nombreUsuario.value,
+                        anotadoPorNombre = _nombreDueno.value,
                         grupoId = grupoId,
                         visitante = visitante
                     )
@@ -399,6 +400,5 @@ class DuenoViewModel : ViewModel() {
         _localId.value = ""
         _nombreLocal.value = ""
         _codigoLocal.value = ""
-        auth.signOut()
     }
 }

@@ -166,6 +166,15 @@ object FiadoRepository {
         batch.commit().await()
     }
 
+    suspend fun corregirMontoMovimiento(movimientoId: String, clienteId: String, montoViejo: Double, montoNuevo: Double, tipo: String) {
+        val delta = if (tipo == "cargo") montoNuevo - montoViejo else montoViejo - montoNuevo
+        val batch = db.batch()
+        batch.update(db.collection("movimientos").document(movimientoId), "monto", montoNuevo)
+        batch.update(db.collection("clientes").document(clienteId), "deudaTotal",
+            com.google.firebase.firestore.FieldValue.increment(delta))
+        batch.commit().await()
+    }
+
     suspend fun marcarDisputado(movimientoId: String, disputado: Boolean) {
         db.collection("movimientos").document(movimientoId)
             .update("disputado", disputado).await()

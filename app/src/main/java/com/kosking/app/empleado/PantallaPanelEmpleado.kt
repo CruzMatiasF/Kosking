@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.AnotarRapidoSheet
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.util.BannerOffline
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +99,7 @@ fun PantallaPanelEmpleado(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            BannerOffline()
 
             // Mini stats del día
             Card(
@@ -369,8 +371,13 @@ private fun ClienteItemEmpleado(
             }
         },
         trailingContent = if (onAnotarRapido != null) ({
-            IconButton(onClick = onAnotarRapido, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Add, "Anotar", tint = MaterialTheme.colorScheme.primary)
+            FilledTonalButton(
+                onClick = onAnotarRapido,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Anotar", style = MaterialTheme.typography.labelMedium)
             }
         }) else null,
         modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier

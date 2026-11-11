@@ -11,7 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Movimiento
 import java.text.SimpleDateFormat
@@ -33,6 +35,8 @@ fun PantallaDetalleMovimiento(
     val vmError by vm.error.collectAsState()
     var mostrarDialogAnular by remember { mutableStateOf(false) }
     var motivoAnulacion by remember { mutableStateOf("") }
+    var mostrarDialogCorregir by remember { mutableStateOf(false) }
+    var montoCorregido by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -146,6 +150,16 @@ fun PantallaDetalleMovimiento(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
+                OutlinedButton(
+                    onClick = {
+                        montoCorregido = "%.0f".format(movActual.monto)
+                        mostrarDialogCorregir = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Corregir monto")
+                }
+                Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { mostrarDialogAnular = true }, modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                     Text("Anular movimiento")
@@ -160,6 +174,50 @@ fun PantallaDetalleMovimiento(
             title = { Text("Error") },
             text = { Text(msg) },
             confirmButton = { TextButton(onClick = { vm.clearError() }) { Text("Cerrar") } }
+        )
+    }
+
+    val movParaCorregir = mov
+    if (mostrarDialogCorregir && movParaCorregir != null) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogCorregir = false },
+            title = { Text("Corregir monto") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Ingresá el monto correcto. La deuda del cliente se ajustará automáticamente.")
+                    OutlinedTextField(
+                        value = montoCorregido,
+                        onValueChange = { montoCorregido = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Monto $") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val nuevo = montoCorregido.toDoubleOrNull()
+                        if (nuevo != null && nuevo > 0) {
+                            vm.corregirMontoMovimiento(
+                                movimientoId = movParaCorregir.id,
+                                clienteId = movParaCorregir.clienteId,
+                                montoViejo = movParaCorregir.monto,
+                                montoNuevo = nuevo,
+                                tipo = movParaCorregir.tipo
+                            ) { mostrarDialogCorregir = false }
+                        }
+                    },
+                    enabled = !cargando && montoCorregido.toDoubleOrNull() != null && (montoCorregido.toDoubleOrNull() ?: 0.0) > 0
+                ) {
+                    if (cargando) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    else Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogCorregir = false }) { Text("Cancelar") }
+            }
         )
     }
 

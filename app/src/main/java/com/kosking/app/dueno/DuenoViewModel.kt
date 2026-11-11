@@ -328,6 +328,25 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun corregirMontoMovimiento(movimientoId: String, clienteId: String, montoViejo: Double, montoNuevo: Double, tipo: String, onExito: () -> Unit = {}) {
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            try {
+                FiadoRepository.corregirMontoMovimiento(movimientoId, clienteId, montoViejo, montoNuevo, tipo)
+                if (_movimientoSeleccionado.value?.id == movimientoId) {
+                    _movimientoSeleccionado.value = _movimientoSeleccionado.value?.copy(monto = montoNuevo)
+                }
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "corregirMontoMovimiento")
+                _error.value = "No se pudo corregir el monto"
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+
     fun marcarDisputado(movimientoId: String, disputado: Boolean) {
         viewModelScope.launch {
             try {
@@ -348,7 +367,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun guardarProducto(nombre: String, precio: Double, productoId: String?) {
+    fun guardarProducto(nombre: String, precio: Double, productoId: String?, onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true
             try {
@@ -359,6 +378,7 @@ class DuenoViewModel : ViewModel() {
                 } else {
                     FiadoRepository.upsertProducto(localId, nombre, precio)
                 }
+                onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "guardarProducto")
                 _error.value = "No se pudo guardar el producto"

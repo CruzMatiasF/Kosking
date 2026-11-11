@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun WizardPrimerUso(
     cargando: Boolean,
-    onGuardarProducto: (nombre: String, precio: Double) -> Unit,
-    onGuardarCliente: (nombre: String, telefono: String) -> Unit,
+    onGuardarProducto: (nombre: String, precio: Double, onExito: () -> Unit) -> Unit,
+    onGuardarCliente: (nombre: String, telefono: String, onExito: () -> Unit) -> Unit,
     onTerminar: () -> Unit
 ) {
     // 0 = producto, 1 = cliente, 2 = listo
@@ -43,6 +43,8 @@ fun WizardPrimerUso(
     var telefonoCliente by remember { mutableStateOf("") }
     var productoGuardado by remember { mutableStateOf(false) }
     var clienteGuardado by remember { mutableStateOf(false) }
+    var guardandoLocal by remember { mutableStateOf(false) }
+    var errorLocal by remember { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = { /* no se puede cerrar sin completar */ },
@@ -71,27 +73,37 @@ fun WizardPrimerUso(
                     0 -> PasoProducto(
                         nombre = nombreProducto,
                         precio = precioTexto,
-                        cargando = cargando,
-                        onNombreChange = { nombreProducto = it },
+                        cargando = cargando || guardandoLocal,
+                        errorLocal = errorLocal,
+                        onNombreChange = { nombreProducto = it; errorLocal = null },
                         onPrecioChange = { precioTexto = it.filter { c -> c.isDigit() || c == '.' } },
                         onSiguiente = {
                             val precio = precioTexto.toDoubleOrNull() ?: 0.0
-                            onGuardarProducto(nombreProducto.trim(), precio)
-                            productoGuardado = true
-                            paso = 1
+                            guardandoLocal = true
+                            errorLocal = null
+                            onGuardarProducto(nombreProducto.trim(), precio) {
+                                guardandoLocal = false
+                                productoGuardado = true
+                                paso = 1
+                            }
                         },
                         onSaltar = { paso = 1 }
                     )
                     1 -> PasoCliente(
                         nombre = nombreCliente,
                         telefono = telefonoCliente,
-                        cargando = cargando,
-                        onNombreChange = { nombreCliente = it },
+                        cargando = cargando || guardandoLocal,
+                        errorLocal = errorLocal,
+                        onNombreChange = { nombreCliente = it; errorLocal = null },
                         onTelefonoChange = { telefonoCliente = it.filter { c -> c.isDigit() || c == '+' || c == ' ' } },
                         onSiguiente = {
-                            onGuardarCliente(nombreCliente.trim(), telefonoCliente.trim())
-                            clienteGuardado = true
-                            paso = 2
+                            guardandoLocal = true
+                            errorLocal = null
+                            onGuardarCliente(nombreCliente.trim(), telefonoCliente.trim()) {
+                                guardandoLocal = false
+                                clienteGuardado = true
+                                paso = 2
+                            }
                         },
                         onSaltar = { paso = 2 }
                     )
@@ -148,6 +160,7 @@ private fun PasoProducto(
     nombre: String,
     precio: String,
     cargando: Boolean,
+    errorLocal: String?,
     onNombreChange: (String) -> Unit,
     onPrecioChange: (String) -> Unit,
     onSiguiente: () -> Unit,
@@ -191,6 +204,9 @@ private fun PasoProducto(
             shape = RoundedCornerShape(12.dp)
         )
 
+        errorLocal?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         Button(
             onClick = onSiguiente,
             enabled = nombre.isNotBlank() && !cargando,
@@ -215,6 +231,7 @@ private fun PasoCliente(
     nombre: String,
     telefono: String,
     cargando: Boolean,
+    errorLocal: String?,
     onNombreChange: (String) -> Unit,
     onTelefonoChange: (String) -> Unit,
     onSiguiente: () -> Unit,
@@ -258,6 +275,9 @@ private fun PasoCliente(
             shape = RoundedCornerShape(12.dp)
         )
 
+        errorLocal?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         Button(
             onClick = onSiguiente,
             enabled = nombre.isNotBlank() && !cargando,

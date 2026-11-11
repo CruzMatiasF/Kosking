@@ -144,7 +144,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    companion object { const val LIMITE_CLIENTES_GRATIS = 15 }
+    companion object { const val LIMITE_CLIENTES_GRATIS = 50 }
 
     fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: () -> Unit) {
         viewModelScope.launch {
@@ -152,7 +152,7 @@ class DuenoViewModel : ViewModel() {
             _error.value = null
             try {
                 if (clientes.value.size >= LIMITE_CLIENTES_GRATIS) {
-                    _error.value = "Límite de $LIMITE_CLIENTES_GRATIS clientes en el plan gratuito. Próximamente plan premium."
+                    _error.value = "Límite de $LIMITE_CLIENTES_GRATIS clientes alcanzado."
                     return@launch
                 }
                 val cliente = Cliente(

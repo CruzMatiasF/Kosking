@@ -256,13 +256,17 @@ fun PantallaDetalleCliente(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     ) {
                         items(frecuentes) { (nombre, veces) ->
-                            SuggestionChip(
-                                onClick = {},
-                                label = {
-                                    Text("$nombre · $veces×",
-                                        style = MaterialTheme.typography.labelMedium)
-                                }
-                            )
+                            Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 1.dp
+                            ) {
+                                Text(
+                                    "$nombre · $veces×",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
                         }
                     }
                 }

@@ -1,7 +1,5 @@
 package com.kosking.app.dueno
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,8 +28,6 @@ fun PantallaAgregarCliente(
 ) {
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
-    val nombreLocal by vm.nombreLocal.collectAsState()
-    val codigoLocal by vm.codigoLocal.collectAsState()
     val context = LocalContext.current
 
     var nombre by remember { mutableStateOf("") }
@@ -39,7 +35,6 @@ fun PantallaAgregarCliente(
     var domicilio by remember { mutableStateOf("") }
     var limiteTexto by remember { mutableStateOf("") }
     var usarLimite by remember { mutableStateOf(false) }
-    var codigoMostrar by remember { mutableStateOf<String?>(null) }
     var mostrarUpgrade by remember { mutableStateOf(false) }
 
     if (mostrarUpgrade) {
@@ -59,51 +54,6 @@ fun PantallaAgregarCliente(
             },
             confirmButton = {
                 TextButton(onClick = { mostrarUpgrade = false; vm.clearError() }) { Text("Entendido") }
-            }
-        )
-    }
-
-    codigoMostrar?.let { codigo ->
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Cliente creado") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "Código de acceso de $nombre:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = codigo,
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 2.sp
-                    )
-                    Text(
-                        "Con este código entra a la app y ve su cuenta.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val codigoLocalTexto = if (codigoLocal.isNotBlank()) " El código del local es: $codigoLocal." else ""
-                    val mensaje = "Hola $nombre! Te mando tu código personal para ver tu cuenta en $nombreLocal en la app Kosking: *$codigo*.$codigoLocalTexto Descargá la app, andá a Más → \"Tengo cuenta en un local\" e ingresá el código."
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://wa.me/?text=${Uri.encode(mensaje)}")
-                        }
-                        context.startActivity(intent)
-                    } catch (_: Exception) {}
-                    codigoMostrar = null
-                    onVolver()
-                }) { Text("Enviar por WhatsApp") }
-            },
-            dismissButton = {
-                TextButton(onClick = { codigoMostrar = null; onVolver() }) { Text("Listo") }
             }
         )
     }
@@ -220,9 +170,7 @@ fun PantallaAgregarCliente(
             Button(
                 onClick = {
                     val limite = if (usarLimite) limiteTexto.toDoubleOrNull() ?: 0.0 else 0.0
-                    vm.agregarCliente(nombre, telefono, domicilio, limiteCredito = limite) { _, codigoAcceso ->
-                        codigoMostrar = codigoAcceso
-                    }
+                    vm.agregarCliente(nombre, telefono, domicilio, limiteCredito = limite) { onVolver() }
                 },
                 enabled = !cargando && nombre.isNotBlank() && telefonoValido,
                 modifier = Modifier.fillMaxWidth().height(52.dp)

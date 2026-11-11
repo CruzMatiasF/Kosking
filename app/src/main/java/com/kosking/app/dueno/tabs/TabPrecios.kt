@@ -30,7 +30,7 @@ import com.kosking.app.modelo.Producto
 @Composable
 internal fun TabPrecios(
     productos: List<Producto>,
-    onAgregar: (nombre: String, precio: Double, categoria: String, descripcion: String, precioPublico: Boolean) -> Unit,
+    onAgregar: (nombre: String, precio: Double, categoria: String, descripcion: String) -> Unit,
     onActualizar: (Producto) -> Unit,
     onEliminar: (String) -> Unit,
     onSubirImagen: (Producto, android.net.Uri) -> Unit = { _, _ -> }
@@ -183,10 +183,10 @@ internal fun TabPrecios(
         DialogProducto(
             producto = productoEditar,
             onSubirImagen = productoEditar?.let { p -> { uri -> onSubirImagen(p, uri) } },
-            onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior, precioPublico, agotado ->
+            onConfirmar = { nombre, precio, categoria, descripcion, esOferta, precioAnterior, agotado ->
                 val p = productoEditar
                 if (p == null) {
-                    onAgregar(nombre, precio, categoria, descripcion, precioPublico)
+                    onAgregar(nombre, precio, categoria, descripcion)
                 } else {
                     onActualizar(p.copy(
                         nombre = nombre,
@@ -195,7 +195,6 @@ internal fun TabPrecios(
                         descripcion = descripcion,
                         esOferta = esOferta,
                         precioAnterior = precioAnterior,
-                        precioPublico = precioPublico,
                         agotado = agotado
                     ))
                 }
@@ -308,7 +307,7 @@ private fun ProductoItemDueno(
 private fun DialogProducto(
     producto: Producto?,
     onSubirImagen: ((Uri) -> Unit)?,
-    onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double, precioPublico: Boolean, agotado: Boolean) -> Unit,
+    onConfirmar: (nombre: String, precio: Double, categoria: String, descripcion: String, esOferta: Boolean, precioAnterior: Double, agotado: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -319,7 +318,6 @@ private fun DialogProducto(
     var categoria by remember(producto) { mutableStateOf(producto?.categoria ?: "") }
     var descripcion by remember(producto) { mutableStateOf(producto?.descripcion ?: "") }
     var esOferta by remember(producto) { mutableStateOf(producto?.esOferta ?: false) }
-    var precioPublico by remember(producto) { mutableStateOf(producto?.precioPublico ?: false) }
     var agotado by remember(producto) { mutableStateOf(producto?.agotado ?: false) }
     var precioAnteriorTexto by remember(producto) { mutableStateOf(if (producto?.precioAnterior != null && producto.precioAnterior > 0) "%.0f".format(producto.precioAnterior) else "") }
 
@@ -414,18 +412,6 @@ private fun DialogProducto(
                     Text("Sin stock (agotado)", modifier = Modifier.weight(1f))
                     Switch(checked = agotado, onCheckedChange = { agotado = it })
                 }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Precio público")
-                        Text("Visible en la vidriera del local",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(checked = precioPublico, onCheckedChange = { precioPublico = it })
-                }
                 if (esOferta) {
                     OutlinedTextField(
                         value = precioAnteriorTexto,
@@ -449,7 +435,6 @@ private fun DialogProducto(
                         descripcion.trim(),
                         esOferta,
                         precioAnteriorTexto.toDoubleOrNull() ?: 0.0,
-                        precioPublico,
                         agotado
                     )
                 },

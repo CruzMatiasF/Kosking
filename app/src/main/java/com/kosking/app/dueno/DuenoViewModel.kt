@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.util.CrashLogger
-import com.kosking.app.util.PinUtil
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
@@ -77,7 +76,7 @@ class DuenoViewModel : ViewModel() {
             _localId.value = usuario.localId
             val local = FiadoRepository.obtenerLocal(usuario.localId)
             _nombreLocal.value = local?.nombre ?: ""
-            _codigoLocal.value = local?.codigo ?: ""
+            _codigoLocal.value = ""
         }
     }
 
@@ -86,11 +85,6 @@ class DuenoViewModel : ViewModel() {
         tipo: String,
         direccion: String,
         telefono: String,
-        descripcion: String,
-        abierto: Boolean,
-        lat: Double? = null,
-        lng: Double? = null,
-        horarios: Map<String, com.kosking.app.modelo.HorarioDia>? = null,
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
@@ -102,12 +96,7 @@ class DuenoViewModel : ViewModel() {
                     nombre = nombre,
                     tipo = tipo,
                     direccion = direccion,
-                    telefono = telefono,
-                    descripcion = descripcion,
-                    abierto = abierto,
-                    lat = lat ?: local.lat,
-                    lng = lng ?: local.lng,
-                    horarios = horarios ?: local.horarios
+                    telefono = telefono
                 )
                 FiadoRepository.actualizarLocal(actualizado)
                 _nombreLocal.value = nombre
@@ -129,26 +118,10 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    // cierre: "HH:mm" para hoy, o "" para quitar
-    fun actualizarCierreHoy(cierre: String) {
-        viewModelScope.launch {
-            val local = localData.value ?: return@launch
-            val fecha = if (cierre.isNotEmpty()) {
-                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                    .format(Calendar.getInstance().time)
-            } else ""
-            val actualizado = local.copy(excepcionFecha = fecha, excepcionTipo = "", excepcionCierre = cierre)
-            try { FiadoRepository.actualizarLocal(actualizado) } catch (e: Exception) { CrashLogger.log(e, "actualizarLocal") }
-        }
-    }
-
     fun crearLocal(
         nombre: String,
         tipo: String = "Kiosco",
         direccion: String = "",
-        lat: Double = 0.0,
-        lng: Double = 0.0,
-        horarios: Map<String, com.kosking.app.modelo.HorarioDia> = emptyMap(),
         onExito: () -> Unit
     ) {
         viewModelScope.launch {
@@ -157,14 +130,12 @@ class DuenoViewModel : ViewModel() {
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
                 val ref = db.collection("locales").document()
-                val codigo = ref.id.take(6).uppercase()
-                val local = Local(id = ref.id, nombre = nombre, duenoUid = uid, codigo = codigo,
-                    tipo = tipo, direccion = direccion, lat = lat, lng = lng, horarios = horarios)
+                val local = Local(id = ref.id, nombre = nombre, duenoUid = uid,
+                    tipo = tipo, direccion = direccion)
                 FiadoRepository.crearLocal(local)
                 db.collection("usuarios").document(uid).update("localId", ref.id).await()
                 _localId.value = ref.id
                 _nombreLocal.value = nombre
-                _codigoLocal.value = codigo
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "crearLocal")
@@ -183,7 +154,7 @@ class DuenoViewModel : ViewModel() {
 
     companion object { const val LIMITE_CLIENTES_GRATIS = 15 }
 
-    fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: (pin: String, codigoAcceso: String) -> Unit) {
+    fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: () -> Unit) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
@@ -192,21 +163,15 @@ class DuenoViewModel : ViewModel() {
                     _error.value = "Límite de $LIMITE_CLIENTES_GRATIS clientes en el plan gratuito. Próximamente plan premium."
                     return@launch
                 }
-                val pin = (1000..9999).random().toString()
-                val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-                val codigoAcceso = "KSK-" + (1..4).map { chars.random() }.joinToString("")
                 val cliente = Cliente(
                     localId = _localId.value,
                     nombre = nombre,
                     telefono = telefono,
                     domicilio = domicilio,
-                    pin = PinUtil.hash(pin),
-                    codigoAcceso = codigoAcceso,
                     limiteCredito = limiteCredito
                 )
-                val clienteId = FiadoRepository.agregarCliente(cliente)
-                FiadoRepository.guardarCodigoCliente(codigoAcceso, clienteId, _localId.value)
-                onExito(pin, codigoAcceso)
+                FiadoRepository.agregarCliente(cliente)
+                onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarCliente")
                 _error.value = "No se pudo agregar el cliente"
@@ -253,7 +218,7 @@ class DuenoViewModel : ViewModel() {
                     _error.value = "No se puede eliminar: el cliente tiene movimientos registrados"
                     return@launch
                 }
-                FiadoRepository.eliminarCliente(cliente.id, cliente.codigoAcceso)
+                FiadoRepository.eliminarCliente(cliente.id)
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "eliminarCliente")
@@ -306,14 +271,6 @@ class DuenoViewModel : ViewModel() {
                     )
                 }
                 FiadoRepository.agregarMovimientos(movs)
-                // Actualizar visitantesConocidos si hay visitante nuevo
-                if (visitante.isNotBlank()) {
-                    val cliente = clientes.value.find { it.id == clienteId }
-                    if (cliente != null && !cliente.visitantesConocidos.contains(visitante)) {
-                        val nuevosVisitantes = (cliente.visitantesConocidos + visitante).takeLast(20)
-                        FiadoRepository.actualizarCliente(cliente.copy(visitantesConocidos = nuevosVisitantes))
-                    }
-                }
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarMovimientos dueno")
@@ -453,7 +410,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "", precioPublico: Boolean = false) {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "") {
         viewModelScope.launch {
             try {
                 val producto = Producto(
@@ -465,7 +422,6 @@ class DuenoViewModel : ViewModel() {
                     esOferta = esOferta,
                     precioAnterior = precioAnterior,
                     categoria = categoria,
-                    precioPublico = precioPublico,
                     updatedAt = System.currentTimeMillis()
                 )
                 FiadoRepository.agregarProducto(producto)

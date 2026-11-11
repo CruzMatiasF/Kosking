@@ -3,7 +3,6 @@ package com.kosking.app.datos
 import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.datos.PreferenciasRepository
-import com.kosking.app.modelo.LocalGuardado
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -14,7 +13,6 @@ sealed class StartupDestino {
     data class PanelEmpleadoConTab(val tab: Int) : StartupDestino()
     object PanelDueno : StartupDestino()
     data class PanelDuenoConTab(val tab: Int) : StartupDestino()
-    object VerFiado : StartupDestino()
 }
 
 object StartupUseCase {
@@ -22,8 +20,7 @@ object StartupUseCase {
     suspend fun resolver(
         context: Context,
         empleadoTieneSession: Boolean,
-        duenoLocalIdFlow: Flow<String>,
-        localesGuardados: List<LocalGuardado>
+        duenoLocalIdFlow: Flow<String>
     ): StartupDestino? {
         val pantalla = PreferenciasRepository.getPantallaInicio(context)
         return when (pantalla) {
@@ -36,14 +33,11 @@ object StartupUseCase {
             }
             PreferenciasRepository.PANTALLA_PRODUCTOS -> {
                 if (empleadoTieneSession) {
-                    StartupDestino.PanelEmpleadoConTab(0) // tab 0 = Precios en empleado
+                    StartupDestino.PanelEmpleadoConTab(0)
                 } else {
                     val localId = resolverLocalId(duenoLocalIdFlow)
-                    if (localId != null) StartupDestino.PanelDuenoConTab(3) else null // tab 3 = Precios en dueño
+                    if (localId != null) StartupDestino.PanelDuenoConTab(3) else null
                 }
-            }
-            PreferenciasRepository.PANTALLA_FIADO -> {
-                if (localesGuardados.isNotEmpty()) StartupDestino.VerFiado else null
             }
             else -> {
                 when {

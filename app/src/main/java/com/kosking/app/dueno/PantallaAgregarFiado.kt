@@ -61,7 +61,6 @@ fun PantallaAgregarFiado(
         limiteCredito = cliente?.limiteCredito ?: 0.0,
         nombreCliente = cliente?.nombre ?: "",
         notaInterna = cliente?.notaInterna ?: "",
-        visitantesConocidos = cliente?.visitantesConocidos ?: emptyList(),
         mostrarVisitante = true,
         onConfirmar = { items, tipo, visitante ->
             vm.agregarMovimientos(clienteId, items, tipo, visitante, onGuardado)
@@ -81,7 +80,6 @@ fun PantallaAgregarFiadoConLambda(
     limiteCredito: Double = 0.0,
     nombreCliente: String = "",
     nombreEmpleado: String = "",
-    visitantesConocidos: List<String> = emptyList()
 ) {
     PantallaAgregarFiadoUI(
         onVolver = onVolver,
@@ -92,8 +90,7 @@ fun PantallaAgregarFiadoConLambda(
         limiteCredito = limiteCredito,
         nombreCliente = nombreCliente,
         nombreEmpleado = nombreEmpleado,
-        visitantesConocidos = visitantesConocidos,
-        mostrarVisitante = visitantesConocidos.isNotEmpty(),
+        mostrarVisitante = false,
         onConfirmar = { items, tipo, visitante -> onConfirmar(items, tipo, visitante) }
     )
 }
@@ -111,7 +108,6 @@ private fun PantallaAgregarFiadoUI(
     nombreCliente: String = "",
     nombreEmpleado: String = "",
     notaInterna: String = "",
-    visitantesConocidos: List<String> = emptyList(),
     mostrarVisitante: Boolean = false,
     onConfirmar: (items: List<Triple<String, Int, Double>>, tipo: String, visitante: String) -> Unit
 ) {
@@ -456,20 +452,6 @@ private fun PantallaAgregarFiadoUI(
                         verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("¿Quién vino? (opcional)", style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (visitantesConocidos.isNotEmpty()) {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                items(visitantesConocidos) { conocido ->
-                                    FilterChip(
-                                        selected = visitante == conocido,
-                                        onClick = { visitante = if (visitante == conocido) "" else conocido },
-                                        label = { Text(conocido) },
-                                        leadingIcon = if (visitante == conocido) {
-                                            { Icon(Icons.Default.Check, null, Modifier.size(14.dp)) }
-                                        } else null
-                                    )
-                                }
-                            }
-                        }
                         OutlinedTextField(
                             value = visitante,
                             onValueChange = { visitante = it },

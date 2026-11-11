@@ -19,7 +19,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import com.kosking.app.modelo.HorarioDia
 import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.launch
 
@@ -69,7 +68,6 @@ fun PanelDuenoEmbedido(
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var editandoDatos by remember { mutableStateOf(false) }
     var editandoDireccion by remember { mutableStateOf(false) }
-    var editandoHorarios by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -152,8 +150,8 @@ fun PanelDuenoEmbedido(
                 )
                 3 -> TabPrecios(
                     productos = productos,
-                    onAgregar = { nombre, precio, categoria, descripcion, precioPublico ->
-                        vm.agregarProducto(nombre = nombre, precio = precio, descripcion = descripcion, categoria = categoria, precioPublico = precioPublico)
+                    onAgregar = { nombre, precio, categoria, descripcion ->
+                        vm.agregarProducto(nombre = nombre, precio = precio, descripcion = descripcion, categoria = categoria)
                     },
                     onActualizar = { vm.actualizarProducto(it) },
                     onSubirImagen = { prod, uri -> vm.subirFotoProducto(prod, uri) {} },
@@ -163,7 +161,7 @@ fun PanelDuenoEmbedido(
                     localData = localData,
                     onEditarDatos = { editandoDatos = true },
                     onEditarDireccion = { editandoDireccion = true },
-                    onEditarHorarios = { editandoHorarios = true },
+                    onEditarHorarios = {},
                 )
                 else -> TabInicio(
                     clientes = clientes,
@@ -363,7 +361,6 @@ fun PanelDuenoEmbedido(
         var nombreEdit by remember { mutableStateOf(localData?.nombre.orEmpty()) }
         var tipoEdit by remember { mutableStateOf(localData?.tipo ?: "Kiosco") }
         var telefonoEdit by remember { mutableStateOf(localData?.telefono.orEmpty()) }
-        var descripcionEdit by remember { mutableStateOf(localData?.descripcion.orEmpty()) }
         var expandirTipo by remember { mutableStateOf(false) }
 
         ModalBottomSheet(onDismissRequest = { editandoDatos = false }) {
@@ -384,15 +381,12 @@ fun PanelDuenoEmbedido(
                 }
                 Spacer(Modifier.height(10.dp))
                 OutlinedTextField(value = telefonoEdit, onValueChange = { telefonoEdit = it }, label = { Text("Teléfono") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(value = descripcionEdit, onValueChange = { descripcionEdit = it }, label = { Text("Descripción") }, minLines = 2, maxLines = 4, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
                         val local = localData ?: return@Button
                         vm.actualizarLocal(nombre = nombreEdit.trim(), tipo = tipoEdit, direccion = local.direccion,
-                            telefono = telefonoEdit.trim(), descripcion = descripcionEdit.trim(), abierto = local.abierto,
-                            lat = local.lat.takeIf { it != 0.0 }, lng = local.lng.takeIf { it != 0.0 }, onExito = {})
+                            telefono = telefonoEdit.trim(), onExito = {})
                         editandoDatos = false
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -404,69 +398,14 @@ fun PanelDuenoEmbedido(
     if (editandoDireccion) {
         DireccionBottomSheet(
             direccionActual = localData?.direccion.orEmpty(),
-            latActual = localData?.lat,
-            lngActual = localData?.lng,
-            onGuardar = { dir, lat, lng ->
+            onGuardar = { dir ->
                 val local = localData ?: return@DireccionBottomSheet
                 vm.actualizarLocal(nombre = local.nombre, tipo = local.tipo, direccion = dir,
-                    telefono = local.telefono, descripcion = local.descripcion, abierto = local.abierto, lat = lat, lng = lng, onExito = {})
+                    telefono = local.telefono, onExito = {})
                 editandoDireccion = false
             },
             onDismiss = { editandoDireccion = false }
         )
     }
 
-    if (editandoHorarios) {
-        val diasClaves = listOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
-        val diasEtiquetas = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
-        var horariosEdit by remember {
-            mutableStateOf(diasClaves.associateWith { clave -> localData?.horarios?.get(clave) ?: HorarioDia() }.toMutableMap())
-        }
-        ModalBottomSheet(onDismissRequest = { editandoHorarios = false }) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-                Text("Horarios del local", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
-                diasClaves.forEachIndexed { i, clave ->
-                    FilaHorarioPanelDueno(dia = diasEtiquetas[i], horario = horariosEdit[clave] ?: HorarioDia(), onCambio = { nuevo ->
-                        horariosEdit = horariosEdit.toMutableMap().also { it[clave] = nuevo }
-                    })
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        val local = localData ?: return@Button
-                        vm.actualizarLocal(nombre = local.nombre, tipo = local.tipo, direccion = local.direccion,
-                            telefono = local.telefono, descripcion = local.descripcion, abierto = local.abierto, horarios = horariosEdit, onExito = {})
-                        editandoHorarios = false
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Guardar horarios") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilaHorarioPanelDueno(dia: String, horario: HorarioDia, onCambio: (HorarioDia) -> Unit) {
-    var activo by remember(horario) { mutableStateOf(horario.tieneCarga) }
-    var apertura by remember(horario) { mutableStateOf(if (horario.tieneCarga) horario.apertura else "08:00") }
-    var cierre by remember(horario) { mutableStateOf(if (horario.tieneCarga) horario.cierre else "20:00") }
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(dia, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Switch(checked = activo, onCheckedChange = { nuevo ->
-                activo = nuevo
-                onCambio(if (nuevo) HorarioDia(apertura, cierre) else HorarioDia())
-            })
-        }
-        if (activo) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = apertura, onValueChange = { v -> apertura = v; onCambio(HorarioDia(v, cierre)) },
-                    label = { Text("Abre") }, placeholder = { Text("08:00") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
-                OutlinedTextField(value = cierre, onValueChange = { v -> cierre = v; onCambio(HorarioDia(apertura, v)) },
-                    label = { Text("Cierra") }, placeholder = { Text("20:00") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
-            }
-        }
-    }
 }

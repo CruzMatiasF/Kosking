@@ -8,10 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
@@ -152,7 +149,6 @@ internal fun DialogEditarCliente(
     var domicilio by remember { mutableStateOf(cliente.domicilio) }
     var habilitado by remember { mutableStateOf(cliente.habilitado) }
     var campoActivo by remember { mutableStateOf<String?>(null) }
-    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
     campoActivo?.let { campo ->
         val valorActual = when (campo) {
@@ -227,77 +223,6 @@ internal fun DialogEditarCliente(
                     onClick = { campoActivo = "domicilio" }
                 )
 
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "ACCESO",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 0.8.sp
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Default.Group, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Column {
-                                Text("Habilitado para anotar", style = MaterialTheme.typography.bodyMedium)
-                                if (habilitado) {
-                                    Text(
-                                        "Empleados pueden anotar",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                        Switch(checked = habilitado, onCheckedChange = { habilitado = it })
-                    }
-                }
-
-                if (cliente.codigoAcceso.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(Icons.Default.Key, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Código de acceso · solo lectura",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    cliente.codigoAcceso,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    letterSpacing = 1.sp
-                                )
-                            }
-                            IconButton(
-                                onClick = { clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(cliente.codigoAcceso)) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(Icons.Default.ContentCopy, "Copiar", Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
             }
         },
         confirmButton = {

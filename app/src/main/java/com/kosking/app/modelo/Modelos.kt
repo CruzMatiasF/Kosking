@@ -2,8 +2,6 @@ package com.kosking.app.modelo
 
 import androidx.compose.runtime.Immutable
 import com.google.firebase.Timestamp
-import com.google.firebase.firestore.Exclude
-
 @Immutable
 data class Permisos(
     val anotarFiados: Boolean = true,
@@ -12,35 +10,15 @@ data class Permisos(
     val editarPrecios: Boolean = false
 )
 
-// "HH:mm" o "" si está cerrado ese día
-@Immutable
-data class HorarioDia(
-    val apertura: String = "",
-    val cierre: String = ""
-) {
-    @get:Exclude
-    val tieneCarga: Boolean get() = apertura.isNotBlank() && cierre.isNotBlank()
-}
-
 @Immutable
 data class Local(
     val id: String = "",
     val nombre: String = "",
     val duenoUid: String = "",
-    val codigo: String = "",
     val permisos: Permisos = Permisos(),
     val telefono: String = "",
     val tipo: String = "Kiosco",
-    val direccion: String = "",
-    val abierto: Boolean = true,
-    val imagenUrl: String = "",
-    val descripcion: String = "",
-    val lat: Double = 0.0,
-    val lng: Double = 0.0,
-    val horarios: Map<String, HorarioDia> = emptyMap(),
-    val excepcionFecha: String = "",
-    val excepcionTipo: String = "",
-    val excepcionCierre: String = ""
+    val direccion: String = ""
 )
 
 @Immutable
@@ -50,14 +28,11 @@ data class Cliente(
     val nombre: String = "",
     val telefono: String = "",
     val domicilio: String = "",
-    val pin: String = "",
     val habilitado: Boolean = true,
     val deudaTotal: Double = 0.0,
-    val codigoAcceso: String = "",
     val limiteCredito: Double = 0.0,
     val fechaPago: Timestamp? = null,
     val notaInterna: String = "",
-    val visitantesConocidos: List<String> = emptyList(),
     val alertaEmpleado: Boolean = false
 )
 
@@ -101,15 +76,7 @@ data class Producto(
     val imagenUrl: String = "",
     val agotado: Boolean = false,
     val categoria: String = "",
-    val precioPublico: Boolean = false,
     val updatedAt: Long = 0L
-)
-
-@Immutable
-data class LocalGuardado(
-    val localId: String = "",
-    val clienteId: String = "",
-    val nombreLocal: String = ""
 )
 
 @Immutable
@@ -121,16 +88,6 @@ data class Usuario(
     val empleadoLocalId: String = "",
     val empleadoNombreLocal: String = "",
     val fcmToken: String = ""
-)
-
-@Immutable
-data class Publicacion(
-    val id: String = "",
-    val localId: String = "",
-    val texto: String = "",
-    val imagenUrl: String = "",
-    val etiqueta: String = "novedad",  // "promo", "aviso", "novedad"
-    val fecha: Timestamp = Timestamp.now()
 )
 
 @Immutable

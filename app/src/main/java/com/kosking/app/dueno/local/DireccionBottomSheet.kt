@@ -39,9 +39,7 @@ private data class ResultadoDireccion(
 @Composable
 fun DireccionBottomSheet(
     direccionActual: String,
-    latActual: Double?,
-    lngActual: Double?,
-    onGuardar: (dir: String, lat: Double?, lng: Double?) -> Unit,
+    onGuardar: (dir: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -55,11 +53,9 @@ fun DireccionBottomSheet(
     var cargando by remember { mutableStateOf(false) }
     var sinResultados by remember { mutableStateOf(false) }
 
-    var latSelec by remember { mutableStateOf(latActual?.takeIf { it != 0.0 }) }
-    var lngSelec by remember { mutableStateOf(lngActual?.takeIf { it != 0.0 }) }
-    var dirSelec by remember { mutableStateOf(if (latActual != null && latActual != 0.0) direccionActual else "") }
+    var dirSelec by remember { mutableStateOf(direccionActual) }
 
-    val tieneUbicacion = latSelec != null && lngSelec != null
+    val tieneUbicacion = dirSelec.isNotBlank() && dirSelec == query
 
 
     fun buscar() {
@@ -169,8 +165,6 @@ fun DireccionBottomSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    latSelec = res.lat
-                                    lngSelec = res.lng
                                     dirSelec = res.descripcion
                                     query = res.descripcion
                                     resultados = emptyList()
@@ -240,7 +234,7 @@ fun DireccionBottomSheet(
 
             // Botón guardar
             Button(
-                onClick = { onGuardar(dirSelec.ifBlank { query.trim() }, latSelec, lngSelec) },
+                onClick = { onGuardar(dirSelec.ifBlank { query.trim() }) },
                 enabled = query.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()

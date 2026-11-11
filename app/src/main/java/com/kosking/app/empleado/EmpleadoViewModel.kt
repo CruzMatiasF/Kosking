@@ -203,7 +203,7 @@ class EmpleadoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "", precioPublico: Boolean = false) {
+    fun agregarProducto(nombre: String, precio: Double, descripcion: String, habilitado: Boolean = true, esOferta: Boolean = false, precioAnterior: Double = 0.0, categoria: String = "") {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
@@ -212,7 +212,7 @@ class EmpleadoViewModel : ViewModel() {
                     Producto(localId = _localId.value, nombre = nombre, precio = precio,
                         descripcion = descripcion, habilitado = habilitado,
                         esOferta = esOferta, precioAnterior = precioAnterior,
-                        categoria = categoria, precioPublico = precioPublico)
+                        categoria = categoria)
                 )
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarProducto empleado")

@@ -6,14 +6,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import com.kosking.app.modelo.Cliente
-import com.kosking.app.util.PinUtil
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
-import com.kosking.app.modelo.LocalGuardado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Notificacion
 import com.kosking.app.modelo.Producto
-import com.kosking.app.modelo.Publicacion
 import com.kosking.app.modelo.Usuario
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -124,18 +121,13 @@ object FiadoRepository {
                 "habilitado" to cliente.habilitado,
                 "limiteCredito" to cliente.limiteCredito,
                 "fechaPago" to cliente.fechaPago,
-                "notaInterna" to cliente.notaInterna,
-                "visitantesConocidos" to cliente.visitantesConocidos,
-                "pin" to cliente.pin
+                "notaInterna" to cliente.notaInterna
             )
         ).await()
     }
 
-    suspend fun eliminarCliente(clienteId: String, codigoAcceso: String) {
+    suspend fun eliminarCliente(clienteId: String) {
         db.collection("clientes").document(clienteId).delete().await()
-        if (codigoAcceso.isNotBlank()) {
-            db.collection("codigosCliente").document(codigoAcceso.uppercase()).delete().await()
-        }
     }
 
     suspend fun tieneMovimientos(clienteId: String): Boolean {
@@ -152,27 +144,6 @@ object FiadoRepository {
                 trySend(snap?.toObject(Cliente::class.java))
             }
         awaitClose { sub.remove() }
-    }
-
-    suspend fun guardarCodigoCliente(codigo: String, clienteId: String, localId: String) {
-        db.collection("codigosCliente").document(codigo.uppercase())
-            .set(mapOf("clienteId" to clienteId, "localId" to localId))
-            .await()
-    }
-
-    suspend fun obtenerClientePorCodigoAcceso(codigo: String): Cliente? {
-        val ref = db.collection("codigosCliente").document(codigo.uppercase()).get().await()
-        val clienteId = ref.getString("clienteId") ?: return null
-        return db.collection("clientes").document(clienteId).get().await()
-            .toObject(Cliente::class.java)
-    }
-
-    suspend fun obtenerClientePorPin(localId: String, pin: String): Cliente? {
-        val snap = db.collection("clientes")
-            .whereEqualTo("localId", localId)
-            .whereEqualTo("pin", PinUtil.hash(pin))
-            .get().await()
-        return snap.toObjects(Cliente::class.java).firstOrNull()
     }
 
     // ── Movimientos ──────────────────────────────────────────────────────────
@@ -291,17 +262,6 @@ object FiadoRepository {
         awaitClose { sub.remove() }
     }
 
-    fun productosPublicosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
-        val sub = db.collection("productos")
-            .whereEqualTo("localId", localId)
-            .whereEqualTo("precioPublico", true)
-            .whereEqualTo("habilitado", true)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
     suspend fun agregarProducto(producto: Producto) {
         val ref = db.collection("productos").document()
         ref.set(producto.copy(id = ref.id)).await()
@@ -341,24 +301,6 @@ object FiadoRepository {
         snap.documents.forEach { it.reference.delete().await() }
     }
 
-    // ── Locales guardados por cliente (subcolección de usuarios) ────────────
-
-    fun localesGuardadosFlow(uid: String): Flow<List<LocalGuardado>> = callbackFlow {
-        val sub = db.collection("usuarios").document(uid)
-            .collection("localesGuardados")
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(LocalGuardado::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
-    suspend fun guardarLocalCliente(uid: String, localId: String, clienteId: String, nombreLocal: String) {
-        db.collection("usuarios").document(uid)
-            .collection("localesGuardados").document(localId)
-            .set(mapOf("localId" to localId, "clienteId" to clienteId, "nombreLocal" to nombreLocal))
-            .await()
-    }
-
     // ── Notificaciones ───────────────────────────────────────────────────────
 
     fun notificacionesFlow(uid: String): Flow<List<Notificacion>> = callbackFlow {
@@ -386,66 +328,6 @@ object FiadoRepository {
         batch.commit().await()
     }
 
-    // ── Historial de locales visitados ───────────────────────────────────────
-
-    suspend fun registrarVisitaLocal(uid: String, localId: String, nombreLocal: String) {
-        db.collection("usuarios").document(uid)
-            .collection("historialLocales").document(localId)
-            .set(mapOf(
-                "localId" to localId,
-                "nombreLocal" to nombreLocal,
-                "ultimaVisita" to com.google.firebase.Timestamp.now()
-            )).await()
-    }
-
-    fun historialLocalesFlow(uid: String): Flow<List<Map<String, Any>>> = callbackFlow {
-        val sub = db.collection("usuarios").document(uid)
-            .collection("historialLocales")
-            .orderBy("ultimaVisita", Query.Direction.DESCENDING)
-            .limit(20)
-            .addSnapshotListener { snap, _ ->
-                val lista = snap?.documents?.mapNotNull { doc ->
-                    @Suppress("UNCHECKED_CAST")
-                    doc.data as? Map<String, Any>
-                } ?: emptyList()
-                trySend(lista)
-            }
-        awaitClose { sub.remove() }
-    }
-
-    suspend fun quitarLocalCliente(uid: String, localId: String) {
-        db.collection("usuarios").document(uid)
-            .collection("localesGuardados").document(localId)
-            .delete().await()
-    }
-
-    // ── Publicaciones de vidriera ────────────────────────────────────────────
-
-    fun publicacionesFlow(localId: String): Flow<List<Publicacion>> = callbackFlow {
-        val sub = db.collection("publicaciones")
-            .whereEqualTo("localId", localId)
-            .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(30)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Publicacion::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
-    }
-
-    suspend fun agregarPublicacion(publicacion: Publicacion) {
-        val ref = db.collection("publicaciones").document()
-        ref.set(publicacion.copy(id = ref.id)).await()
-    }
-
-    suspend fun eliminarPublicacion(publicacionId: String) {
-        db.collection("publicaciones").document(publicacionId).delete().await()
-    }
-
-    suspend fun subirImagenPublicacion(localId: String, publicacionId: String, uri: android.net.Uri): String {
-        val ref = storage.reference.child("locales/$localId/publicaciones/$publicacionId.jpg")
-        ref.putFile(uri).await()
-        return ref.downloadUrl.await().toString()
-    }
 
     // ── Empleo del usuario ───────────────────────────────────────────────────
 

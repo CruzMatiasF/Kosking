@@ -108,8 +108,7 @@ fun KoskingNavHost() {
                 val destino = StartupUseCase.resolver(
                     context = ctx,
                     empleadoTieneSession = empleadoVm.tieneSession.value,
-                    duenoLocalIdFlow = duenoVm.localId,
-                    localesGuardados = emptyList()
+                    duenoLocalIdFlow = duenoVm.localId
                 )
                 when (destino) {
                     StartupDestino.PanelEmpleado ->
@@ -265,7 +264,6 @@ fun KoskingNavHost() {
                 limiteCredito = cliente?.limiteCredito ?: 0.0,
                 nombreCliente = cliente?.nombre ?: "",
                 nombreEmpleado = nombreEmpleado,
-                visitantesConocidos = cliente?.visitantesConocidos ?: emptyList(),
                 onConfirmar = { items, tipo, visitante ->
                     empleadoVm.agregarMovimientos(clienteId, items, tipo, visitante) { nav.popBackStack() }
                 }

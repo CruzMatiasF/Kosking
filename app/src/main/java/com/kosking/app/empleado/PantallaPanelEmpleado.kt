@@ -215,10 +215,10 @@ fun PantallaPanelEmpleado(
             cargando = cargando,
             clienteInicial = c,
             productos = productos,
-            onGuardar = { clienteId, producto, monto, tipo ->
+            onGuardar = { clienteId, items, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,
-                    items = listOf(Pair(producto, monto)),
+                    items = items,
                     tipo = tipo,
                     onExito = { clienteAnotar = null }
                 )

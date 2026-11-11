@@ -166,21 +166,23 @@ fun PanelDuenoEmbedido(
             cargando = cargando,
             clienteInicial = clientePreseleccionado,
             productos = productos,
-            onGuardar = { clienteId, producto, monto, tipo ->
+            onGuardar = { clienteId, items, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,
-                    items = listOf(Pair(producto, monto)),
+                    items = items,
                     tipo = tipo,
                     onExito = {
                         mostrarAnotar = false
                         clientePreseleccionado = null
                         val cliente = clientes.find { it.id == clienteId }
                         if (cliente != null && cliente.telefono.isNotBlank()) {
-                            val deudaNueva = if (tipo == "cargo") cliente.deudaTotal + monto
-                                            else (cliente.deudaTotal - monto).coerceAtLeast(0.0)
-                            ultimoAnotado = UltimoAnotado(cliente, monto, producto, tipo, deudaNueva)
+                            val montoTotal = items.sumOf { it.second }
+                            val descripcionItems = items.filter { it.first.isNotBlank() }.joinToString(", ") { it.first }
+                            val deudaNueva = if (tipo == "cargo") cliente.deudaTotal + montoTotal
+                                            else (cliente.deudaTotal - montoTotal).coerceAtLeast(0.0)
+                            ultimoAnotado = UltimoAnotado(cliente, montoTotal, descripcionItems, tipo, deudaNueva)
                             val accion = if (tipo == "cargo") "fiado" else "pago"
-                            val montoFmt = "%.0f".format(monto)
+                            val montoFmt = "%.0f".format(montoTotal)
                             scope.launch {
                                 val resultado = snackbarHostState.showSnackbar(
                                     message = "Anotado $accion \$$montoFmt a ${cliente.nombre}",

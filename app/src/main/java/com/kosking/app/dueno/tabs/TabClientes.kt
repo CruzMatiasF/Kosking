@@ -402,8 +402,8 @@ private fun CardCliente(
                     if (onAnotarRapido != null && cliente.habilitado) {
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
-                                .clip(CircleShape)
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable(onClick = onAnotarRapido),
                             contentAlignment = Alignment.Center
@@ -411,7 +411,7 @@ private fun CardCliente(
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = "Anotar",
-                                modifier = Modifier.size(14.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }

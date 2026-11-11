@@ -261,6 +261,15 @@ object FiadoRepository {
         }
     }
 
+    suspend fun editarProducto(productoId: String, nombre: String, precio: Double) {
+        db.collection("productos").document(productoId)
+            .update("nombre", nombre, "ultimoPrecio", precio).await()
+    }
+
+    suspend fun eliminarProducto(productoId: String) {
+        db.collection("productos").document(productoId).delete().await()
+    }
+
     suspend fun obtenerEmpleoDeUsuario(uid: String): Pair<String, String>? {
         val doc = db.collection("usuarios").document(uid).get().await()
         val localId = doc.getString("empleadoLocalId") ?: ""

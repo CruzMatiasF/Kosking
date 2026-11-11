@@ -348,6 +348,37 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    fun guardarProducto(nombre: String, precio: Double, productoId: String?) {
+        viewModelScope.launch {
+            _cargando.value = true
+            try {
+                val localId = _localId.value
+                if (localId.isBlank()) return@launch
+                if (productoId != null) {
+                    FiadoRepository.editarProducto(productoId, nombre, precio)
+                } else {
+                    FiadoRepository.upsertProducto(localId, nombre, precio)
+                }
+            } catch (e: Exception) {
+                CrashLogger.log(e, "guardarProducto")
+                _error.value = "No se pudo guardar el producto"
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+
+    fun eliminarProducto(producto: Producto) {
+        viewModelScope.launch {
+            try {
+                FiadoRepository.eliminarProducto(producto.id)
+            } catch (e: Exception) {
+                CrashLogger.log(e, "eliminarProducto")
+                _error.value = "No se pudo eliminar el producto"
+            }
+        }
+    }
+
     val empleados: StateFlow<List<Empleado>> = _localId
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.empleadosFlow(id) else flowOf(emptyList())

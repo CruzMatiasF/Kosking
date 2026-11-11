@@ -83,6 +83,11 @@ fun PanelDuenoEmbedido(
                 )
                 NavigationBarItem(
                     selected = tabSeleccionado == 2, onClick = { onTabChange(2) },
+                    icon = { Icon(Icons.Default.Storefront, null) }, label = { Text("Productos") },
+                    colors = navColors
+                )
+                NavigationBarItem(
+                    selected = tabSeleccionado == 3, onClick = { onTabChange(3) },
                     icon = { Icon(Icons.Default.Badge, null) }, label = { Text("Equipo") },
                     colors = navColors
                 )
@@ -101,7 +106,13 @@ fun PanelDuenoEmbedido(
                         mostrarAnotar = true
                     }
                 )
-                2 -> TabEquipo(
+                2 -> TabProductos(
+                    productos = productos,
+                    cargando = cargando,
+                    onGuardar = { nombre, precio, productoId -> vm.guardarProducto(nombre, precio, productoId) },
+                    onEliminar = { vm.eliminarProducto(it) }
+                )
+                3 -> TabEquipo(
                     empleados = empleados,
                     movimientos = movimientosLocal,
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },

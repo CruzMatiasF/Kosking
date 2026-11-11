@@ -1,14 +1,20 @@
 package com.kosking.app.dueno
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,10 +46,18 @@ fun AnotarRapidoSheet(
     var clienteSeleccionado by remember(clienteInicial) {
         mutableStateOf(clienteInicial ?: clientesOrdenados.firstOrNull())
     }
-    var expandirClientes by remember { mutableStateOf(false) }
     var esCargo by remember { mutableStateOf(tipoInicial == "cargo") }
+    var pedirConfirmCambio by remember { mutableStateOf(false) }
 
     val carrito = remember { mutableStateListOf<ItemCarrito>() }
+
+    // Búsqueda de cliente
+    var busquedaCliente by remember { mutableStateOf("") }
+    var mostrarListaClientes by remember { mutableStateOf(false) }
+    val clientesFiltrados = remember(clientesOrdenados, busquedaCliente) {
+        if (busquedaCliente.isBlank()) clientesOrdenados
+        else clientesOrdenados.filter { it.nombre.contains(busquedaCliente, ignoreCase = true) }
+    }
 
     // Entrada manual "Otro"
     var descripcionOtro by remember { mutableStateOf("") }
@@ -53,13 +67,11 @@ fun AnotarRapidoSheet(
     // Monto único para pago
     var montoTexto by remember { mutableStateOf("") }
 
-    LaunchedEffect(esCargo) {
-        if (!esCargo) {
-            carrito.clear()
-            mostrarOtro = false
-            descripcionOtro = ""
-            montoOtroTexto = ""
-        }
+    fun limpiarCarrito() {
+        carrito.clear()
+        mostrarOtro = false
+        descripcionOtro = ""
+        montoOtroTexto = ""
     }
 
     fun toggleCarrito(prod: Producto) {
@@ -172,17 +184,44 @@ fun AnotarRapidoSheet(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = esCargo,
-                    onClick = { esCargo = true },
+                    onClick = {
+                        if (!esCargo) {
+                            // volver a Fiado no limpia nada
+                            esCargo = true
+                        }
+                    },
                     label = { Text("Fiado") },
                     leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(16.dp)) },
                     modifier = Modifier.weight(1f)
                 )
                 FilterChip(
                     selected = !esCargo,
-                    onClick = { esCargo = false },
+                    onClick = {
+                        if (esCargo) {
+                            val hayItems = carrito.isNotEmpty() || (mostrarOtro && montoOtroTexto.isNotBlank())
+                            if (hayItems) pedirConfirmCambio = true
+                            else { limpiarCarrito(); esCargo = false }
+                        }
+                    },
                     label = { Text("Pago") },
                     leadingIcon = { Icon(Icons.Default.Remove, null, Modifier.size(16.dp)) },
                     modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (pedirConfirmCambio) {
+                AlertDialog(
+                    onDismissRequest = { pedirConfirmCambio = false },
+                    title = { Text("¿Cambiar a Pago?") },
+                    text = { Text("Vas a perder los items que ya cargaste. ¿Continuás?") },
+                    confirmButton = {
+                        TextButton(onClick = { limpiarCarrito(); esCargo = false; pedirConfirmCambio = false }) {
+                            Text("Cambiar", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pedirConfirmCambio = false }) { Text("Cancelar") }
+                    }
                 )
             }
 
@@ -342,43 +381,53 @@ fun AnotarRapidoSheet(
                 )
             }
 
-            // ── Selector de cliente ──────────────────────────────────────────
+            // ── Selector de cliente con búsqueda ─────────────────────────────
             if (clienteInicial == null) {
-                ExposedDropdownMenuBox(
-                    expanded = expandirClientes,
-                    onExpandedChange = { expandirClientes = it }
-                ) {
+                Column {
                     OutlinedTextField(
-                        value = clienteSeleccionado?.nombre ?: "Seleccioná un cliente",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = if (mostrarListaClientes) busquedaCliente else clienteSeleccionado?.nombre ?: "",
+                        onValueChange = { busquedaCliente = it; mostrarListaClientes = true },
                         label = { Text("Cliente") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirClientes) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        placeholder = { Text("Buscar cliente...") },
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            if (mostrarListaClientes && busquedaCliente.isNotEmpty()) {
+                                IconButton(onClick = { busquedaCliente = ""; mostrarListaClientes = false }) {
+                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { mostrarListaClientes = true }
                     )
-                    ExposedDropdownMenu(
-                        expanded = expandirClientes,
-                        onDismissRequest = { expandirClientes = false }
-                    ) {
-                        clientesOrdenados.forEach { cliente ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(cliente.nombre)
-                                        if (cliente.deudaTotal > 0) {
+                    if (mostrarListaClientes && clientesFiltrados.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
+                        ) {
+                            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
+                                items(clientesFiltrados, key = { it.id }) { cliente ->
+                                    ListItem(
+                                        headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
+                                        trailingContent = if (cliente.deudaTotal > 0) ({
                                             Text(
                                                 "$${"%.0f".format(cliente.deudaTotal)}",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.error
                                             )
+                                        }) else null,
+                                        modifier = Modifier.clickable {
+                                            clienteSeleccionado = cliente
+                                            busquedaCliente = ""
+                                            mostrarListaClientes = false
                                         }
-                                    }
-                                },
-                                onClick = { clienteSeleccionado = cliente; expandirClientes = false }
-                            )
+                                    )
+                                    HorizontalDivider()
+                                }
+                            }
                         }
                     }
                 }

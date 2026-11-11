@@ -439,36 +439,41 @@ private fun HistorialSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp)
-        ) {
-            Text(
-                "Historial",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            if (agrupado.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Sin movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (agrupado.isEmpty()) {
+            Box(
+                Modifier.fillMaxWidth().padding(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Sin movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp)
+            ) {
+                item {
+                    Text(
+                        "Historial",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
                 }
-            } else {
                 agrupado.forEach { (diasAtras, movs) ->
                     val encabezado = when (diasAtras) {
                         0 -> "Hoy"
                         1 -> "Ayer"
                         else -> fmt.format(movs.first().fecha.toDate()).replaceFirstChar { it.uppercase() }
                     }
-                    Text(
-                        encabezado,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                    )
-                    movs.forEach { mov ->
+                    item(key = "header_$diasAtras") {
+                        Text(
+                            encabezado,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(movs, key = { it.id }) { mov ->
                         val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "—"
                         val esCargo = mov.tipo == "cargo"
                         ListItem(
@@ -485,7 +490,7 @@ private fun HistorialSheet(
                                     Text(
                                         "${if (esCargo) "+" else "-"}${"$"}${"%.0f".format(mov.monto)}",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
                                     )
                                     Text(fmtHora.format(mov.fecha.toDate()),

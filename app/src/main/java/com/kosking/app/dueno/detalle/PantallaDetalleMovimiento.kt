@@ -5,6 +5,7 @@ import com.kosking.app.dueno.DuenoViewModel
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -74,7 +75,7 @@ fun PantallaDetalleMovimiento(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("âš ", style = MaterialTheme.typography.titleMedium)
+                        Icon(Icons.Default.Warning, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error)
                         Column {
                             Text("Movimiento no reconocido", style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
@@ -116,41 +117,17 @@ fun PantallaDetalleMovimiento(
                             }
                         }
                     }
-                    Text("$${String.format("%.2f", movActual.monto)}", style = MaterialTheme.typography.headlineLarge,
+                    Text("$${"%,.0f".format(movActual.monto)}", style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (movActual.anulado) MaterialTheme.colorScheme.onSurfaceVariant
                                 else if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32))
                     HorizontalDivider()
                     FilaDetalle("Cliente", cliente?.nombre ?: "—")
-                    if (movActual.producto.isNotBlank()) FilaDetalle("Producto", movActual.producto)
-                    if (movActual.cantidad > 1) FilaDetalle("Cantidad", movActual.cantidad.toString())
+                    if (movActual.producto.isNotBlank()) FilaDetalle("Descripción", movActual.producto)
                     HorizontalDivider()
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                if (esCargo) "Fiado" else "Pago",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
-                            )
-                            Text(
-                                fmt.format(movActual.fecha.toDate()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        if (movActual.anotadoPorNombre.isNotBlank()) {
-                            Text(
-                                movActual.anotadoPorNombre,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                    FilaDetalle("Fecha", fmt.format(movActual.fecha.toDate()))
+                    if (movActual.anotadoPorNombre.isNotBlank()) {
+                        FilaDetalle("Registrado por", movActual.anotadoPorNombre)
                     }
                     if (movActual.anulado && movActual.motivoAnulacion.isNotBlank()) {
                         FilaDetalle("Motivo anulación", movActual.motivoAnulacion)

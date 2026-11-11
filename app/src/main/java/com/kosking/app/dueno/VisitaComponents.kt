@@ -128,8 +128,9 @@ fun FilaVisitaDashboard(visita: VisitaResumen) {
                 maxLines = 1
             )
             if (visita.items.size == 1) {
+                val item0 = visita.items.first()
                 Text(
-                    visita.items.first().producto.ifBlank { visita.items.first().tipo },
+                    item0.producto.ifBlank { if (item0.tipo == "cargo") "Fiado" else "Pago" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1

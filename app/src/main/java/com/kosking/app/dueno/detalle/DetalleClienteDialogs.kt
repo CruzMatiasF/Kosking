@@ -147,7 +147,6 @@ internal fun DialogEditarCliente(
     var nombre by remember { mutableStateOf(cliente.nombre) }
     var telefono by remember { mutableStateOf(cliente.telefono) }
     var domicilio by remember { mutableStateOf(cliente.domicilio) }
-    var habilitado by remember { mutableStateOf(cliente.habilitado) }
     var campoActivo by remember { mutableStateOf<String?>(null) }
 
     campoActivo?.let { campo ->
@@ -231,8 +230,7 @@ internal fun DialogEditarCliente(
                     onGuardar(cliente.copy(
                         nombre = nombre.trim(),
                         telefono = telefono.trim(),
-                        domicilio = domicilio.trim(),
-                        habilitado = habilitado
+                        domicilio = domicilio.trim()
                     ))
                 },
                 enabled = nombre.isNotBlank()

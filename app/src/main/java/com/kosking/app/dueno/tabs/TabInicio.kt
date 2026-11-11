@@ -64,8 +64,10 @@ internal fun TabInicio(
     val cobradoHoy = remember(movimientosHoy) { movimientosHoy.filter { it.tipo == "pago" }.sumOf { it.monto } }
 
     val diasSinPagar = remember(movimientosLocal, clientesConDeuda) {
-        val msPorDia = 86_400_000L
-        val ahora = System.currentTimeMillis()
+        val hoyNorm = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
         val ultPago = movimientosLocal
             .filter { it.tipo == "pago" && !it.anulado }
             .groupBy { it.clienteId }
@@ -76,7 +78,14 @@ internal fun TabInicio(
             .mapValues { (_, ms) -> ms.minOf { it.fecha.toDate().time } }
         clientesConDeuda.associate { c ->
             val ref = ultPago[c.id] ?: primerCargo[c.id]
-            c.id to (if (ref != null) ((ahora - ref) / msPorDia).toInt() else null)
+            c.id to if (ref != null) {
+                val diaCal = Calendar.getInstance().apply {
+                    timeInMillis = ref
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
+                ((hoyNorm.timeInMillis - diaCal.timeInMillis) / 86_400_000L).toInt()
+            } else null
         }
     }
 

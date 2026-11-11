@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +41,10 @@ internal fun TabInicio(
     onRecordarTodos: () -> Unit,
     onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit,
-    onRegistrarPago: (Cliente) -> Unit = {}
+    onRegistrarPago: (Cliente) -> Unit = {},
+    onVerMovimiento: (String) -> Unit = {}
 ) {
+    var mostrarHistorial by remember { mutableStateOf(false) }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val fechaHoy = remember {
@@ -385,6 +388,117 @@ internal fun TabInicio(
             }
         }
 
+        item {
+            TextButton(
+                onClick = { mostrarHistorial = true },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            ) {
+                Icon(Icons.Default.History, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Ver historial completo", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+
         item { Spacer(Modifier.height(16.dp)) }
+    }
+
+    if (mostrarHistorial) {
+        HistorialSheet(
+            movimientos = movimientosLocal,
+            clienteMap = clienteMap,
+            onVerMovimiento = onVerMovimiento,
+            onDismiss = { mostrarHistorial = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistorialSheet(
+    movimientos: List<Movimiento>,
+    clienteMap: Map<String, Cliente>,
+    onVerMovimiento: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val fmt = remember { SimpleDateFormat("EEEE d MMM", Locale.forLanguageTag("es-AR")) }
+    val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+
+    val agrupado = remember(movimientos) {
+        val msPorDia = 86_400_000L
+        val ahora = System.currentTimeMillis()
+        movimientos
+            .filter { !it.anulado }
+            .sortedByDescending { it.fecha.toDate().time }
+            .groupBy {
+                val dias = ((ahora - it.fecha.toDate().time) / msPorDia).toInt()
+                dias
+            }
+            .entries
+            .sortedBy { it.key }
+            .take(14)
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                "Historial",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            if (agrupado.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("Sin movimientos", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                agrupado.forEach { (diasAtras, movs) ->
+                    val encabezado = when (diasAtras) {
+                        0 -> "Hoy"
+                        1 -> "Ayer"
+                        else -> fmt.format(movs.first().fecha.toDate()).replaceFirstChar { it.uppercase() }
+                    }
+                    Text(
+                        encabezado,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                    )
+                    movs.forEach { mov ->
+                        val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "—"
+                        val esCargo = mov.tipo == "cargo"
+                        ListItem(
+                            headlineContent = { Text(nombreCliente, style = MaterialTheme.typography.bodyMedium) },
+                            supportingContent = {
+                                Text(
+                                    mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingContent = {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "${if (esCargo) "+" else "-"}${"$"}${"%.0f".format(mov.monto)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                        color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                                    )
+                                    Text(fmtHora.format(mov.fecha.toDate()),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            },
+                            modifier = Modifier.clickable { onVerMovimiento(mov.id) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                    }
+                }
+            }
+        }
     }
 }

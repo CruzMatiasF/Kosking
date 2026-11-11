@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +38,7 @@ internal fun TabClientes(
     var busqueda by rememberSaveable { mutableStateOf("") }
     var orden by rememberSaveable { mutableStateOf("deuda") }
     var mostrarOrden by remember { mutableStateOf(false) }
+    var vistaLista by rememberSaveable { mutableStateOf(false) }
 
     val conDeuda = remember(clientes) { clientes.count { it.deudaTotal > 0 && it.habilitado } }
     val alDia = remember(clientes) { clientes.count { it.deudaTotal <= 0 && it.habilitado } }
@@ -138,6 +141,11 @@ internal fun TabClientes(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            IconButton(
+                onClick = { vistaLista = !vistaLista },
+                modifier = Modifier.size(40.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) { Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Cambiar vista", Modifier.size(20.dp)) }
             Box {
                 IconButton(
                     onClick = { mostrarOrden = true },
@@ -222,6 +230,41 @@ internal fun TabClientes(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
+            }
+        } else if (vistaLista) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                lazyItems(clientesFiltrados, key = { it.id }) { cliente ->
+                    ListItem(
+                        headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
+                        supportingContent = {
+                            val dias = remember(ultimaVisita, cliente.id, ahora) {
+                                val uv = ultimaVisita[cliente.id]
+                                if (uv == null) null else ((ahora - uv.time) / (1000 * 60 * 60 * 24)).toInt()
+                            }
+                            val visitaTxt = when {
+                                dias == null -> "Sin movimientos"
+                                dias == 0 -> "Hoy"
+                                dias == 1 -> "Ayer"
+                                else -> "Hace $dias días"
+                            }
+                            Text(
+                                if (cliente.deudaTotal > 0) "$${"%.0f".format(cliente.deudaTotal)} · $visitaTxt"
+                                else visitaTxt,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (cliente.deudaTotal > 0) MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = if (onAnotarRapido != null && cliente.habilitado) ({
+                            IconButton(onClick = { onAnotarRapido(cliente) }, modifier = Modifier.size(40.dp)) {
+                                Icon(Icons.Default.Add, "Anotar", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }) else null,
+                        modifier = Modifier.clickable { onVerCliente(cliente.id) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                }
+                lazyItems(listOf(Unit)) { Spacer(Modifier.height(80.dp)) }
             }
         } else {
             LazyVerticalGrid(

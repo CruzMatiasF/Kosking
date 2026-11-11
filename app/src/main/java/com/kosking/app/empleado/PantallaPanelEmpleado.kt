@@ -43,6 +43,7 @@ fun PantallaPanelEmpleado(
     var busqueda by remember { mutableStateOf("") }
     var clienteConAlerta by remember { mutableStateOf<Cliente?>(null) }
     var clienteAnotar by remember { mutableStateOf<Cliente?>(null) }
+    var mostrarAgregarCliente by remember { mutableStateOf(false) }
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
 
@@ -122,38 +123,53 @@ fun PantallaPanelEmpleado(
                 }
             }
 
-            // Barra de búsqueda
+            // Barra de búsqueda + botón nuevo cliente
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.Search, null, Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                BasicTextField(
-                    value = busqueda,
-                    onValueChange = { busqueda = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                    decorationBox = { inner ->
-                        Box {
-                            if (busqueda.isEmpty()) Text("Buscar cliente...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            inner()
-                        }
-                    }
-                )
-                if (busqueda.isNotEmpty()) {
-                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(18.dp).clickable { busqueda = "" },
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Search, null, Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BasicTextField(
+                        value = busqueda,
+                        onValueChange = { busqueda = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                        decorationBox = { inner ->
+                            Box {
+                                if (busqueda.isEmpty()) Text("Buscar cliente...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                inner()
+                            }
+                        }
+                    )
+                    if (busqueda.isNotEmpty()) {
+                        Icon(Icons.Default.Close, "Limpiar", Modifier.size(18.dp).clickable { busqueda = "" },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                FilledTonalButton(
+                    onClick = { mostrarAgregarCliente = true },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Nuevo", style = MaterialTheme.typography.labelMedium)
                 }
             }
 
@@ -314,6 +330,51 @@ fun PantallaPanelEmpleado(
                 }
             }
         }
+    }
+
+    if (mostrarAgregarCliente) {
+        var nombreNuevo by remember { mutableStateOf("") }
+        var telefonoNuevo by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { mostrarAgregarCliente = false },
+            icon = { Icon(Icons.Default.PersonAdd, null) },
+            title = { Text("Nuevo cliente") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = nombreNuevo,
+                        onValueChange = { nombreNuevo = it },
+                        label = { Text("Nombre *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = telefonoNuevo,
+                        onValueChange = { telefonoNuevo = it },
+                        label = { Text("Teléfono (opcional)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        vm.agregarCliente(nombreNuevo.trim(), telefonoNuevo.trim()) {
+                            mostrarAgregarCliente = false
+                        }
+                    },
+                    enabled = nombreNuevo.isNotBlank() && !cargando
+                ) {
+                    if (cargando) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary)
+                    else Text("Crear")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarAgregarCliente = false }) { Text("Cancelar") }
+            }
+        )
     }
 
     if (mostrarConfirmDesvincularse) {

@@ -235,4 +235,28 @@ class EmpleadoViewModel : ViewModel() {
             }
         }
     }
+
+    fun agregarCliente(nombre: String, telefono: String, onExito: () -> Unit) {
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            try {
+                FiadoRepository.agregarCliente(
+                    Cliente(
+                        localId = _localId.value,
+                        nombre = nombre,
+                        telefono = telefono,
+                        domicilio = "",
+                        limiteCredito = 0.0
+                    )
+                )
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "agregarCliente empleado")
+                _error.value = "No se pudo agregar el cliente"
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
 }

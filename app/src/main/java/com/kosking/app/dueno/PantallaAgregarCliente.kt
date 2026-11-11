@@ -32,7 +32,6 @@ fun PantallaAgregarCliente(
 
     var nombre by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
-    var domicilio by remember { mutableStateOf("") }
     var limiteTexto by remember { mutableStateOf("") }
     var usarLimite by remember { mutableStateOf(false) }
     var mostrarUpgrade by remember { mutableStateOf(false) }
@@ -112,15 +111,6 @@ fun PantallaAgregarCliente(
                 },
                 isError = telefono.isNotBlank() && !telefonoValido
             )
-            OutlinedTextField(
-                value = domicilio,
-                onValueChange = { domicilio = it },
-                label = { Text("Domicilio (opcional)") },
-                leadingIcon = { Icon(Icons.Default.LocationOn, null) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
             // Límite de crédito
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -170,7 +160,7 @@ fun PantallaAgregarCliente(
             Button(
                 onClick = {
                     val limite = if (usarLimite) limiteTexto.toDoubleOrNull() ?: 0.0 else 0.0
-                    vm.agregarCliente(nombre, telefono, domicilio, limiteCredito = limite) { onVolver() }
+                    vm.agregarCliente(nombre, telefono, "", limiteCredito = limite) { onVolver() }
                 },
                 enabled = !cargando && nombre.isNotBlank() && telefonoValido,
                 modifier = Modifier.fillMaxWidth().height(52.dp)

@@ -1,7 +1,9 @@
 package com.kosking.app.dueno.tabs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +30,11 @@ internal fun TabProductos(
     var mostrarDialog by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Producto?>(null) }
     var mostrarConfirmarEliminar by remember { mutableStateOf<Producto?>(null) }
+    var busqueda by remember { mutableStateOf("") }
+    val productosFiltrados = remember(productos, busqueda) {
+        if (busqueda.isBlank()) productos
+        else productos.filter { it.nombre.contains(busqueda, ignoreCase = true) }
+    }
 
     // Diálogo agregar/editar
     if (mostrarDialog) {
@@ -92,6 +99,39 @@ internal fun TabProductos(
             }
         }
 
+        if (productos.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .height(40.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                BasicTextField(
+                    value = busqueda,
+                    onValueChange = { busqueda = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                    decorationBox = { inner ->
+                        Box {
+                            if (busqueda.isEmpty()) Text("Buscar producto", style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            inner()
+                        }
+                    }
+                )
+                if (busqueda.isNotEmpty()) {
+                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { busqueda = "" },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
         HorizontalDivider()
 
         if (productos.isEmpty()) {
@@ -128,9 +168,13 @@ internal fun TabProductos(
                     }
                 }
             }
+        } else if (productosFiltrados.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Sin resultados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(productos, key = { it.id }) { prod ->
+                items(productosFiltrados, key = { it.id }) { prod ->
                     ListItem(
                         headlineContent = {
                             Text(prod.nombre, fontWeight = FontWeight.Medium)

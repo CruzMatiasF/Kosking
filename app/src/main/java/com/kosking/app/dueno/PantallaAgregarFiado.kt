@@ -1,6 +1,7 @@
 package com.kosking.app.dueno
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -9,8 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,6 +93,11 @@ private fun PantallaAgregarFiadoUI(
     var monto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var visitante by remember { mutableStateOf("") }
+    val montoFocus = remember { FocusRequester() }
+    val descripcionFocus = remember { FocusRequester() }
+    val visitanteFocus = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) { montoFocus.requestFocus() }
 
     val montoDouble = monto.toDoubleOrNull() ?: 0.0
     val deudaFinal = if (tipo == "cargo") deudaActual + montoDouble
@@ -182,9 +191,16 @@ private fun PantallaAgregarFiadoUI(
                 value = monto,
                 onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' } },
                 label = { Text("Monto $") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = if (tipo == "cargo") ImeAction.Next else ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { if (tipo == "cargo") descripcionFocus.requestFocus() },
+                    onDone = { if (mostrarVisitante) visitanteFocus.requestFocus() }
+                ),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(montoFocus),
                 textStyle = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = if (tipo == "cargo") MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
@@ -198,7 +214,13 @@ private fun PantallaAgregarFiadoUI(
                     label = { Text("Descripción (opcional)") },
                     placeholder = { Text("Ej: pan, leche, aceite...") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = if (mostrarVisitante) ImeAction.Next else ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { visitanteFocus.requestFocus() }
+                    ),
+                    modifier = Modifier.fillMaxWidth().focusRequester(descripcionFocus)
                 )
             }
 
@@ -214,7 +236,8 @@ private fun PantallaAgregarFiadoUI(
                     label = { Text("¿Quién vino? (opcional)") },
                     placeholder = { Text("Ej: María, la hija") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth().focusRequester(visitanteFocus),
                     trailingIcon = if (visitante.isNotBlank()) {
                         { IconButton(onClick = { visitante = "" }) { Icon(Icons.Default.Clear, null, Modifier.size(16.dp)) } }
                     } else null

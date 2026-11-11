@@ -1,8 +1,9 @@
 package com.kosking.app.dueno
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
@@ -41,7 +42,6 @@ fun AnotarRapidoSheet(
     var expandirClientes by remember { mutableStateOf(false) }
     var esCargo by remember { mutableStateOf(true) }
 
-    // Carrito de productos (modo fiado)
     val carrito = remember { mutableStateListOf<ItemCarrito>() }
 
     // Entrada manual "Otro"
@@ -52,7 +52,6 @@ fun AnotarRapidoSheet(
     // Monto único para pago
     var montoTexto by remember { mutableStateOf("") }
 
-    // Limpiar carrito al cambiar a pago
     LaunchedEffect(esCargo) {
         if (!esCargo) {
             carrito.clear()
@@ -62,29 +61,30 @@ fun AnotarRapidoSheet(
         }
     }
 
-    fun agregarAlCarrito(prod: Producto) {
+    fun toggleCarrito(prod: Producto) {
         val idx = carrito.indexOfFirst { it.producto.id == prod.id }
         if (idx >= 0) {
+            // tap en seleccionado: incrementar si ya hay, o quitar si es 1
+            // usamos long-press para quitar — pero como no hay long-press en chip, tap agrega siempre
+            // y el ícono × en el resumen quita
             carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
         } else {
             carrito.add(ItemCarrito(prod, 1))
         }
     }
 
-    fun quitarDelCarrito(prod: Producto) {
+    fun quitarUno(prod: Producto) {
         val idx = carrito.indexOfFirst { it.producto.id == prod.id }
-        if (idx >= 0) {
-            if (carrito[idx].cantidad > 1) {
-                carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
-            } else {
-                carrito.removeAt(idx)
-            }
+        if (idx < 0) return
+        if (carrito[idx].cantidad > 1) {
+            carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
+        } else {
+            carrito.removeAt(idx)
         }
     }
 
     val montoOtroDouble = montoOtroTexto.toDoubleOrNull() ?: 0.0
     val montoUnicoDouble = montoTexto.toDoubleOrNull() ?: 0.0
-
     val totalCarrito = carrito.sumOf { it.producto.ultimoPrecio * it.cantidad }
     val totalConOtro = totalCarrito + (if (mostrarOtro && montoOtroDouble > 0) montoOtroDouble else 0.0)
 
@@ -103,37 +103,53 @@ fun AnotarRapidoSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header
+            // ── Header ──────────────────────────────────────────────────────
             if (clienteInicial != null) {
-                Column {
-                    Text(
-                        clienteInicial.nombre,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (deudaActual > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
                         Text(
-                            "Debe $${"%.0f".format(deudaActual)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            clienteInicial.nombre,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
                         Text(
-                            "Sin deuda",
+                            if (deudaActual > 0) "Debe $${"%.0f".format(deudaActual)}" else "Sin deuda",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (deudaActual > 0) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    // Deuda proyectada al lado del nombre
+                    if (esCargo && totalConOtro > 0) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                "→ $${"%.0f".format(deudaFinal)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                "quedaría debiendo",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             } else {
                 Text("Anotar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
 
-            // Nota interna
+            // ── Nota interna ─────────────────────────────────────────────────
             val nota = clienteSeleccionado?.notaInterna.orEmpty()
             if (nota.isNotBlank()) {
                 Card(
@@ -151,7 +167,7 @@ fun AnotarRapidoSheet(
                 }
             }
 
-            // Toggle Fiado / Pago
+            // ── Toggle Fiado / Pago ──────────────────────────────────────────
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = esCargo,
@@ -170,95 +186,77 @@ fun AnotarRapidoSheet(
             }
 
             if (esCargo) {
-                // ── Grilla de productos ───────────────────────────────────────
+                // ── Grilla de productos ──────────────────────────────────────
                 if (productos.isNotEmpty()) {
-                    Text(
-                        "¿Qué llevó?",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        productos.take(10).forEach { prod ->
-                            val enCarrito = carrito.find { it.producto.id == prod.id }
-                            val cantidad = enCarrito?.cantidad ?: 0
-                            FilterChip(
-                                selected = cantidad > 0,
-                                onClick = { agregarAlCarrito(prod) },
+                        productos.forEach { prod ->
+                            val item = carrito.find { it.producto.id == prod.id }
+                            val cantidad = item?.cantidad ?: 0
+                            val enCarrito = cantidad > 0
+
+                            InputChip(
+                                selected = enCarrito,
+                                onClick = { toggleCarrito(prod) },
                                 label = {
-                                    Text(
-                                        if (prod.ultimoPrecio > 0)
-                                            "${prod.nombre} · ${"$"}${"%.0f".format(prod.ultimoPrecio)}"
-                                        else prod.nombre,
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
+                                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                        Text(
+                                            prod.nombre,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = if (enCarrito) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        if (prod.ultimoPrecio > 0) {
+                                            Text(
+                                                "$${"%.0f".format(prod.ultimoPrecio)}",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = if (enCarrito) MaterialTheme.colorScheme.primary
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
                                 },
-                                trailingIcon = if (cantidad > 0) ({
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    ) { Text("$cantidad", style = MaterialTheme.typography.labelSmall) }
+                                trailingIcon = if (enCarrito) ({
+                                    // tap en × quita una unidad
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        if (cantidad > 1) {
+                                            Text(
+                                                "×$cantidad",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { quitarUno(prod) },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Clear,
+                                                contentDescription = "Quitar",
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
                                 }) else null
                             )
                         }
-                        FilterChip(
+
+                        // Chip "Otro" para entrada manual
+                        InputChip(
                             selected = mostrarOtro,
-                            onClick = { mostrarOtro = true },
+                            onClick = { mostrarOtro = !mostrarOtro },
                             label = { Text("Otro") },
                             leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(14.dp)) }
                         )
                     }
                 }
 
-                // ── Carrito ───────────────────────────────────────────────────
-                if (carrito.isNotEmpty()) {
-                    HorizontalDivider()
-                    carrito.forEachIndexed { idx, item ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                item.producto.nombre,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                IconButton(
-                                    onClick = { quitarDelCarrito(item.producto) },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(Icons.Default.Remove, null, Modifier.size(14.dp))
-                                }
-                                Text(
-                                    "${item.cantidad}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.widthIn(min = 20.dp)
-                                )
-                                IconButton(
-                                    onClick = { agregarAlCarrito(item.producto) },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(Icons.Default.Add, null, Modifier.size(14.dp))
-                                }
-                                Text(
-                                    "${"$"}${"%.0f".format(item.producto.ultimoPrecio * item.cantidad)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.widthIn(min = 56.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // ── Entrada manual "Otro" ─────────────────────────────────────
+                // ── Entrada manual "Otro" ────────────────────────────────────
                 if (mostrarOtro || productos.isEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -295,20 +293,55 @@ fun AnotarRapidoSheet(
                     }
                 }
 
+                // ── Resumen del total ────────────────────────────────────────
+                if (totalConOtro > 0) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Lista compacta de lo que se lleva
+                        Column(modifier = Modifier.weight(1f)) {
+                            carrito.forEach { item ->
+                                Text(
+                                    "${item.producto.nombre}${if (item.cantidad > 1) " ×${item.cantidad}" else ""}  $${"%.0f".format(item.producto.ultimoPrecio * item.cantidad)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (mostrarOtro && montoOtroDouble > 0) {
+                                val desc = descripcionOtro.ifBlank { "Otro" }
+                                Text(
+                                    "$desc  $${"%.0f".format(montoOtroDouble)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Text(
+                            "$${"%.0f".format(totalConOtro)}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
             } else {
-                // ── Modo pago: campo monto simple ─────────────────────────────
+                // ── Modo pago ────────────────────────────────────────────────
                 OutlinedTextField(
                     value = montoTexto,
                     onValueChange = { montoTexto = it.filter { c -> c.isDigit() || c == '.' } },
                     label = { Text("Monto $") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
             }
 
-            // Selector de cliente
+            // ── Selector de cliente ──────────────────────────────────────────
             if (clienteInicial == null) {
                 ExposedDropdownMenuBox(
                     expanded = expandirClientes,
@@ -350,45 +383,14 @@ fun AnotarRapidoSheet(
                 }
             }
 
-            // Total + deuda proyectada
-            if (esCargo && totalConOtro > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Total",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "${"$"}${"%.0f".format(totalConOtro)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        if (deudaActual > 0) {
-                            Text(
-                                "→ ${"$"}${"%.0f".format(deudaFinal)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Botón guardar
+            // ── Botón guardar ────────────────────────────────────────────────
             Button(
                 onClick = {
                     val cliente = clienteSeleccionado ?: return@Button
                     val items = buildList {
-                        carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
+                        carrito.forEach { item ->
+                            add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad))
+                        }
                         if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
                         if (!esCargo) add(Pair("", montoUnicoDouble))
                     }

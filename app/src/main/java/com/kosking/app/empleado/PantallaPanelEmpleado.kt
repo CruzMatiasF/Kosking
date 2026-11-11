@@ -40,6 +40,7 @@ fun PantallaPanelEmpleado(
     var busqueda by remember { mutableStateOf("") }
     var clienteConAlerta by remember { mutableStateOf<Cliente?>(null) }
     var clienteAnotar by remember { mutableStateOf<Cliente?>(null) }
+    val cargando by vm.cargando.collectAsState()
 
     val calHoy = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
@@ -195,7 +196,7 @@ fun PantallaPanelEmpleado(
     clienteAnotar?.let { c ->
         AnotarRapidoSheet(
             clientes = clientes,
-            cargando = false,
+            cargando = cargando,
             clienteInicial = c,
             onGuardar = { clienteId, producto, monto, tipo ->
                 vm.agregarMovimientos(

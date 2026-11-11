@@ -180,6 +180,18 @@ object FiadoRepository {
             .update("disputado", disputado).await()
     }
 
+    suspend fun recalcularDeuda(clienteId: String) {
+        val movs = db.collection("movimientos")
+            .whereEqualTo("clienteId", clienteId)
+            .whereEqualTo("anulado", false)
+            .get().await()
+            .toObjects(Movimiento::class.java)
+        val deudaReal = movs.sumOf { if (it.tipo == "cargo") it.monto else -it.monto }
+            .coerceAtLeast(0.0)
+        db.collection("clientes").document(clienteId)
+            .update("deudaTotal", deudaReal).await()
+    }
+
     // ── Empleados ────────────────────────────────────────────────────────────
 
     fun empleadosFlow(localId: String): Flow<List<Empleado>> = callbackFlow {

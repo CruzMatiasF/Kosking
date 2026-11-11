@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Warning
@@ -64,6 +65,25 @@ fun PantallaDetalleCliente(
 
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
     var mostrarEditar by remember { mutableStateOf(false) }
+    var mostrarMenu by remember { mutableStateOf(false) }
+    var mostrarConfirmarRecalcular by remember { mutableStateOf(false) }
+
+    if (mostrarConfirmarRecalcular && cliente != null) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmarRecalcular = false },
+            title = { Text("Recalcular deuda") },
+            text = { Text("Esto suma todos los movimientos reales de ${cliente.nombre} y corrige la deuda si hay diferencias. ¿Continuar?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarConfirmarRecalcular = false
+                    vm.recalcularDeuda(clienteId)
+                }) { Text("Recalcular") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmarRecalcular = false }) { Text("Cancelar") }
+            }
+        )
+    }
 
     if (mostrarConfirmarEliminar && cliente != null) {
         AlertDialog(
@@ -114,11 +134,22 @@ fun PantallaDetalleCliente(
                         IconButton(onClick = { mostrarEditar = true }) {
                             Icon(Icons.Default.Edit, "Editar cliente")
                         }
-                    }
-                    if (movimientosCargados && movimientos.isEmpty() && cliente != null) {
-                        IconButton(onClick = { mostrarConfirmarEliminar = true }) {
-                            Icon(Icons.Default.Delete, "Eliminar cliente",
-                                tint = MaterialTheme.colorScheme.error)
+                        Box {
+                            IconButton(onClick = { mostrarMenu = true }) {
+                                Icon(Icons.Default.MoreVert, "Más opciones")
+                            }
+                            DropdownMenu(expanded = mostrarMenu, onDismissRequest = { mostrarMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Recalcular deuda") },
+                                    onClick = { mostrarMenu = false; mostrarConfirmarRecalcular = true }
+                                )
+                                if (movimientosCargados && movimientos.isEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text("Eliminar cliente", color = MaterialTheme.colorScheme.error) },
+                                        onClick = { mostrarMenu = false; mostrarConfirmarEliminar = true }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

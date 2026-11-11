@@ -309,6 +309,22 @@ class DuenoViewModel : ViewModel() {
         .map { movs -> movs.filter { it.disputado && !it.anulado } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    fun recalcularDeuda(clienteId: String, onExito: () -> Unit = {}) {
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            try {
+                FiadoRepository.recalcularDeuda(clienteId)
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "recalcularDeuda")
+                _error.value = "No se pudo recalcular la deuda"
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+
     fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String, onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true

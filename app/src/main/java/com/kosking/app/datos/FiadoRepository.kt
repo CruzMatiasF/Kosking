@@ -88,7 +88,8 @@ object FiadoRepository {
                 "habilitado" to cliente.habilitado,
                 "limiteCredito" to cliente.limiteCredito,
                 "fechaPago" to cliente.fechaPago,
-                "notaInterna" to cliente.notaInterna
+                "notaInterna" to cliente.notaInterna,
+                "alertaEmpleado" to cliente.alertaEmpleado
             )
         ).await()
     }

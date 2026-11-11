@@ -103,12 +103,14 @@ fun AnotarRapidoSheet(
     val totalConOtro = totalCarrito + (if (mostrarOtro && montoOtroDouble > 0) montoOtroDouble else 0.0)
 
     val deudaActual = clienteSeleccionado?.deudaTotal ?: 0.0
+    val limiteCredito = clienteSeleccionado?.limiteCredito ?: 0.0
     val deudaFinal = when {
         esCargo -> deudaActual + totalConOtro
         else -> (deudaActual - montoUnicoDouble).coerceAtLeast(0.0)
     }
+    val superaLimite = esCargo && limiteCredito > 0 && deudaFinal > limiteCredito
 
-    val puedeGuardar = clienteSeleccionado != null && !cargando && when {
+    val puedeGuardar = clienteSeleccionado != null && !cargando && !superaLimite && when {
         esCargo -> totalConOtro > 0
         else -> montoUnicoDouble > 0
     }
@@ -437,6 +439,21 @@ fun AnotarRapidoSheet(
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
+            }
+
+            // ── Aviso límite de crédito ──────────────────────────────────────
+            if (superaLimite) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        "⚠ Supera el límite de crédito (${"$"}${"%.0f".format(limiteCredito)})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
             }
 
             // ── Botón guardar ────────────────────────────────────────────────

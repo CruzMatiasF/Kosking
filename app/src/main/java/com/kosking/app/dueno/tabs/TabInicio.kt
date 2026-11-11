@@ -436,14 +436,20 @@ private fun HistorialSheet(
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     val agrupado = remember(movimientos) {
-        val msPorDia = 86_400_000L
-        val ahora = System.currentTimeMillis()
+        val hoyNorm = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
         movimientos
             .filter { !it.anulado }
             .sortedByDescending { it.fecha.toDate().time }
             .groupBy {
-                val dias = ((ahora - it.fecha.toDate().time) / msPorDia).toInt()
-                dias
+                val diaCal = Calendar.getInstance().apply {
+                    time = it.fecha.toDate()
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
+                ((hoyNorm.timeInMillis - diaCal.timeInMillis) / 86_400_000L).toInt()
             }
             .entries
             .sortedBy { it.key }

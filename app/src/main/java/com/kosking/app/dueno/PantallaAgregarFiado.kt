@@ -53,7 +53,7 @@ fun PantallaAgregarFiado(
 @Composable
 fun PantallaAgregarFiadoConLambda(
     onVolver: () -> Unit,
-    onConfirmar: (items: List<Triple<String, Int, Double>>, tipo: String, visitante: String) -> Unit,
+    onConfirmar: (items: List<Pair<String, Double>>, tipo: String, visitante: String) -> Unit,
     cargando: Boolean = false,
     error: String? = null,
     deudaActual: Double = 0.0,
@@ -87,7 +87,7 @@ private fun PantallaAgregarFiadoUI(
     nombreEmpleado: String = "",
     notaInterna: String = "",
     mostrarVisitante: Boolean = false,
-    onConfirmar: (items: List<Triple<String, Int, Double>>, tipo: String, visitante: String) -> Unit
+    onConfirmar: (items: List<Pair<String, Double>>, tipo: String, visitante: String) -> Unit
 ) {
     val tipo = tipoInicial
     var monto by remember { mutableStateOf("") }
@@ -151,7 +151,7 @@ private fun PantallaAgregarFiadoUI(
                     Button(
                         onClick = {
                             onConfirmar(
-                                listOf(Triple(descripcion.trim(), 1, montoDouble)),
+                                listOf(Pair(descripcion.trim(), montoDouble)),
                                 tipo,
                                 visitante.trim()
                             )

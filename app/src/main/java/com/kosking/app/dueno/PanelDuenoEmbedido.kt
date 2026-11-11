@@ -177,7 +177,7 @@ fun PanelDuenoEmbedido(
             onGuardar = { clienteId, producto, monto, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,
-                    items = listOf(Triple(producto, 1, monto)),
+                    items = listOf(Pair(producto, monto)),
                     tipo = tipo,
                     onExito = {
                         mostrarAnotar = false

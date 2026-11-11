@@ -235,7 +235,7 @@ class DuenoViewModel : ViewModel() {
 
     fun agregarMovimientos(
         clienteId: String,
-        items: List<Triple<String, Int, Double>>, // producto, cantidad, monto
+        items: List<Pair<String, Double>>, // producto, monto
         tipo: String,
         visitante: String = "",
         onExito: () -> Unit
@@ -246,13 +246,12 @@ class DuenoViewModel : ViewModel() {
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
                 val grupoId = java.util.UUID.randomUUID().toString()
-                val movs = items.map { (producto, cantidad, monto) ->
+                val movs = items.map { (producto, monto) ->
                     Movimiento(
                         localId = _localId.value,
                         clienteId = clienteId,
                         tipo = tipo,
                         producto = producto,
-                        cantidad = cantidad,
                         monto = monto,
                         anotadoPorUid = uid,
                         anotadoPorNombre = _nombreUsuario.value,

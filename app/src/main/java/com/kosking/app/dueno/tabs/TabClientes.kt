@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
@@ -95,8 +96,8 @@ internal fun TabClientes(
             StatMiniCard("Al día", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
             StatMiniCard(
                 "Clientes",
-                "${clientes.size}/15",
-                isError = clientes.size >= 15,
+                "${clientes.size}/${DuenoViewModel.LIMITE_CLIENTES_GRATIS}",
+                isError = clientes.size >= DuenoViewModel.LIMITE_CLIENTES_GRATIS,
                 modifier = Modifier.weight(1f)
             )
         }

@@ -35,7 +35,6 @@ data class Movimiento(
     val clienteId: String = "",
     val tipo: String = "cargo",
     val producto: String = "",
-    val cantidad: Int = 1,
     val monto: Double = 0.0,
     val fecha: Timestamp = Timestamp.now(),
     val anotadoPorUid: String = "",

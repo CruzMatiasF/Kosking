@@ -45,7 +45,6 @@ fun KoskingNavHost() {
     val empleadoVm: EmpleadoViewModel = viewModel()
     var mostrarPanelDueno by remember { mutableStateOf(false) }
     var tabInicialDueno by remember { mutableStateOf(0) }
-    var tabInicialEmpleado by remember { mutableStateOf(0) }
     var destinoPostLogin by remember { mutableStateOf<DestinoPostLogin?>(null) }
 
     val authUser by produceState<FirebaseUser?>(
@@ -113,10 +112,6 @@ fun KoskingNavHost() {
                 when (destino) {
                     StartupDestino.PanelEmpleado ->
                         nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
-                    is StartupDestino.PanelEmpleadoConTab -> {
-                        tabInicialEmpleado = destino.tab
-                        nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
-                    }
                     StartupDestino.PanelDueno -> mostrarPanelDueno = true
                     is StartupDestino.PanelDuenoConTab -> {
                         tabInicialDueno = destino.tab
@@ -293,7 +288,6 @@ fun KoskingNavHost() {
             PantallaConfiguracion(
                 esDueno = esDuenoVal.isNotBlank(),
                 esEmpleado = esEmpleadoVal,
-                tieneLocalesFiado = false,
                 onVolver = { nav.popBackStack() }
             )
         }

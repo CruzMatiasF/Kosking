@@ -10,8 +10,6 @@ object PreferenciasRepository {
     const val PANTALLA_EXPLORAR = "explorar"
     const val PANTALLA_EMPLEADO = "panel_empleado"
     const val PANTALLA_DUENO = "panel_dueno"
-    const val PANTALLA_FIADO = "ver_fiado"
-    const val PANTALLA_PRODUCTOS = "productos"
 
     private const val KEY_ONBOARDING_VISTO = "onboarding_visto"
 

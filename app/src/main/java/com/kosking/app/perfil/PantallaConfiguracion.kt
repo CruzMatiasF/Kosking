@@ -21,7 +21,6 @@ import com.kosking.app.datos.PreferenciasRepository
 fun PantallaConfiguracion(
     esDueno: Boolean,
     esEmpleado: Boolean,
-    tieneLocalesFiado: Boolean,
     onVolver: () -> Unit
 ) {
     val context = LocalContext.current
@@ -41,7 +40,7 @@ fun PantallaConfiguracion(
         if (esEmpleado) add(Opcion(
             PreferenciasRepository.PANTALLA_EMPLEADO,
             "Panel de empleado",
-            "Ir directo a los clientes y precios",
+            "Ir directo a anotar fiados",
             Icons.Default.Badge
         ))
         if (esDueno) add(Opcion(
@@ -49,18 +48,6 @@ fun PantallaConfiguracion(
             "Panel del dueño",
             "Ir directo a administrar mi local",
             Icons.Default.Store
-        ))
-        if (esDueno || esEmpleado) add(Opcion(
-            PreferenciasRepository.PANTALLA_PRODUCTOS,
-            "Ver precios",
-            "Ir directo a la lista de precios del local",
-            Icons.Default.ShoppingCart
-        ))
-        if (tieneLocalesFiado) add(Opcion(
-            PreferenciasRepository.PANTALLA_FIADO,
-            "Ver mi fiado",
-            "Ir directo a ver lo que debo",
-            Icons.Default.Receipt
         ))
     }
 

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import com.kosking.app.datos.PreferenciasRepository
 import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.launch
 
@@ -48,6 +49,11 @@ fun PanelDuenoEmbedido(
     var mostrarAnotar by remember { mutableStateOf(false) }
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
+
+    // Wizard primer uso: aparece una sola vez cuando no hay nada cargado
+    var wizardCompletado by remember { mutableStateOf(PreferenciasRepository.isWizardCompletado(context)) }
+    val localCargado = localData != null
+    val mostrarWizard = localCargado && !wizardCompletado
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -248,6 +254,23 @@ fun PanelDuenoEmbedido(
             )
         }
         clienteWhatsApp = null
+    }
+
+    // Wizard primer uso
+    if (mostrarWizard) {
+        WizardPrimerUso(
+            cargando = cargando,
+            onGuardarProducto = { nombre, precio ->
+                vm.guardarProducto(nombre, precio, null)
+            },
+            onGuardarCliente = { nombre, telefono ->
+                vm.agregarCliente(nombre = nombre, telefono = telefono, domicilio = "", limiteCredito = 0.0) {}
+            },
+            onTerminar = {
+                PreferenciasRepository.marcarWizardCompletado(context)
+                wizardCompletado = true
+            }
+        )
     }
 
     // BottomSheet recordar a todos

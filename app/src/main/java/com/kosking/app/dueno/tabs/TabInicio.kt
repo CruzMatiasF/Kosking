@@ -135,7 +135,6 @@ internal fun TabInicio(
         // Alertas: disputas pendientes
         if (disputados.isNotEmpty()) {
             item {
-                val clienteMap2 = remember(clientes) { clientes.associateBy { it.id } }
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -158,7 +157,7 @@ internal fun TabInicio(
                             )
                         }
                         disputados.take(3).forEach { mov ->
-                            val nombreCliente = clienteMap2[mov.clienteId]?.nombre ?: "Cliente"
+                            val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "Cliente"
                             val concepto = mov.producto.ifBlank { if (mov.tipo == "cargo") "Fiado" else "Pago" }
                             Text(
                                 "• $nombreCliente — $concepto $${"%.0f".format(mov.monto)}",

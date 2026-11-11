@@ -191,8 +191,7 @@ fun AnotarRapidoSheet(
                 textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                 suffix = if (montoDouble > 0 && deudaActual > 0) ({
                     Text(
-                        if (esCargo) "→ $${"%,.0f".format(deudaFinal)}"
-                        else "→ $${"%,.0f".format(deudaFinal)}",
+                        "→ $${"%,.0f".format(deudaFinal)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (esCargo) MaterialTheme.colorScheme.error
                                 else Color(0xFF388E3C)

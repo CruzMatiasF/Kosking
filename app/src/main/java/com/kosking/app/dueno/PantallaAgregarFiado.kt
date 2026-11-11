@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kosking.app.modelo.Producto
+import com.kosking.app.ui.theme.Verde
 
 /** Wrapper para el flujo de dueño — lee del ViewModel y delega al composable unificado. */
 @Composable
@@ -145,7 +146,7 @@ private fun PantallaAgregarFiadoUI(
                                 "$${"%.0f".format(deudaFinal.coerceAtLeast(0.0))}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (deudaFinal > 0) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                                color = if (deudaFinal > 0) MaterialTheme.colorScheme.error else Verde
                             )
                         }
                         if (superaLimite) {
@@ -256,7 +257,7 @@ private fun PantallaAgregarFiadoUI(
                 modifier = Modifier.fillMaxWidth().focusRequester(montoFocus),
                 textStyle = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = if (tipo == "cargo") MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                    color = if (tipo == "cargo") MaterialTheme.colorScheme.error else Verde
                 )
             )
 
@@ -310,18 +311,18 @@ private fun PantallaAgregarFiadoUI(
 private fun NotaInternaCard(nota: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Icon(Icons.Default.Info, null, Modifier.size(18.dp), tint = Color(0xFFF57F17))
+            Icon(Icons.Default.Info, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
             Column {
                 Text("Nota del cliente", style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFF57F17), fontWeight = FontWeight.SemiBold)
-                Text(nota, style = MaterialTheme.typography.bodySmall, color = Color(0xFF5D4037))
+                    color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.SemiBold)
+                Text(nota, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
             }
         }
     }

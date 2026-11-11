@@ -292,8 +292,20 @@ internal fun TabInicio(
                 HorizontalDivider()
             }
         } else {
-            items(visitasHoy.take(6), key = { "hoy_${it.items.firstOrNull()?.id ?: it.hora}" }) {
+            val visitasMostradas = visitasHoy.take(6)
+            val visitasRestantes = visitasHoy.size - visitasMostradas.size
+            items(visitasMostradas, key = { "hoy_${it.items.firstOrNull()?.id ?: it.hora}" }) {
                 FilaVisitaDashboard(it)
+            }
+            if (visitasRestantes > 0) {
+                item {
+                    Text(
+                        "y $visitasRestantes más hoy",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
             }
             item { HorizontalDivider() }
         }
@@ -491,7 +503,7 @@ private fun HistorialSheet(
                                         "${if (esCargo) "+" else "-"}${"$"}${"%.0f".format(mov.monto)}",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                                        color = if (esCargo) MaterialTheme.colorScheme.error else Verde
                                     )
                                     Text(fmtHora.format(mov.fecha.toDate()),
                                         style = MaterialTheme.typography.labelSmall,

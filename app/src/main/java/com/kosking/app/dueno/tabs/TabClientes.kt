@@ -170,10 +170,6 @@ internal fun TabClientes(
 
         // Segmented control
         val bloqueados = clientes.count { !it.habilitado }
-        val mesNombre = remember {
-            java.text.SimpleDateFormat("MMM", java.util.Locale.forLanguageTag("es-AR"))
-                .format(java.util.Date()).replaceFirstChar { it.uppercase() }
-        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -186,7 +182,7 @@ internal fun TabClientes(
             val segs = listOf(
                 Seg("deuda", conDeuda, "Deben"),
                 Seg("aldia", alDia, "Al día"),
-                Seg("pagaron", pagaronEsteMes.size, mesNombre),
+                Seg("pagaron", pagaronEsteMes.size, "Pagaron"),
                 Seg("todos", clientes.size, "Todos"),
                 Seg("bloqueado", bloqueados, "Bloq.")
             )

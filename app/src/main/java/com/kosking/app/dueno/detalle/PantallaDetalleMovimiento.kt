@@ -1,6 +1,7 @@
 ﻿package com.kosking.app.dueno.detalle
 
 import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.ui.theme.Verde
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -123,7 +124,7 @@ fun PantallaDetalleMovimiento(
                     Text("$${"%,.0f".format(movActual.monto)}", style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (movActual.anulado) MaterialTheme.colorScheme.onSurfaceVariant
-                                else if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF2E7D32))
+                                else if (esCargo) MaterialTheme.colorScheme.error else Verde)
                     HorizontalDivider()
                     FilaDetalle("Cliente", cliente?.nombre ?: "—")
                     if (movActual.producto.isNotBlank()) FilaDetalle("Descripción", movActual.producto)

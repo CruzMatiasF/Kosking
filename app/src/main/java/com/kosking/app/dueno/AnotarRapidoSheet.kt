@@ -166,7 +166,7 @@ fun AnotarRapidoSheet(
             val nota = clienteSeleccionado?.notaInterna.orEmpty()
             if (nota.isNotBlank()) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Row(
@@ -174,8 +174,8 @@ fun AnotarRapidoSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Icon(Icons.Default.Info, null, Modifier.size(16.dp), tint = Color(0xFFF57F17))
-                        Text(nota, style = MaterialTheme.typography.bodySmall, color = Color(0xFF5D4037))
+                        Icon(Icons.Default.Info, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
+                        Text(nota, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
                     }
                 }
             }

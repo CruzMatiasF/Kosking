@@ -2,6 +2,7 @@
 
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.DialogInvitarEmpleado
+import com.kosking.app.ui.theme.Verde
 
 import android.content.Intent
 import android.net.Uri
@@ -112,7 +113,7 @@ internal fun TabEquipo(
                             Text(
                                 "Cobrado $${"%.0f".format(totalCobradoHoy)}",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF2E7D32),
+                                color = Verde,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -150,7 +151,7 @@ internal fun TabEquipo(
                                 Text(
                                     "$${"%.0f".format(stat.cobro)}",
                                     modifier = Modifier.width(72.dp),
-                                    color = if (stat.cobro > 0) Color(0xFF2E7D32)
+                                    color = if (stat.cobro > 0) Verde
                                             else MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = if (stat.cobro > 0) FontWeight.SemiBold else FontWeight.Normal
                                 )

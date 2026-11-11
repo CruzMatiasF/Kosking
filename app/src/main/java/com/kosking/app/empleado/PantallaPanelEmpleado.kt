@@ -34,9 +34,11 @@ fun PantallaPanelEmpleado(
     val nombreEmpleado by vm.nombreEmpleado.collectAsState()
     val clientes by vm.clientesHabilitados.collectAsState()
     val movimientos by vm.movimientosLocal.collectAsState()
+    val productos by vm.productos.collectAsState()
     var mostrarMenu by remember { mutableStateOf(false) }
     var mostrarConfirmDesvincularse by remember { mutableStateOf(false) }
     var mostrarEditarNombre by remember { mutableStateOf(false) }
+    var mostrarPrecios by remember { mutableStateOf(false) }
     var busqueda by remember { mutableStateOf("") }
     var clienteConAlerta by remember { mutableStateOf<Cliente?>(null) }
     var clienteAnotar by remember { mutableStateOf<Cliente?>(null) }
@@ -73,6 +75,10 @@ fun PantallaPanelEmpleado(
                             Icon(Icons.Default.MoreVert, "Opciones")
                         }
                         DropdownMenu(expanded = mostrarMenu, onDismissRequest = { mostrarMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Ver lista de precios") },
+                                onClick = { mostrarMenu = false; mostrarPrecios = true }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Editar mi nombre") },
                                 onClick = { mostrarMenu = false; mostrarEditarNombre = true }
@@ -208,6 +214,7 @@ fun PantallaPanelEmpleado(
             clientes = clientes,
             cargando = cargando,
             clienteInicial = c,
+            productos = productos,
             onGuardar = { clienteId, producto, monto, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,
@@ -243,6 +250,68 @@ fun PantallaPanelEmpleado(
             },
             dismissButton = { TextButton(onClick = { mostrarEditarNombre = false }) { Text("Cancelar") } }
         )
+    }
+
+    if (mostrarPrecios) {
+        val productosOrdenados = remember(productos) {
+            productos.sortedBy { it.nombre.lowercase() }
+        }
+        ModalBottomSheet(onDismissRequest = { mostrarPrecios = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    "Lista de precios",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    "${productosOrdenados.size} producto${if (productosOrdenados.size != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                if (productosOrdenados.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Todavía no hay productos registrados.\nSe van agregando al anotar fiaditos.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                } else {
+                    productosOrdenados.forEach { prod ->
+                        ListItem(
+                            headlineContent = { Text(prod.nombre, fontWeight = FontWeight.Medium) },
+                            supportingContent = {
+                                Text(
+                                    "Usado ${prod.vecesUsado} ${if (prod.vecesUsado == 1) "vez" else "veces"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingContent = {
+                                Text(
+                                    if (prod.ultimoPrecio > 0) "${"$"}${"%.0f".format(prod.ultimoPrecio)}" else "—",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                    }
+                }
+            }
+        }
     }
 
     if (mostrarConfirmDesvincularse) {

@@ -244,6 +244,7 @@ fun KoskingNavHost() {
             val error by empleadoVm.error.collectAsState()
             val nombreEmpleado by empleadoVm.nombreEmpleado.collectAsState()
             val clientes by empleadoVm.clientesHabilitados.collectAsState()
+            val productos by empleadoVm.productos.collectAsState()
             val cliente = remember(clientes, clienteId) { clientes.find { it.id == clienteId } }
             com.kosking.app.dueno.PantallaAgregarFiadoConLambda(
                 onVolver = { nav.popBackStack() },
@@ -253,6 +254,7 @@ fun KoskingNavHost() {
                 limiteCredito = cliente?.limiteCredito ?: 0.0,
                 nombreCliente = cliente?.nombre ?: "",
                 nombreEmpleado = nombreEmpleado,
+                productos = productos,
                 onConfirmar = { items, tipo, visitante ->
                     empleadoVm.agregarMovimientos(clienteId, items, tipo, visitante) { nav.popBackStack() }
                 }

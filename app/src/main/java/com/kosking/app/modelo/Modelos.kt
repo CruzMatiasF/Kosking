@@ -10,7 +10,10 @@ data class Local(
     val duenoUid: String = "",
     val telefono: String = "",
     val tipo: String = "Kiosco",
-    val direccion: String = ""
+    val direccion: String = "",
+    val latitud: Double = 0.0,
+    val longitud: Double = 0.0,
+    val abierto: Boolean = false
 )
 
 @Immutable
@@ -52,6 +55,17 @@ data class Empleado(
     val localId: String = "",
     val uid: String = "",
     val nombre: String = ""
+)
+
+@Immutable
+data class Producto(
+    val id: String = "",
+    val localId: String = "",
+    val nombre: String = "",
+    val ultimoPrecio: Double = 0.0,
+    val vecesUsado: Int = 0,
+    val categoria: String = "",
+    val imagenUrl: String = ""
 )
 
 @Immutable

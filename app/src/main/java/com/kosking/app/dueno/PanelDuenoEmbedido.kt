@@ -29,6 +29,7 @@ fun PanelDuenoEmbedido(
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
+    val productos by vm.productos.collectAsState()
     val empleados by vm.empleados.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
     val disputados by vm.disputados.collectAsState()
@@ -164,6 +165,7 @@ fun PanelDuenoEmbedido(
             clientes = clientes,
             cargando = cargando,
             clienteInicial = clientePreseleccionado,
+            productos = productos,
             onGuardar = { clienteId, producto, monto, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,

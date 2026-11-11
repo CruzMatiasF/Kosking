@@ -2,49 +2,120 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Locales: el dueño puede crear y leer el suyo
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // El usuario es dueño del local si locales/{localId}.duenoUid == su uid
+    function isDueno(localId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/locales/$(localId))
+        && get(/databases/$(database)/documents/locales/$(localId)).data.duenoUid == uid();
+    }
+
+    // El usuario es empleado del local si usuarios/{uid}.empleadoLocalId == localId
+    function isEmpleado(localId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/usuarios/$(uid()))
+        && get(/databases/$(database)/documents/usuarios/$(uid())).data.empleadoLocalId == localId;
+    }
+
+    // Acceso general al local (dueño o empleado)
+    function tieneAcceso(localId) {
+      return isDueno(localId) || isEmpleado(localId);
+    }
+
+    // ── locales ───────────────────────────────────────────────────────────────
+    // El dueño crea su propio local (duenoUid debe coincidir con su uid).
+    // Solo el dueño puede leer y modificar su local.
+
     match /locales/{localId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && resource.data.duenoUid == request.auth.uid;
+      allow read:   if isDueno(localId) || isEmpleado(localId);
+      allow create: if isAuth() && request.resource.data.duenoUid == uid();
+      allow update: if isDueno(localId);
+      allow delete: if false;
     }
 
-    // Usuarios: cada uno lee/escribe su propio documento
-    match /usuarios/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      match /localesGuardados/{localId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
-      }
+    // ── usuarios ──────────────────────────────────────────────────────────────
+    // Cada usuario solo puede leer y escribir su propio documento.
+
+    match /usuarios/{userId} {
+      allow read:   if isAuth() && uid() == userId;
+      allow create: if isAuth() && uid() == userId;
+      allow update: if isAuth() && uid() == userId;
+      allow delete: if false;
     }
 
-    // Clientes: cualquier usuario autenticado del local puede leer/escribir
+    // ── clientes ──────────────────────────────────────────────────────────────
+    // Dueño y empleados leen y actualizan (deuda se actualiza en batch al anotar).
+    // Solo el dueño crea, elimina y bloquea clientes.
+    //
+    // FUTURO — vista del cliente:
+    // allow read: if uid() == resource.data.uid;  (cuando el cliente tenga uid vinculado)
+
     match /clientes/{clienteId} {
-      allow read, write: if request.auth != null;
+      allow read:   if tieneAcceso(resource.data.localId);
+      allow create: if isDueno(request.resource.data.localId);
+      allow update: if tieneAcceso(resource.data.localId);
+      allow delete: if isDueno(resource.data.localId);
     }
 
-    // Movimientos: cualquier usuario autenticado puede crear y leer
-    match /movimientos/{movId} {
-      allow read, create: if request.auth != null;
+    // ── movimientos ───────────────────────────────────────────────────────────
+    // Dueño y empleados anotan (create) y leen.
+    // Solo el dueño puede anular o marcar disputado (update).
+    // Los movimientos nunca se eliminan físicamente.
+    //
+    // FUTURO — vista del cliente:
+    // allow read: if uid() == resource.data.clienteUid;
+
+    match /movimientos/{movimientoId} {
+      allow read:   if tieneAcceso(resource.data.localId);
+      allow create: if tieneAcceso(request.resource.data.localId);
+      allow update: if isDueno(resource.data.localId);
+      allow delete: if false;
     }
 
-    // Empleados: cualquier usuario autenticado puede leer/escribir
-    match /empleados/{empId} {
-      allow read, write: if request.auth != null;
+    // ── empleados ─────────────────────────────────────────────────────────────
+    // El dueño ve y gestiona su equipo completo.
+    // Cada empleado puede leer y eliminar su propio registro (desvincularse).
+
+    match /empleados/{empleadoId} {
+      allow read:   if isAuth()
+                      && (isDueno(resource.data.localId) || uid() == resource.data.uid);
+      allow create: if isAuth();
+      allow update: if isAuth()
+                      && (isDueno(resource.data.localId) || uid() == resource.data.uid);
+      allow delete: if isAuth()
+                      && (isDueno(resource.data.localId) || uid() == resource.data.uid);
     }
 
-    // Códigos de empleado: cualquier usuario puede leer (para verificar),
-    // solo autenticados pueden crear; actualizar (marcar usado) sin auth (empleado sin cuenta)
-    match /codigosEmpleado/{codId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if true;
+    // ── codigosEmpleado ───────────────────────────────────────────────────────
+    // Cualquier usuario autenticado puede leer (para verificar su código).
+    // Solo el dueño crea códigos.
+    // Un usuario autenticado puede marcar un código como usado (usado: false → true).
+
+    match /codigosEmpleado/{codigoId} {
+      allow read:   if isAuth();
+      allow create: if isDueno(request.resource.data.localId);
+      allow update: if isAuth() && resource.data.usado == false;
+      allow delete: if isDueno(resource.data.localId);
     }
 
-    // Códigos de cliente: cualquier usuario autenticado puede leer (para conectarse con su código)
-    match /codigosCliente/{codId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+    // ── productos ─────────────────────────────────────────────────────────────
+    // Dueño y empleados leen y actualizan el catálogo (se actualiza al anotar).
+    // Solo el dueño elimina productos.
+
+    match /productos/{productoId} {
+      allow read:   if tieneAcceso(resource.data.localId);
+      allow create: if tieneAcceso(request.resource.data.localId);
+      allow update: if tieneAcceso(resource.data.localId);
+      allow delete: if isDueno(resource.data.localId);
     }
   }
 }

@@ -7,6 +7,7 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Usuario
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -228,6 +229,36 @@ object FiadoRepository {
         db.collection("usuarios").document(uid)
             .update("empleadoLocalId", "", "empleadoNombreLocal", "")
             .await()
+    }
+
+    // ── Productos ────────────────────────────────────────────────────────────
+
+    fun productosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
+        val sub = db.collection("productos")
+            .whereEqualTo("localId", localId)
+            .orderBy("vecesUsado", Query.Direction.DESCENDING)
+            .addSnapshotListener { snap, _ ->
+                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
+            }
+        awaitClose { sub.remove() }
+    }
+
+    suspend fun upsertProducto(localId: String, nombre: String, precio: Double) {
+        if (nombre.isBlank()) return
+        val snap = db.collection("productos")
+            .whereEqualTo("localId", localId)
+            .whereEqualTo("nombre", nombre)
+            .limit(1)
+            .get().await()
+        if (snap.isEmpty) {
+            val ref = db.collection("productos").document()
+            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1)).await()
+        } else {
+            snap.documents.first().reference.update(
+                "ultimoPrecio", precio,
+                "vecesUsado", com.google.firebase.firestore.FieldValue.increment(1)
+            ).await()
+        }
     }
 
     suspend fun obtenerEmpleoDeUsuario(uid: String): Pair<String, String>? {

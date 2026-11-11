@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
@@ -20,13 +21,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.Producto
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AnotarRapidoSheet(
     clientes: List<Cliente>,
     cargando: Boolean,
     clienteInicial: Cliente? = null,
+    productos: List<Producto> = emptyList(),
     onGuardar: (clienteId: String, producto: String, monto: Double, tipo: String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -41,11 +44,25 @@ fun AnotarRapidoSheet(
     var montoTexto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var esCargo by remember { mutableStateOf(true) }
+    var productoSeleccionado by remember { mutableStateOf<Producto?>(null) }
+    var modoOtro by remember { mutableStateOf(false) }
     val montoFocusRequester = remember { FocusRequester() }
     val descripcionFocusRequester = remember { FocusRequester() }
 
+    val tieneProductos = productos.isNotEmpty()
+
+    // Reset product state when switching to pago
+    LaunchedEffect(esCargo) {
+        if (!esCargo) {
+            productoSeleccionado = null
+            modoOtro = false
+            descripcion = ""
+        }
+    }
+
+    // Auto-focus amount only when there's no product grid to show
     LaunchedEffect(Unit) {
-        montoFocusRequester.requestFocus()
+        if (!tieneProductos || !esCargo) montoFocusRequester.requestFocus()
     }
 
     val montoDouble = montoTexto.toDoubleOrNull() ?: 0.0
@@ -60,7 +77,7 @@ fun AnotarRapidoSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header: nombre cliente si viene prefijado, sino título genérico
+            // Header
             if (clienteInicial != null) {
                 Column {
                     Text(
@@ -129,6 +146,50 @@ fun AnotarRapidoSheet(
                 )
             }
 
+            // Grilla de productos (solo para fiado)
+            if (esCargo && tieneProductos) {
+                Text(
+                    "¿Qué llevó?",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    productos.take(10).forEach { prod ->
+                        FilterChip(
+                            selected = productoSeleccionado?.id == prod.id,
+                            onClick = {
+                                productoSeleccionado = prod
+                                modoOtro = false
+                                descripcion = prod.nombre
+                                if (prod.ultimoPrecio > 0) montoTexto = "%.0f".format(prod.ultimoPrecio)
+                            },
+                            label = {
+                                Text(
+                                    if (prod.ultimoPrecio > 0)
+                                        "${prod.nombre} · ${"$"}${"%.0f".format(prod.ultimoPrecio)}"
+                                    else prod.nombre,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        )
+                    }
+                    FilterChip(
+                        selected = modoOtro,
+                        onClick = {
+                            modoOtro = true
+                            productoSeleccionado = null
+                            descripcion = ""
+                            montoTexto = ""
+                        },
+                        label = { Text("Otro") },
+                        leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(14.dp)) }
+                    )
+                }
+            }
+
             // Selector de cliente — solo si no viene prefijado
             if (clienteInicial == null) {
                 ExposedDropdownMenuBox(
@@ -181,7 +242,7 @@ fun AnotarRapidoSheet(
                 label = { Text("Monto $") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
-                    imeAction = ImeAction.Next
+                    imeAction = if (esCargo && (modoOtro || !tieneProductos)) ImeAction.Next else ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { descripcionFocusRequester.requestFocus() }
@@ -193,14 +254,13 @@ fun AnotarRapidoSheet(
                     Text(
                         "→ $${"%,.0f".format(deudaFinal)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (esCargo) MaterialTheme.colorScheme.error
-                                else Color(0xFF388E3C)
+                        color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
                     )
                 }) else null
             )
 
-            // Descripción (opcional, solo para fiado)
-            if (esCargo) {
+            // Descripción: solo visible en modo manual (Otro o sin productos)
+            if (esCargo && (modoOtro || !tieneProductos)) {
                 OutlinedTextField(
                     value = descripcion,
                     onValueChange = { descripcion = it },
@@ -208,11 +268,16 @@ fun AnotarRapidoSheet(
                     placeholder = { Text("Ej: pan, leche...") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth().focusRequester(descripcionFocusRequester)
+                    modifier = Modifier.fillMaxWidth().focusRequester(descripcionFocusRequester),
+                    trailingIcon = if (descripcion.isNotBlank()) ({
+                        IconButton(onClick = { descripcion = ""; montoTexto = "" }) {
+                            Icon(Icons.Default.Clear, null, Modifier.size(16.dp))
+                        }
+                    }) else null
                 )
             }
 
-            // Botón guardar con monto en tiempo real
+            // Botón guardar
             Button(
                 onClick = {
                     val cliente = clienteSeleccionado ?: return@Button

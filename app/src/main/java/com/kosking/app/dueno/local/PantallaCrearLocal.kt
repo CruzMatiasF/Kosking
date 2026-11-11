@@ -26,6 +26,7 @@ fun PantallaCrearLocal(
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
     var nombre by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
     var tipo by remember { mutableStateOf("Kiosco") }
     var expandirTipo by remember { mutableStateOf(false) }
 
@@ -60,6 +61,18 @@ fun PantallaCrearLocal(
             onValueChange = { nombre = it },
             label = { Text("Nombre del local") },
             placeholder = { Text("Ej: Kiosco Don Pedro") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = direccion,
+            onValueChange = { direccion = it },
+            label = { Text("Dirección (opcional)") },
+            placeholder = { Text("Ej: Av. San Martín 1234, Rosario") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
@@ -102,6 +115,7 @@ fun PantallaCrearLocal(
                 vm.crearLocal(
                     nombre = nombre.trim(),
                     tipo = tipo,
+                    direccion = direccion.trim(),
                     onExito = onLocalCreado
                 )
             },

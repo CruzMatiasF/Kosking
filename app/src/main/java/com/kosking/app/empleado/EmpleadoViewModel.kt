@@ -9,6 +9,7 @@ import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -177,6 +178,12 @@ class EmpleadoViewModel : ViewModel() {
         }
     }
 
+    val productos: StateFlow<List<Producto>> = _localId
+        .flatMapLatest { id ->
+            if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val clientesHabilitados: StateFlow<List<Cliente>> = _localId
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.clientesFlow(id) else flowOf(emptyList())
@@ -216,6 +223,9 @@ class EmpleadoViewModel : ViewModel() {
                     )
                 }
                 FiadoRepository.agregarMovimientos(movs)
+                items.forEach { (producto, monto) ->
+                    if (producto.isNotBlank()) FiadoRepository.upsertProducto(_localId.value, producto, monto)
+                }
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarMovimientos empleado")

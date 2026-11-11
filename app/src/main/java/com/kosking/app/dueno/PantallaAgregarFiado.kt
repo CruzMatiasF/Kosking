@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kosking.app.modelo.Producto
 
 /** Wrapper para el flujo de dueño — lee del ViewModel y delega al composable unificado. */
 @Composable
@@ -31,6 +32,7 @@ fun PantallaAgregarFiado(
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
     val clientes by vm.clientes.collectAsState()
+    val productos by vm.productos.collectAsState()
     val cliente = clientes.find { it.id == clienteId }
 
     PantallaAgregarFiadoUI(
@@ -43,6 +45,7 @@ fun PantallaAgregarFiado(
         nombreCliente = cliente?.nombre ?: "",
         notaInterna = cliente?.notaInterna ?: "",
         mostrarVisitante = true,
+        productos = productos,
         onConfirmar = { items, tipo, visitante ->
             vm.agregarMovimientos(clienteId, items, tipo, visitante, onGuardado)
         }
@@ -60,6 +63,7 @@ fun PantallaAgregarFiadoConLambda(
     limiteCredito: Double = 0.0,
     nombreCliente: String = "",
     nombreEmpleado: String = "",
+    productos: List<Producto> = emptyList(),
 ) {
     PantallaAgregarFiadoUI(
         onVolver = onVolver,
@@ -70,11 +74,12 @@ fun PantallaAgregarFiadoConLambda(
         nombreCliente = nombreCliente,
         nombreEmpleado = nombreEmpleado,
         mostrarVisitante = false,
+        productos = productos,
         onConfirmar = { items, tipo, visitante -> onConfirmar(items, tipo, visitante) }
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun PantallaAgregarFiadoUI(
     tipoInicial: String = "cargo",
@@ -87,17 +92,21 @@ private fun PantallaAgregarFiadoUI(
     nombreEmpleado: String = "",
     notaInterna: String = "",
     mostrarVisitante: Boolean = false,
+    productos: List<Producto> = emptyList(),
     onConfirmar: (items: List<Pair<String, Double>>, tipo: String, visitante: String) -> Unit
 ) {
     val tipo = tipoInicial
     var monto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var visitante by remember { mutableStateOf("") }
+    var productoSeleccionado by remember { mutableStateOf<Producto?>(null) }
+    var modoOtro by remember { mutableStateOf(false) }
     val montoFocus = remember { FocusRequester() }
     val descripcionFocus = remember { FocusRequester() }
     val visitanteFocus = remember { FocusRequester() }
+    val tieneProductos = tipo == "cargo" && productos.isNotEmpty()
 
-    LaunchedEffect(Unit) { montoFocus.requestFocus() }
+    LaunchedEffect(Unit) { if (!tieneProductos) montoFocus.requestFocus() }
 
     val montoDouble = monto.toDoubleOrNull() ?: 0.0
     val deudaFinal = if (tipo == "cargo") deudaActual + montoDouble
@@ -187,16 +196,60 @@ private fun PantallaAgregarFiadoUI(
                 HorizontalDivider()
             }
 
+            // Grilla de productos (solo para fiado)
+            if (tieneProductos) {
+                Text(
+                    "¿Qué llevó?",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    productos.take(10).forEach { prod ->
+                        FilterChip(
+                            selected = productoSeleccionado?.id == prod.id,
+                            onClick = {
+                                productoSeleccionado = prod
+                                modoOtro = false
+                                descripcion = prod.nombre
+                                if (prod.ultimoPrecio > 0) monto = "%.0f".format(prod.ultimoPrecio)
+                            },
+                            label = {
+                                Text(
+                                    if (prod.ultimoPrecio > 0)
+                                        "${prod.nombre} · ${"$"}${"%.0f".format(prod.ultimoPrecio)}"
+                                    else prod.nombre,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        )
+                    }
+                    FilterChip(
+                        selected = modoOtro,
+                        onClick = {
+                            modoOtro = true
+                            productoSeleccionado = null
+                            descripcion = ""
+                            monto = ""
+                        },
+                        label = { Text("Otro") },
+                        leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(14.dp)) }
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = monto,
                 onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' } },
                 label = { Text("Monto $") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
-                    imeAction = if (tipo == "cargo") ImeAction.Next else ImeAction.Done
+                    imeAction = if (tipo == "cargo" && (modoOtro || !tieneProductos)) ImeAction.Next else ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = { if (tipo == "cargo") descripcionFocus.requestFocus() },
+                    onNext = { descripcionFocus.requestFocus() },
                     onDone = { if (mostrarVisitante) visitanteFocus.requestFocus() }
                 ),
                 singleLine = true,
@@ -207,7 +260,8 @@ private fun PantallaAgregarFiadoUI(
                 )
             )
 
-            if (tipo == "cargo") {
+            // Descripción: solo visible en modo manual (Otro o sin productos)
+            if (tipo == "cargo" && (modoOtro || !tieneProductos)) {
                 OutlinedTextField(
                     value = descripcion,
                     onValueChange = { descripcion = it },
@@ -220,7 +274,12 @@ private fun PantallaAgregarFiadoUI(
                     keyboardActions = KeyboardActions(
                         onNext = { visitanteFocus.requestFocus() }
                     ),
-                    modifier = Modifier.fillMaxWidth().focusRequester(descripcionFocus)
+                    modifier = Modifier.fillMaxWidth().focusRequester(descripcionFocus),
+                    trailingIcon = if (descripcion.isNotBlank()) ({
+                        IconButton(onClick = { descripcion = ""; monto = "" }) {
+                            Icon(Icons.Default.Clear, null, Modifier.size(16.dp))
+                        }
+                    }) else null
                 )
             }
 

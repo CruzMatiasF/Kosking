@@ -121,6 +121,14 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarPermisosGlobales(permisos: com.kosking.app.modelo.Permisos) {
+        viewModelScope.launch {
+            val local = localData.value ?: return@launch
+            try { FiadoRepository.actualizarLocal(local.copy(permisos = permisos)) }
+            catch (e: Exception) { CrashLogger.log(e, "actualizarPermisosGlobales") }
+        }
+    }
+
     // cierre: "HH:mm" para hoy, o "" para quitar
     fun actualizarCierreHoy(cierre: String) {
         viewModelScope.launch {
@@ -521,42 +529,6 @@ class DuenoViewModel : ViewModel() {
             } finally {
                 _cargando.value = false
             }
-        }
-    }
-
-    // ── Publicaciones ────────────────────────────────────────────────────────
-
-    val publicaciones: StateFlow<List<com.kosking.app.modelo.Publicacion>> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.publicacionesFlow(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun agregarPublicacion(texto: String, etiqueta: String, onExito: () -> Unit) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                val pub = com.kosking.app.modelo.Publicacion(
-                    localId = _localId.value,
-                    texto = texto,
-                    etiqueta = etiqueta
-                )
-                FiadoRepository.agregarPublicacion(pub)
-                onExito()
-            } catch (e: Exception) {
-                CrashLogger.log(e, "agregarPublicacion")
-                _error.value = "No se pudo publicar"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
-    fun eliminarPublicacion(publicacionId: String) {
-        viewModelScope.launch {
-            try { FiadoRepository.eliminarPublicacion(publicacionId) }
-            catch (e: Exception) { CrashLogger.log(e, "eliminarPublicacion") }
         }
     }
 

@@ -43,7 +43,6 @@ fun PanelDuenoEmbedido(
     val localData by vm.localData.collectAsState()
     val localId by vm.localId.collectAsState()
     val productos by vm.productos.collectAsState()
-    val publicaciones by vm.publicaciones.collectAsState()
     val cargando by vm.cargando.collectAsState()
 
     BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
@@ -67,7 +66,6 @@ fun PanelDuenoEmbedido(
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var mostrarTodasVisitas by remember { mutableStateOf(false) }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
-    var mostrarQr by remember { mutableStateOf(false) }
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var editandoDatos by remember { mutableStateOf(false) }
     var editandoDireccion by remember { mutableStateOf(false) }
@@ -126,11 +124,6 @@ fun PanelDuenoEmbedido(
                 )
                 NavigationBarItem(
                     selected = tabSeleccionado == 4, onClick = { onTabChange(4) },
-                    icon = { Icon(Icons.Default.Campaign, null) }, label = { Text("Publicar") },
-                    colors = navColors
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 5, onClick = { onTabChange(5) },
                     icon = { Icon(Icons.Default.Store, null) }, label = { Text("Mi Local") },
                     colors = navColors
                 )
@@ -153,6 +146,8 @@ fun PanelDuenoEmbedido(
                     empleados = empleados,
                     movimientos = movimientosLocal,
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
+                    permisosGlobales = localData?.permisos ?: com.kosking.app.modelo.Permisos(),
+                    onCambiarPermisos = { vm.actualizarPermisosGlobales(it) },
                     vm = vm
                 )
                 3 -> TabPrecios(
@@ -164,17 +159,11 @@ fun PanelDuenoEmbedido(
                     onSubirImagen = { prod, uri -> vm.subirFotoProducto(prod, uri) {} },
                     onEliminar = { vm.eliminarProducto(it) }
                 )
-                4 -> TabPublicaciones(
-                    publicaciones = publicaciones,
-                    onAgregar = { texto, etiqueta -> vm.agregarPublicacion(texto, etiqueta, {}) },
-                    onEliminar = { vm.eliminarPublicacion(it) }
-                )
-                5 -> TabMiLocal(
+                4 -> TabMiLocal(
                     localData = localData,
                     onEditarDatos = { editandoDatos = true },
                     onEditarDireccion = { editandoDireccion = true },
                     onEditarHorarios = { editandoHorarios = true },
-                    onMostrarQr = { mostrarQr = true }
                 )
                 else -> TabInicio(
                     clientes = clientes,
@@ -188,7 +177,6 @@ fun PanelDuenoEmbedido(
                     onAbrirDetalleCliente = onAbrirDetalleCliente,
                     onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
                     onAnotar = { mostrarAnotar = true },
-                    onMostrarQr = { mostrarQr = true },
                     onRecordarTodos = { mostrarRecordarTodos = true },
                     onVerTodasVisitas = { mostrarTodasVisitas = true },
                     onCompartirResumen = {
@@ -305,16 +293,6 @@ fun PanelDuenoEmbedido(
             }
             clienteWhatsApp = null
         }
-    }
-
-    // QR del local
-    if (mostrarQr && localId.isNotBlank()) {
-        QrLocalSheet(
-            localId = localId,
-            codigo = localData?.codigo ?: "",
-            nombreLocal = localData?.nombre ?: "Mi local",
-            onDismiss = { mostrarQr = false }
-        )
     }
 
     // BottomSheet recordar a todos

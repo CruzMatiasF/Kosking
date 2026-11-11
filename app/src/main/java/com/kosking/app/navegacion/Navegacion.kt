@@ -13,10 +13,6 @@ import com.google.firebase.auth.FirebaseUser
 import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
 import com.kosking.app.autenticacion.AuthViewModel
-import com.kosking.app.cliente.ClienteViewModel
-import com.kosking.app.cliente.PantallaEntradaCliente
-import com.kosking.app.cliente.PantallaIngresarPIN
-import com.kosking.app.cliente.PantallaVerFiado
 import com.kosking.app.dueno.local.PantallaCrearLocal
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
@@ -24,8 +20,6 @@ import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.onboarding.PantallaHome
-import com.kosking.app.explorar.PantallaVidreraPublica
-import com.kosking.app.explorar.VidreraPublicaViewModel
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.datos.StartupUseCase
 import com.kosking.app.datos.StartupDestino
@@ -37,13 +31,10 @@ import com.kosking.app.perfil.PantallaPrivacidad
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
-import java.net.URLDecoder
-import java.net.URLEncoder
 
 private sealed class DestinoPostLogin {
     object PanelDueno : DestinoPostLogin()
     object IngresarCodigo : DestinoPostLogin()
-    data class IngresarPIN(val localId: String, val nombreLocal: String) : DestinoPostLogin()
 }
 
 @Composable
@@ -52,13 +43,11 @@ fun KoskingNavHost() {
     val authVm: AuthViewModel = viewModel()
     val duenoVm: DuenoViewModel = viewModel()
     val empleadoVm: EmpleadoViewModel = viewModel()
-    val clienteVm: ClienteViewModel = viewModel()
     var mostrarPanelDueno by remember { mutableStateOf(false) }
     var tabInicialDueno by remember { mutableStateOf(0) }
     var tabInicialEmpleado by remember { mutableStateOf(0) }
     var destinoPostLogin by remember { mutableStateOf<DestinoPostLogin?>(null) }
 
-    // Auth state reactivo
     val authUser by produceState<FirebaseUser?>(
         initialValue = FirebaseAuth.getInstance().currentUser?.takeIf { !it.isAnonymous }
     ) {
@@ -72,7 +61,6 @@ fun KoskingNavHost() {
     val estaLogueado = authUser != null
     val emailUsuario = authUser?.email ?: ""
 
-    // Cargar nombre real del usuario desde Firestore
     var nombreUsuario by remember { mutableStateOf("") }
     LaunchedEffect(authUser?.uid) {
         val uid = authUser?.uid ?: run { nombreUsuario = ""; return@LaunchedEffect }
@@ -97,7 +85,6 @@ fun KoskingNavHost() {
         startDestination = if (onboardingVisto) Rutas.EXPLORAR else Rutas.ONBOARDING
     ) {
 
-        // ── Onboarding (solo primera vez) ─────────────────────────────────────
         composable(Rutas.ONBOARDING) {
             PantallaOnboarding(
                 onTerminar = {
@@ -110,23 +97,19 @@ fun KoskingNavHost() {
             )
         }
 
-        // ── Explorar (raíz) ───────────────────────────────────────────────────
-
         composable(Rutas.EXPLORAR) {
             val empleadoTieneSession by empleadoVm.tieneSession.collectAsState()
             val duenoTieneSession by duenoVm.tieneSession.collectAsState()
-            val context = LocalContext.current
-
-            var startupResuelto by remember { mutableStateOf(clienteVm.isStartupDone()) }
+            val ctx = LocalContext.current
+            var startupResuelto by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
-                if (clienteVm.isStartupDone()) return@LaunchedEffect
-                clienteVm.markStartupDone()
+                if (startupResuelto) return@LaunchedEffect
                 val destino = StartupUseCase.resolver(
-                    context = context,
+                    context = ctx,
                     empleadoTieneSession = empleadoVm.tieneSession.value,
                     duenoLocalIdFlow = duenoVm.localId,
-                    localesGuardados = clienteVm.localesGuardados.value
+                    localesGuardados = emptyList()
                 )
                 when (destino) {
                     StartupDestino.PanelEmpleado ->
@@ -140,9 +123,7 @@ fun KoskingNavHost() {
                         tabInicialDueno = destino.tab
                         mostrarPanelDueno = true
                     }
-                    StartupDestino.VerFiado ->
-                        nav.navigate(Rutas.VER_FIADO) { popUpTo(Rutas.EXPLORAR) }
-                    null -> {}
+                    else -> {}
                 }
                 startupResuelto = true
             }
@@ -154,7 +135,6 @@ fun KoskingNavHost() {
                 nombreUsuario = nombreUsuario,
                 esDueno = esDueno.isNotBlank(),
                 esEmpleado = esEmpleado,
-                clienteVm = clienteVm,
                 duenoVm = duenoVm,
                 mostrarPanelDueno = mostrarPanelDueno,
                 onCerrarPanelDueno = { mostrarPanelDueno = false },
@@ -179,13 +159,6 @@ fun KoskingNavHost() {
                         nav.navigate(Rutas.INGRESAR_CODIGO)
                     }
                 },
-                onVerMisLocales = {
-                    if (FirebaseAuth.getInstance().currentUser == null) {
-                        nav.navigate(Rutas.ENTRADA_CLIENTE)
-                    } else {
-                        nav.navigate(Rutas.VER_FIADO)
-                    }
-                },
                 onIniciarSesion = {
                     destinoPostLogin = null
                     nav.navigate(Rutas.LOGIN)
@@ -202,33 +175,14 @@ fun KoskingNavHost() {
             )
         }
 
-        composable(
-            Rutas.VIDRIERA_PUBLICA,
-            arguments = listOf(navArgument("localId") { type = NavType.StringType })
-        ) { back ->
-            val localId = back.arguments?.getString("localId") ?: return@composable
-            val vm: VidreraPublicaViewModel = viewModel()
-            PantallaVidreraPublica(
-                localId = localId,
-                onVolver = { nav.popBackStack() },
-                vm = vm
-            )
-        }
-
-        // ── Autenticación ─────────────────────────────────────────────────────
-
         composable(Rutas.LOGIN) {
             PantallaLogin(
                 onLoginExitoso = {
                     nav.popBackStack()
-                    when (val dest = destinoPostLogin) {
+                    when (destinoPostLogin) {
                         DestinoPostLogin.IngresarCodigo -> {
                             destinoPostLogin = null
                             nav.navigate(Rutas.INGRESAR_CODIGO)
-                        }
-                        is DestinoPostLogin.IngresarPIN -> {
-                            destinoPostLogin = null
-                            nav.navigate(Rutas.ingresarPIN(dest.localId, dest.nombreLocal))
                         }
                         else -> {
                             destinoPostLogin = null
@@ -243,16 +197,10 @@ fun KoskingNavHost() {
         composable(Rutas.REGISTRO) {
             PantallaRegistro(
                 onRegistroExitoso = {
-                    when (val dest = destinoPostLogin) {
+                    when (destinoPostLogin) {
                         DestinoPostLogin.IngresarCodigo -> {
                             destinoPostLogin = null
                             nav.navigate(Rutas.INGRESAR_CODIGO) { popUpTo(Rutas.EXPLORAR) }
-                        }
-                        is DestinoPostLogin.IngresarPIN -> {
-                            destinoPostLogin = null
-                            nav.navigate(Rutas.ingresarPIN(dest.localId, dest.nombreLocal)) {
-                                popUpTo(Rutas.EXPLORAR)
-                            }
                         }
                         else -> {
                             destinoPostLogin = null
@@ -274,14 +222,10 @@ fun KoskingNavHost() {
             )
         }
 
-        // ── Empleado ──────────────────────────────────────────────────────────
-
         composable(Rutas.INGRESAR_CODIGO) {
             PantallaIngresarCodigo(
                 onEmpleadoVerificado = {
-                    nav.navigate(Rutas.PANEL_EMPLEADO) {
-                        popUpTo(Rutas.EXPLORAR)
-                    }
+                    nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
                 },
                 onVolver = { nav.popBackStack() },
                 vm = empleadoVm
@@ -328,48 +272,6 @@ fun KoskingNavHost() {
             )
         }
 
-        // ── Cliente ───────────────────────────────────────────────────────────
-
-        composable(Rutas.ENTRADA_CLIENTE) {
-            PantallaEntradaCliente(
-                onEntradaAnonima = {
-                    nav.navigate(Rutas.VER_FIADO) {
-                        popUpTo(Rutas.EXPLORAR)
-                    }
-                },
-                onIrALogin = {
-                    destinoPostLogin = null
-                    nav.navigate(Rutas.LOGIN)
-                },
-                onVolver = { nav.popBackStack() },
-                authVm = authVm
-            )
-        }
-
-        composable(
-            Rutas.INGRESAR_PIN,
-            arguments = listOf(
-                navArgument("localId") { type = NavType.StringType },
-                navArgument("nombreLocal") { type = NavType.StringType }
-            )
-        ) { back ->
-            val localId = back.arguments?.getString("localId") ?: return@composable
-            val nombreLocal = URLDecoder.decode(
-                back.arguments?.getString("nombreLocal") ?: "", "UTF-8"
-            )
-            PantallaIngresarPIN(
-                localId = localId,
-                nombreLocal = nombreLocal,
-                onClienteVerificado = {
-                    nav.navigate(Rutas.VER_FIADO) {
-                        popUpTo(Rutas.EXPLORAR)
-                    }
-                },
-                onVolver = { nav.popBackStack() },
-                vm = clienteVm
-            )
-        }
-
         composable(
             Rutas.DETALLE_MOVIMIENTO,
             arguments = listOf(navArgument("movimientoId") { type = NavType.StringType })
@@ -379,13 +281,6 @@ fun KoskingNavHost() {
                 movimientoId = movimientoId,
                 onVolver = { nav.popBackStack() },
                 vm = duenoVm
-            )
-        }
-
-        composable(Rutas.VER_FIADO) {
-            PantallaVerFiado(
-                onVolver = { nav.popBackStack() },
-                vm = clienteVm
             )
         }
 
@@ -400,11 +295,10 @@ fun KoskingNavHost() {
         composable(Rutas.CONFIGURACION) {
             val esDuenoVal by duenoVm.localId.collectAsState()
             val esEmpleadoVal by empleadoVm.tieneSession.collectAsState()
-            val localesGuardadosVal by clienteVm.localesGuardados.collectAsState()
             PantallaConfiguracion(
                 esDueno = esDuenoVal.isNotBlank(),
                 esEmpleado = esEmpleadoVal,
-                tieneLocalesFiado = localesGuardadosVal.isNotEmpty(),
+                tieneLocalesFiado = false,
                 onVolver = { nav.popBackStack() }
             )
         }

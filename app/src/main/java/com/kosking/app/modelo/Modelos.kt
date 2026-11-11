@@ -8,7 +8,8 @@ import com.google.firebase.firestore.Exclude
 data class Permisos(
     val anotarFiados: Boolean = true,
     val registrarPagos: Boolean = true,
-    val verTotal: Boolean = true  // true = el empleado puede ver el monto; false = solo ve "Tiene deuda"
+    val verTotal: Boolean = true,
+    val editarPrecios: Boolean = false
 )
 
 // "HH:mm" o "" si está cerrado ese día

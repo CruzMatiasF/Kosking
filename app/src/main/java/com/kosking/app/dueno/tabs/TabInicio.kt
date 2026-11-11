@@ -37,7 +37,6 @@ internal fun TabInicio(
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirDetalleMovimiento: (String) -> Unit = {},
     onAnotar: () -> Unit,
-    onMostrarQr: () -> Unit,
     onRecordarTodos: () -> Unit,
     onVerTodasVisitas: () -> Unit,
     onCompartirResumen: () -> Unit = {},
@@ -233,9 +232,7 @@ internal fun TabInicio(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SeccionCard(icon = Icons.Default.Store, label = "Mi local",
-                    modifier = Modifier.weight(1f), onClick = { onTabChange(4) })
-                SeccionCard(icon = Icons.Default.QrCode, label = "QR del local",
-                    modifier = Modifier.weight(1f), onClick = onMostrarQr)
+                    modifier = Modifier.fillMaxWidth(), onClick = { onTabChange(4) })
             }
             HorizontalDivider()
         }

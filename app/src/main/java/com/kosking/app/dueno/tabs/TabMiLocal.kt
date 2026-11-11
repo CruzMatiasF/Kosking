@@ -24,8 +24,7 @@ internal fun TabMiLocal(
     localData: Local?,
     onEditarDatos: () -> Unit,
     onEditarDireccion: () -> Unit,
-    onEditarHorarios: () -> Unit,
-    onMostrarQr: () -> Unit
+    onEditarHorarios: () -> Unit
 ) {
     if (localData == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -262,17 +261,5 @@ internal fun TabMiLocal(
             Spacer(Modifier.height(16.dp))
         }
 
-        // ── QR ───────────────────────────────────────────────────────
-        item {
-            Button(
-                onClick = onMostrarQr,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-            ) {
-                Icon(Icons.Default.QrCode, null, Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Ver QR del local", style = MaterialTheme.typography.titleSmall)
-            }
-        }
     }
 }

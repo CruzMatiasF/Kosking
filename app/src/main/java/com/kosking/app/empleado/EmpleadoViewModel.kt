@@ -234,6 +234,17 @@ class EmpleadoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarPrecio(producto: Producto, nuevoPrecio: Double) {
+        viewModelScope.launch {
+            try {
+                FiadoRepository.actualizarProducto(producto.copy(precio = nuevoPrecio))
+            } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarPrecio empleado")
+                _error.value = "No se pudo actualizar el precio"
+            }
+        }
+    }
+
     fun agregarMovimientos(
         clienteId: String,
         items: List<Triple<String, Int, Double>>, // producto, cantidad, monto

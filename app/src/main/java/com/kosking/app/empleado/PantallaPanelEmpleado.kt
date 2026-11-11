@@ -7,12 +7,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -179,7 +182,9 @@ fun PantallaPanelEmpleado(
             if (tabActual == 0) {
                 TabPreciosSinBusqueda(
                     productos = productos.filter { it.habilitado },
-                    busqueda = busqueda
+                    busqueda = busqueda,
+                    puedeEditar = permisos.editarPrecios,
+                    onActualizarPrecio = { prod, precio -> vm.actualizarPrecio(prod, precio) }
                 )
             } else {
                 // Mini stats
@@ -338,7 +343,12 @@ fun PantallaPanelEmpleado(
 }
 
 @Composable
-private fun TabPreciosSinBusqueda(productos: List<Producto>, busqueda: String) {
+private fun TabPreciosSinBusqueda(
+    productos: List<Producto>,
+    busqueda: String,
+    puedeEditar: Boolean = false,
+    onActualizarPrecio: (Producto, Double) -> Unit = { _, _ -> }
+) {
     val productosFiltrados = remember(productos, busqueda) {
         if (busqueda.isBlank()) productos
         else productos.filter {
@@ -366,7 +376,7 @@ private fun TabPreciosSinBusqueda(productos: List<Producto>, busqueda: String) {
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
                 }
                 items(items, key = { it.id }) { producto ->
-                    ProductoPrecioItem(producto)
+                    ProductoPrecioItem(producto, puedeEditar, onActualizarPrecio)
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
                 }
             }
@@ -375,7 +385,48 @@ private fun TabPreciosSinBusqueda(productos: List<Producto>, busqueda: String) {
 }
 
 @Composable
-private fun ProductoPrecioItem(producto: Producto) {
+private fun ProductoPrecioItem(
+    producto: Producto,
+    puedeEditar: Boolean = false,
+    onActualizarPrecio: (Producto, Double) -> Unit = { _, _ -> }
+) {
+    var mostrarEditar by remember { mutableStateOf(false) }
+
+    if (mostrarEditar) {
+        var precioTexto by remember { mutableStateOf("%.0f".format(producto.precio)) }
+        AlertDialog(
+            onDismissRequest = { mostrarEditar = false },
+            title = { Text("Actualizar precio") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(producto.nombre, style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = precioTexto,
+                        onValueChange = { precioTexto = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Nuevo precio") },
+                        prefix = { Text("$") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        precioTexto.toDoubleOrNull()?.let { onActualizarPrecio(producto, it) }
+                        mostrarEditar = false
+                    },
+                    enabled = precioTexto.toDoubleOrNull() != null
+                ) { Text("Guardar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarEditar = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     ListItem(
         leadingContent = if (producto.imagenUrl.isNotBlank()) ({
             AsyncImage(
@@ -424,21 +475,31 @@ private fun ProductoPrecioItem(producto: Producto) {
             }
         }) else null,
         trailingContent = {
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    "$${"%.0f".format(producto.precio)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (producto.esOferta) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSurface
-                )
-                if (producto.esOferta && producto.precioAnterior > 0) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        "$${"%.0f".format(producto.precioAnterior)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textDecoration = TextDecoration.LineThrough
+                        "$${"%.0f".format(producto.precio)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (producto.esOferta) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurface
                     )
+                    if (producto.esOferta && producto.precioAnterior > 0) {
+                        Text(
+                            "$${"%.0f".format(producto.precioAnterior)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textDecoration = TextDecoration.LineThrough
+                        )
+                    }
+                }
+                if (puedeEditar) {
+                    IconButton(onClick = { mostrarEditar = true }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Edit, "Editar precio",
+                            Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

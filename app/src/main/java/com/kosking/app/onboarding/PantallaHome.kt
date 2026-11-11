@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.kosking.app.cliente.ClienteViewModel
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.NavDueno
 import com.kosking.app.dueno.PanelDuenoEmbedido
@@ -35,14 +34,12 @@ fun PantallaHome(
     nombreUsuario: String,
     esDueno: Boolean,
     esEmpleado: Boolean,
-    clienteVm: ClienteViewModel,
     duenoVm: DuenoViewModel,
     mostrarPanelDueno: Boolean,
     onCerrarPanelDueno: () -> Unit,
     tabInicialDueno: Int,
     onSoyDueno: () -> Unit,
     onSoyEmpleado: () -> Unit,
-    onVerMisLocales: () -> Unit,
     onIniciarSesion: () -> Unit,
     onCerrarSesionCuenta: () -> Unit,
     onConfigurarPerfil: () -> Unit,
@@ -128,7 +125,6 @@ fun PantallaHome(
             esEmpleado = esEmpleado,
             onSoyDueno = onSoyDueno,
             onSoyEmpleado = onSoyEmpleado,
-            onVerMisLocales = onVerMisLocales,
             onIniciarSesion = onIniciarSesion,
             onCerrarSesion = onCerrarSesionCuenta,
             onConfigurarPerfil = onConfigurarPerfil,
@@ -146,7 +142,6 @@ private fun PantallaBienvenida(
     esEmpleado: Boolean,
     onSoyDueno: () -> Unit,
     onSoyEmpleado: () -> Unit,
-    onVerMisLocales: () -> Unit,
     onIniciarSesion: () -> Unit,
     onCerrarSesion: () -> Unit,
     onConfigurarPerfil: () -> Unit,
@@ -248,13 +243,6 @@ private fun PantallaBienvenida(
                 titulo = "Soy empleado",
                 subtitulo = "Entrá con el código del local",
                 onClick = onSoyEmpleado
-            )
-            Spacer(Modifier.height(10.dp))
-            OpcionEntrada(
-                emoji = "💰",
-                titulo = "Ver mi deuda",
-                subtitulo = "Chequeá lo que debés en un local",
-                onClick = onVerMisLocales
             )
         }
 

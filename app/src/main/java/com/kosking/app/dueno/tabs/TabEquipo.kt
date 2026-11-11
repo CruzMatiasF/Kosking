@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Permisos
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -34,6 +35,8 @@ internal fun TabEquipo(
     empleados: List<Empleado>,
     movimientos: List<Movimiento>,
     onEliminarEmpleado: (String) -> Unit,
+    permisosGlobales: Permisos = Permisos(),
+    onCambiarPermisos: (Permisos) -> Unit = {},
     vm: DuenoViewModel
 ) {
     val context = LocalContext.current
@@ -188,15 +191,36 @@ internal fun TabEquipo(
                 Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
             ) {
-                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Info, null,
-                        Modifier.size(16.dp).padding(top = 2.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                    Text(
-                        "Los empleados pueden anotar fiados y registrar pagos. Controlá los permisos por cliente desde el detalle de cada uno.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Info, null,
+                            Modifier.size(16.dp).padding(top = 2.dp),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(
+                            "Los empleados pueden anotar fiados y registrar pagos. Controlá los permisos por cliente desde el detalle de cada uno.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Empleados pueden editar precios",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text("Pueden actualizar el precio de cualquier producto",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                        }
+                        Switch(
+                            checked = permisosGlobales.editarPrecios,
+                            onCheckedChange = { onCambiarPermisos(permisosGlobales.copy(editarPrecios = it)) }
+                        )
+                    }
                 }
             }
         }

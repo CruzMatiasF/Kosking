@@ -99,7 +99,7 @@ fun PantallaDetalleCliente(
 
     Scaffold(
         topBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -135,7 +135,6 @@ fun PantallaDetalleCliente(
                 )
             }
         },
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
     ) { padding ->
         val frecuentes = remember(movimientos) {
             movimientos

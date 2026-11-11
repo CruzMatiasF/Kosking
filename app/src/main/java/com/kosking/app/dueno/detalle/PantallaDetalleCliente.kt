@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -240,9 +241,19 @@ fun PantallaDetalleCliente(
 
             if (extracto.isEmpty()) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text("Sin movimientos todavía",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Anotá el primer fiado con el botón de arriba",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             } else {
@@ -255,7 +266,7 @@ fun PantallaDetalleCliente(
                     )
                 }
                 items(extracto, key = { "ext_${it.fecha.time}_${it.concepto}_${it.movimientoId}" }) { linea ->
-                    FilaExtracto(linea, vm, clienteId)
+                    FilaExtracto(linea, onClick = { onVerMovimiento(linea.movimientoId) })
                 }
             }
         }
@@ -606,6 +617,46 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                 Switch(
                     checked = cliente.alertaEmpleado,
                     onCheckedChange = { vm.actualizarCliente(cliente.copy(alertaEmpleado = it)) }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Card(shape = RoundedCornerShape(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .background(
+                            color = if (!cliente.habilitado) MaterialTheme.colorScheme.errorContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(10.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Block, null, Modifier.size(18.dp),
+                        tint = if (!cliente.habilitado) MaterialTheme.colorScheme.error
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Bloquear cliente", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        if (!cliente.habilitado) "No se pueden anotar más fiados"
+                        else "El cliente puede seguir fiando",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (!cliente.habilitado) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = !cliente.habilitado,
+                    onCheckedChange = { bloquear -> vm.actualizarCliente(cliente.copy(habilitado = !bloquear)) }
                 )
             }
         }

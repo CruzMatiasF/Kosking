@@ -15,9 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Movimiento
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -28,11 +28,11 @@ data class LineaExtracto(
     val monto: Double,
     val tipo: String,
     val saldoAcumulado: Double,
+    val anotadoPor: String = "",
     val anulado: Boolean = false
 )
 
 fun construirExtracto(movimientos: List<Movimiento>): List<LineaExtracto> {
-    val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     var saldo = 0.0
     return movimientos
         .filter { !it.anulado }
@@ -42,33 +42,60 @@ fun construirExtracto(movimientos: List<Movimiento>): List<LineaExtracto> {
             saldo += delta
             LineaExtracto(
                 fecha = mov.fecha.toDate(),
-                concepto = mov.producto.ifBlank { mov.tipo },
+                concepto = mov.producto.ifBlank {
+                    if (mov.tipo == "cargo") "Fiado" else "Pago"
+                },
                 movimientoId = mov.id,
                 monto = mov.monto,
                 tipo = mov.tipo,
                 saldoAcumulado = saldo,
+                anotadoPor = mov.anotadoPorNombre,
                 anulado = mov.anulado
             )
         }
         .reversed()
 }
 
+private fun formatearFechaExtracto(fecha: Date): String {
+    val hoy = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }
+    val ayer = Calendar.getInstance().apply {
+        add(Calendar.DAY_OF_YEAR, -1)
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }
+    val anioActual = Calendar.getInstance().get(Calendar.YEAR)
+    val anioFecha = Calendar.getInstance().apply { time = fecha }.get(Calendar.YEAR)
+
+    return when {
+        fecha.time >= hoy.timeInMillis ->
+            "Hoy · ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(fecha)}"
+        fecha.time >= ayer.timeInMillis ->
+            "Ayer · ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(fecha)}"
+        anioFecha < anioActual ->
+            SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(fecha)
+        else ->
+            SimpleDateFormat("d MMM", Locale.getDefault()).format(fecha)
+    }
+}
+
 @Composable
-fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: String) {
+fun FilaExtracto(linea: LineaExtracto, onClick: () -> Unit) {
     val esCargo = linea.tipo != "pago"
-    val fmtFecha = SimpleDateFormat("d MMM", Locale.getDefault())
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(38.dp)
                 .background(
                     color = if (esCargo) MaterialTheme.colorScheme.errorContainer
                             else Color(0xFFE8F5E9),
@@ -89,25 +116,42 @@ fun FilaExtracto(linea: LineaExtracto, vm: DuenoViewModel, clienteId: String) {
                 linea.concepto,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                maxLines = 1
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
-            Text(
-                fmtFecha.format(linea.fecha),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    formatearFechaExtracto(linea.fecha),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (linea.anotadoPor.isNotBlank()) {
+                    Text("·", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        linea.anotadoPor,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                "${if (esCargo) "+" else "-"}${"%.0f".format(linea.monto)}",
+                "${if (esCargo) "+" else "-"}$${"%,.0f".format(linea.monto)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C),
                 fontSize = 15.sp
             )
             Text(
-                "Saldo ${"%.0f".format(linea.saldoAcumulado)}",
+                "Saldo $${"%,.0f".format(linea.saldoAcumulado)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

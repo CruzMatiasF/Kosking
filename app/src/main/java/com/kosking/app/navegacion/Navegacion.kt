@@ -287,7 +287,13 @@ fun KoskingNavHost() {
             PantallaConfiguracion(
                 esDueno = esDuenoVal.isNotBlank(),
                 esEmpleado = esEmpleadoVal,
-                onVolver = { nav.popBackStack() }
+                onVolver = { nav.popBackStack() },
+                onCerrarSesion = {
+                    empleadoVm.cerrarSesion()
+                    duenoVm.cerrarSesion()
+                    mostrarPanelDueno = false
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                }
             )
         }
 

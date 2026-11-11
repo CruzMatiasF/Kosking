@@ -233,9 +233,18 @@ internal fun TabClientes(
                     ListItem(
                         headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
                         supportingContent = {
-                            val dias = remember(ultimaVisita, cliente.id, ahora) {
-                                val uv = ultimaVisita[cliente.id]
-                                if (uv == null) null else ((ahora - uv.time) / (1000 * 60 * 60 * 24)).toInt()
+                            val dias = remember(ultimaVisita, cliente.id) {
+                                val uv = ultimaVisita[cliente.id] ?: return@remember null
+                                val hoy = java.util.Calendar.getInstance().apply {
+                                    set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                                    set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                                }
+                                val dia = java.util.Calendar.getInstance().apply {
+                                    time = uv
+                                    set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                                    set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                                }
+                                ((hoy.timeInMillis - dia.timeInMillis) / 86_400_000L).toInt()
                             }
                             val visitaTxt = when {
                                 dias == null -> "Sin movimientos"
@@ -323,9 +332,20 @@ private fun CardCliente(
     onVerCliente: (String) -> Unit,
     onAnotarRapido: (() -> Unit)? = null
 ) {
-    val diasSinVenir = remember(ultimaVisitaDate, ahoraMs) {
+    val diasSinVenir = remember(ultimaVisitaDate) {
         if (ultimaVisitaDate == null) null
-        else ((ahoraMs - ultimaVisitaDate.time) / (1000 * 60 * 60 * 24)).toInt()
+        else {
+            val hoy = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+            }
+            val dia = java.util.Calendar.getInstance().apply {
+                time = ultimaVisitaDate
+                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+            }
+            ((hoy.timeInMillis - dia.timeInMillis) / 86_400_000L).toInt()
+        }
     }
 
     val accentColor = when {

@@ -159,8 +159,9 @@ internal fun TabInicio(
                         }
                         disputados.take(3).forEach { mov ->
                             val nombreCliente = clienteMap2[mov.clienteId]?.nombre ?: "Cliente"
+                            val concepto = mov.producto.ifBlank { if (mov.tipo == "cargo") "Fiado" else "Pago" }
                             Text(
-                                "• $nombreCliente — ${mov.producto.ifBlank { "$${"%.0f".format(mov.monto)}" }}",
+                                "• $nombreCliente — $concepto $${"%.0f".format(mov.monto)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier
@@ -313,11 +314,11 @@ internal fun TabInicio(
                 val dias = diasSinPagar[cliente.id]
                 ListItem(
                     headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
-                    supportingContent = if (!cliente.notaInterna.isNullOrBlank() || dias == null || dias >= 7) ({
+                    supportingContent = if (cliente.notaInterna.isNotBlank() || dias == null || dias >= 7) ({
                         Column {
-                            if (!cliente.notaInterna.isNullOrBlank()) {
+                            if (cliente.notaInterna.isNotBlank()) {
                                 Text(
-                                    cliente.notaInterna!!,
+                                    cliente.notaInterna,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

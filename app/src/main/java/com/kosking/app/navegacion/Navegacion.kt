@@ -274,9 +274,14 @@ fun KoskingNavHost() {
         }
 
         composable(Rutas.CONFIGURAR_PERFIL) {
+            val localData by duenoVm.localData.collectAsState()
             PantallaConfigurarPerfil(
                 nombreActual = nombreUsuario,
                 emailActual = emailUsuario,
+                localData = localData,
+                onGuardarLocal = if (localData != null) { nombre, direccion, telefono ->
+                    duenoVm.actualizarLocal(nombre, direccion, telefono)
+                } else null,
                 onVolver = { nav.popBackStack() }
             )
         }

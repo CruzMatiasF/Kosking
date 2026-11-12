@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.userProfileChangeRequest
 import com.kosking.app.datos.FiadoRepository
+import com.kosking.app.modelo.Local
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,9 +26,14 @@ import kotlinx.coroutines.launch
 fun PantallaConfigurarPerfil(
     nombreActual: String,
     emailActual: String,
+    localData: Local? = null,
+    onGuardarLocal: ((nombre: String, direccion: String, telefono: String) -> Unit)? = null,
     onVolver: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(nombreActual) }
+    var nombreLocal by remember(localData) { mutableStateOf(localData?.nombre ?: "") }
+    var direccionLocal by remember(localData) { mutableStateOf(localData?.direccion ?: "") }
+    var telefonoLocal by remember(localData) { mutableStateOf(localData?.telefono ?: "") }
     var guardando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
@@ -77,20 +83,22 @@ fun PantallaConfigurarPerfil(
                 }
             }
 
-            // Campos
+            // Datos del usuario
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                Text("TU CUENTA", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = androidx.compose.ui.Modifier.padding(start = 4.dp, bottom = 4.dp))
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it; error = "" },
-                    label = { Text("Nombre") },
+                    label = { Text("Tu nombre") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     isError = error.isNotBlank()
                 )
-
                 OutlinedTextField(
                     value = emailActual,
                     onValueChange = {},
@@ -99,10 +107,42 @@ fun PantallaConfigurarPerfil(
                     enabled = false,
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 if (error.isNotBlank()) {
                     Text(error, color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            // Datos del local
+            if (onGuardarLocal != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("TU LOCAL", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = androidx.compose.ui.Modifier.padding(start = 4.dp))
+                    OutlinedTextField(
+                        value = nombreLocal,
+                        onValueChange = { nombreLocal = it },
+                        label = { Text("Nombre del local") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = direccionLocal,
+                        onValueChange = { direccionLocal = it },
+                        label = { Text("Dirección") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = telefonoLocal,
+                        onValueChange = { telefonoLocal = it },
+                        label = { Text("Teléfono del local") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
@@ -118,6 +158,9 @@ fun PantallaConfigurarPerfil(
                                 FirebaseAuth.getInstance().currentUser?.updateProfile(
                                     userProfileChangeRequest { displayName = nombre.trim() }
                                 )
+                            }
+                            if (onGuardarLocal != null && nombreLocal.isNotBlank()) {
+                                onGuardarLocal(nombreLocal.trim(), direccionLocal.trim(), telefonoLocal.trim())
                             }
                             onVolver()
                         } catch (e: Exception) {

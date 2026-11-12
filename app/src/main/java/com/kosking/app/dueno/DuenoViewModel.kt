@@ -138,6 +138,19 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarLocal(nombre: String, direccion: String, telefono: String) {
+        viewModelScope.launch {
+            val id = _localId.value.takeIf { it.isNotBlank() } ?: return@launch
+            val local = localData.value?.copy(nombre = nombre, direccion = direccion, telefono = telefono) ?: return@launch
+            try {
+                FiadoRepository.actualizarLocal(local)
+                _nombreLocal.value = nombre
+            } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarLocal")
+            }
+        }
+    }
+
     val clientes: StateFlow<List<Cliente>> = _localId
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.clientesFlow(id) else flowOf(emptyList())

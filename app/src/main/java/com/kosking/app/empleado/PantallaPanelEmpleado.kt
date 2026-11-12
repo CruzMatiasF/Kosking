@@ -216,7 +216,12 @@ fun PantallaPanelEmpleado(
             onDismissRequest = { clienteConAlerta = null },
             icon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFE65100)) },
             title = { Text("Atención") },
-            text = { Text("El dueño marcó a ${c.nombre} con una alerta. Revisá antes de anotar.") },
+            text = {
+                Text(
+                    if (c.notaInterna.isNotBlank()) c.notaInterna
+                    else "El dueño marcó a ${c.nombre} con una alerta. Revisá antes de anotar."
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { clienteConAlerta = null; onVerCliente(c.id) }) { Text("Continuar") }
             },

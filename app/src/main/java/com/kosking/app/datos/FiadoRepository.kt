@@ -258,9 +258,10 @@ object FiadoRepository {
     fun productosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
         val sub = db.collection("productos")
             .whereEqualTo("localId", localId)
-            .orderBy("vecesUsado", Query.Direction.DESCENDING)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
+            .addSnapshotListener { snap, error ->
+                if (error != null) { trySend(emptyList()); return@addSnapshotListener }
+                val lista = snap?.toObjects(Producto::class.java) ?: emptyList()
+                trySend(lista.sortedByDescending { it.vecesUsado })
             }
         awaitClose { sub.remove() }
     }

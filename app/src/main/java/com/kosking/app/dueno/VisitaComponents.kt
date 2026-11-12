@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
@@ -64,6 +66,25 @@ data class VisitaResumen(
     val totalPago: Double
 )
 
+data class ClienteVisitasHoy(
+    val clienteId: String,
+    val clienteNombre: String,
+    val visitas: List<VisitaResumen>
+)
+
+fun agruparPorCliente(visitas: List<VisitaResumen>): List<ClienteVisitasHoy> {
+    return visitas
+        .groupBy { it.clienteId }
+        .map { (clienteId, grupoVisitas) ->
+            ClienteVisitasHoy(
+                clienteId = clienteId,
+                clienteNombre = grupoVisitas.first().clienteNombre,
+                visitas = grupoVisitas.sortedBy { it.fechaMs }
+            )
+        }
+        .sortedByDescending { it.visitas.maxOf { v -> v.fechaMs } }
+}
+
 fun agruparVisitas(
     movimientos: List<Movimiento>,
     clienteMap: Map<String, Cliente>,
@@ -86,6 +107,83 @@ fun agruparVisitas(
             )
         }
         .sortedByDescending { it.fechaMs }
+}
+
+@Composable
+fun GrupoClienteDashboard(grupo: ClienteVisitasHoy) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text(
+            grupo.clienteNombre,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        grupo.visitas.forEach { visita ->
+            SubFilaVisita(visita)
+        }
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 16.dp).padding(top = 6.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+    }
+}
+
+@Composable
+private fun SubFilaVisita(visita: VisitaResumen) {
+    val esTodoPago = visita.items.all { it.tipo == "pago" }
+    val productosStr = if (esTodoPago) {
+        "Pago"
+    } else {
+        visita.items
+            .filter { it.tipo != "pago" }
+            .map { it.producto.ifBlank { "Fiado" } }
+            .joinToString(", ")
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            visita.hora,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            modifier = Modifier.width(38.dp)
+        )
+        Text(
+            productosStr,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (visita.totalCargo > 0) {
+            Text(
+                "+${"%.0f".format(visita.totalCargo)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp
+            )
+        }
+        if (visita.totalPago > 0) {
+            Text(
+                "-${"%.0f".format(visita.totalPago)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Verde,
+                fontSize = 12.sp
+            )
+        }
+    }
 }
 
 @Composable

@@ -14,8 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kosking.app.dueno.FilaVisitaDashboard
+import com.kosking.app.dueno.GrupoClienteDashboard
 import com.kosking.app.dueno.SeccionCard
+import com.kosking.app.dueno.agruparPorCliente
 import com.kosking.app.dueno.agruparVisitas
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
@@ -89,7 +90,9 @@ internal fun TabInicio(
         }
     }
 
-    val visitasHoy = agruparVisitas(movimientosHoy, clienteMap, fmtHora)
+    val gruposHoy = remember(movimientosHoy, clienteMap) {
+        agruparPorCliente(agruparVisitas(movimientosHoy, clienteMap, fmtHora))
+    }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
@@ -248,7 +251,7 @@ internal fun TabInicio(
                     Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(fechaHoy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (movimientosHoy.isNotEmpty()) {
+                if (gruposHoy.isNotEmpty()) {
                     TextButton(onClick = onCompartirResumen,
                         contentPadding = PaddingValues(horizontal = 8.dp)) {
                         Text("Compartir", style = MaterialTheme.typography.labelSmall)
@@ -292,7 +295,7 @@ internal fun TabInicio(
             }
         }
 
-        if (visitasHoy.isEmpty()) {
+        if (gruposHoy.isEmpty()) {
             item {
                 Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                     Text("Todavía nada hoy", style = MaterialTheme.typography.bodyMedium,
@@ -301,15 +304,15 @@ internal fun TabInicio(
                 HorizontalDivider()
             }
         } else {
-            val visitasMostradas = visitasHoy.take(6)
-            val visitasRestantes = visitasHoy.size - visitasMostradas.size
-            items(visitasMostradas, key = { "hoy_${it.items.firstOrNull()?.id ?: it.hora}" }) {
-                FilaVisitaDashboard(it)
+            val gruposMostrados = gruposHoy.take(5)
+            val gruposRestantes = gruposHoy.size - gruposMostrados.size
+            items(gruposMostrados, key = { "hoy_${it.clienteId}" }) {
+                GrupoClienteDashboard(it)
             }
-            if (visitasRestantes > 0) {
+            if (gruposRestantes > 0) {
                 item {
                     Text(
-                        "y $visitasRestantes más hoy",
+                        "y $gruposRestantes cliente${if (gruposRestantes != 1) "s" else ""} más hoy",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)

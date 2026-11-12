@@ -386,11 +386,23 @@ class DuenoViewModel : ViewModel() {
     fun guardarProducto(nombre: String, precio: Double, productoId: String?, onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true
+            _error.value = null
             try {
-                val localId = _localId.value
-                if (localId.isBlank()) {
-                    _error.value = "No se pudo identificar el local. Cerrá y volvé a abrir la app."
-                    return@launch
+                val localId = _localId.value.ifBlank {
+                    val uid = auth.currentUser?.uid ?: run {
+                        _error.value = "Sesión no válida. Cerrá y volvé a abrir la app."
+                        return@launch
+                    }
+                    val usuario = FiadoRepository.obtenerUsuario(uid) ?: run {
+                        _error.value = "No se encontró el usuario. Cerrá y volvé a abrir la app."
+                        return@launch
+                    }
+                    if (usuario.localId.isBlank()) {
+                        _error.value = "No tenés un local configurado."
+                        return@launch
+                    }
+                    _localId.value = usuario.localId
+                    usuario.localId
                 }
                 if (productoId != null) {
                     FiadoRepository.editarProducto(productoId, nombre, precio)

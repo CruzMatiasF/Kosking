@@ -81,6 +81,13 @@ fun PanelDuenoEmbedido(
     data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double)
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
+    val vmError by vm.error.collectAsState()
+    LaunchedEffect(vmError) {
+        val msg = vmError ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(msg)
+        vm.clearError()
+    }
+
     Scaffold(
         bottomBar = {
             val navColors = NavigationBarItemDefaults.colors(

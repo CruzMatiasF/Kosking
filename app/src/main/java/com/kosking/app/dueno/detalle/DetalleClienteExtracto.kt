@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kosking.app.modelo.Movimiento
@@ -21,36 +22,45 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-data class LineaExtracto(
+data class VisitaExtracto(
     val fecha: Date,
-    val concepto: String,
-    val movimientoId: String,
-    val monto: Double,
     val tipo: String,
+    val conceptos: List<String>,
+    val monto: Double,
     val saldoAcumulado: Double,
     val anotadoPor: String = "",
-    val anulado: Boolean = false
+    val movimientoIds: List<String> = emptyList()
 )
 
-fun construirExtracto(movimientos: List<Movimiento>): List<LineaExtracto> {
+fun construirExtracto(movimientos: List<Movimiento>): List<VisitaExtracto> {
+    val fmtKey = SimpleDateFormat("HH:mm_ddMMyyyy", Locale.getDefault())
     var saldo = 0.0
     return movimientos
         .filter { !it.anulado }
         .sortedBy { it.fecha.toDate() }
-        .map { mov ->
-            val delta = if (mov.tipo == "pago") -mov.monto else mov.monto
-            saldo += delta
-            LineaExtracto(
-                fecha = mov.fecha.toDate(),
-                concepto = mov.producto.ifBlank {
-                    if (mov.tipo == "cargo") "Fiado" else "Pago"
-                },
-                movimientoId = mov.id,
-                monto = mov.monto,
-                tipo = mov.tipo,
+        .groupBy { mov -> mov.grupoId.ifBlank { fmtKey.format(mov.fecha.toDate()) } }
+        .entries
+        .sortedBy { (_, movs) -> movs.first().fecha.toDate() }
+        .map { (_, movs) ->
+            val mov0 = movs.first()
+            val totalCargo = movs.filter { it.tipo == "cargo" }.sumOf { it.monto }
+            val totalPago = movs.filter { it.tipo == "pago" }.sumOf { it.monto }
+            saldo += totalCargo - totalPago
+            val esTodoPago = movs.all { it.tipo == "pago" }
+            val conceptos = if (esTodoPago) {
+                listOf("Pago")
+            } else {
+                movs.filter { it.tipo != "pago" }
+                    .map { it.producto.ifBlank { "Fiado" } }
+            }
+            VisitaExtracto(
+                fecha = mov0.fecha.toDate(),
+                tipo = if (esTodoPago) "pago" else "cargo",
+                conceptos = conceptos,
+                monto = if (esTodoPago) totalPago else totalCargo,
                 saldoAcumulado = saldo,
-                anotadoPor = mov.anotadoPorNombre,
-                anulado = mov.anulado
+                anotadoPor = mov0.anotadoPorNombre,
+                movimientoIds = movs.map { it.id }
             )
         }
         .reversed()
@@ -82,8 +92,9 @@ private fun formatearFechaExtracto(fecha: Date): String {
 }
 
 @Composable
-fun FilaExtracto(linea: LineaExtracto, onClick: () -> Unit) {
-    val esCargo = linea.tipo != "pago"
+fun FilaExtracto(visita: VisitaExtracto, onClick: () -> Unit) {
+    val esCargo = visita.tipo != "pago"
+    val conceptoStr = visita.conceptos.joinToString(", ")
 
     Row(
         modifier = Modifier
@@ -113,30 +124,30 @@ fun FilaExtracto(linea: LineaExtracto, onClick: () -> Unit) {
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                linea.concepto,
+                conceptoStr,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    formatearFechaExtracto(linea.fecha),
+                    formatearFechaExtracto(visita.fecha),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (linea.anotadoPor.isNotBlank()) {
+                if (visita.anotadoPor.isNotBlank()) {
                     Text("·", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        linea.anotadoPor,
+                        visita.anotadoPor,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -144,14 +155,14 @@ fun FilaExtracto(linea: LineaExtracto, onClick: () -> Unit) {
 
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                "${if (esCargo) "+" else "-"}$${"%,.0f".format(linea.monto)}",
+                "${if (esCargo) "+" else "-"}$${"%,.0f".format(visita.monto)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C),
                 fontSize = 15.sp
             )
             Text(
-                "Saldo $${"%,.0f".format(linea.saldoAcumulado)}",
+                "Saldo $${"%,.0f".format(visita.saldoAcumulado)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -298,8 +298,8 @@ fun PantallaDetalleCliente(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                     )
                 }
-                items(extracto, key = { "ext_${it.fecha.time}_${it.concepto}_${it.movimientoId}" }) { linea ->
-                    FilaExtracto(linea, onClick = { onVerMovimiento(linea.movimientoId) })
+                items(extracto, key = { "ext_${it.fecha.time}_${it.conceptos.firstOrNull()}" }) { visita ->
+                    FilaExtracto(visita, onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) })
                 }
             }
         }

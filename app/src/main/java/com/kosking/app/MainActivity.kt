@@ -17,6 +17,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.kosking.app.navegacion.KoskingNavHost
 import com.kosking.app.notificaciones.NotificacionDeudaWorker
+import com.kosking.app.notificaciones.NotificacionAcuerdosWorker
 import com.kosking.app.ui.theme.KoskingTheme
 import java.util.concurrent.TimeUnit
 
@@ -61,12 +62,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun programarRecordatorioSemanal() {
-        val request = PeriodicWorkRequestBuilder<NotificacionDeudaWorker>(7, TimeUnit.DAYS)
-            .build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+        val wm = WorkManager.getInstance(this)
+        wm.enqueueUniquePeriodicWork(
             "recordatorio_deuda_semanal",
             ExistingPeriodicWorkPolicy.KEEP,
-            request
+            PeriodicWorkRequestBuilder<NotificacionDeudaWorker>(7, TimeUnit.DAYS).build()
+        )
+        wm.enqueueUniquePeriodicWork(
+            "chequeo_acuerdos_diario",
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<NotificacionAcuerdosWorker>(1, TimeUnit.DAYS).build()
         )
     }
 }

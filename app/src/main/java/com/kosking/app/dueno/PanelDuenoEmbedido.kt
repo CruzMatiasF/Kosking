@@ -38,6 +38,7 @@ fun PanelDuenoEmbedido(
     val disputados by vm.disputados.collectAsState()
     val sobreLimite by vm.sobreLimite.collectAsState()
     val localData by vm.localData.collectAsState()
+    val localId by vm.localId.collectAsState()
     val cargando by vm.cargando.collectAsState()
 
     BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
@@ -53,12 +54,13 @@ fun PanelDuenoEmbedido(
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
 
-    // Actualiza las prefs que lee NotificacionDeudaWorker para las notificaciones semanales
-    LaunchedEffect(totalDeuda, clientesConDeuda.size) {
+    // Actualiza las prefs que leen los workers de notificaciones
+    LaunchedEffect(totalDeuda, clientesConDeuda.size, localId) {
         context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE).edit()
             .putFloat("total_deuda", totalDeuda.toFloat())
             .putInt("clientes_con_deuda", clientesConDeuda.size)
             .putLong("prefs_timestamp", System.currentTimeMillis())
+            .also { if (localId.isNotBlank()) it.putString("local_id", localId) }
             .apply()
     }
 

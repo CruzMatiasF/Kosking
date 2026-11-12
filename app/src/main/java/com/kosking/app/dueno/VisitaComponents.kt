@@ -63,7 +63,8 @@ data class VisitaResumen(
     val fechaMs: Long,
     val items: List<ItemVisita>,
     val totalCargo: Double,
-    val totalPago: Double
+    val totalPago: Double,
+    val anotadoPor: String = ""
 )
 
 data class ClienteVisitasHoy(
@@ -103,7 +104,8 @@ fun agruparVisitas(
                 fechaMs = mov0.fecha.toDate().time,
                 items = items,
                 totalCargo = items.filter { it.tipo != "pago" }.sumOf { it.monto },
-                totalPago = items.filter { it.tipo == "pago" }.sumOf { it.monto }
+                totalPago = items.filter { it.tipo == "pago" }.sumOf { it.monto },
+                anotadoPor = mov0.anotadoPorNombre
             )
         }
         .sortedByDescending { it.fechaMs }
@@ -157,14 +159,24 @@ private fun SubFilaVisita(visita: VisitaResumen) {
             fontSize = 11.sp,
             modifier = Modifier.width(38.dp)
         )
-        Text(
-            productosStr,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                productosStr,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (visita.anotadoPor.isNotBlank()) {
+                Text(
+                    visita.anotadoPor,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
         if (visita.totalCargo > 0) {
             Text(
                 "+${"%.0f".format(visita.totalCargo)}",

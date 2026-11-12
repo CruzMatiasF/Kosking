@@ -406,7 +406,6 @@ private fun InfoChip(icon: ImageVector, texto: String, onBgColor: androidx.compo
 @Composable
 private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
     var mostrarDialogoLimite by remember { mutableStateOf(false) }
-    var mostrarDialogoFechaPago by remember { mutableStateOf(false) }
     var mostrarDialogoNota by remember { mutableStateOf(false) }
     var mostrarDialogoCompromiso by remember { mutableStateOf(false) }
 
@@ -418,18 +417,6 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                 mostrarDialogoNota = false
             },
             onDismiss = { mostrarDialogoNota = false }
-        )
-    }
-
-    if (mostrarDialogoFechaPago) {
-        DialogEditarFechaPago(
-            fechaActual = cliente.fechaPago?.toDate(),
-            onGuardar = { nuevaFecha ->
-                val ts = if (nuevaFecha != null) com.google.firebase.Timestamp(nuevaFecha) else null
-                vm.actualizarCliente(cliente.copy(fechaPago = ts))
-                mostrarDialogoFechaPago = false
-            },
-            onDismiss = { mostrarDialogoFechaPago = false }
         )
     }
 
@@ -455,140 +442,40 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
         )
     }
 
-    val hoy = remember {
-        java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-            set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
-        }.time
-    }
-    val fechaPagoDate = cliente.fechaPago?.toDate()
-    val vencida = fechaPagoDate != null && fechaPagoDate.before(hoy) && cliente.deudaTotal > 0
-    val fmtFecha = remember { SimpleDateFormat("d MMM", Locale.getDefault()) }
-
     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable { mostrarDialogoLimite = true },
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { mostrarDialogoFechaPago = true },
-                shape = RoundedCornerShape(12.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .background(
-                                    color = if (vencida) MaterialTheme.colorScheme.errorContainer
-                                            else MaterialTheme.colorScheme.tertiaryContainer,
-                                    shape = RoundedCornerShape(10.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.CalendarMonth, null, Modifier.size(18.dp),
-                                tint = if (vencida) MaterialTheme.colorScheme.error
-                                       else MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                        Icon(
-                            Icons.Default.Edit, null, Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Fecha de pago",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    if (fechaPagoDate != null) {
-                        Text(
-                            fmtFecha.format(fechaPagoDate),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (vencida) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                        )
-                        if (vencida) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Vencida",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(20.dp))
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    } else {
-                        Text(
-                            "Sin acordar",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                Box(
+                    modifier = Modifier.size(34.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.CreditCard, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 }
-            }
-
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { mostrarDialogoLimite = true },
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.CreditCard, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                        }
-                        Icon(
-                            Icons.Default.Edit, null, Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Límite de crédito",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(2.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Límite de crédito", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         if (cliente.limiteCredito > 0) "$${"%.0f".format(cliente.limiteCredito)}" else "Sin límite",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    if (cliente.limiteCredito > 0) {
-                        val disponible = (cliente.limiteCredito - cliente.deudaTotal).coerceAtLeast(0.0)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "$${"%.0f".format(disponible)} disp.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Verde,
-                            modifier = Modifier
-                                .background(VerdeClaro, RoundedCornerShape(20.dp))
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
                 }
+                if (cliente.limiteCredito > 0) {
+                    val disponible = (cliente.limiteCredito - cliente.deudaTotal).coerceAtLeast(0.0)
+                    Text(
+                        "$${"%.0f".format(disponible)} disp.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Verde,
+                        modifier = Modifier.background(VerdeClaro, RoundedCornerShape(20.dp)).padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                Icon(Icons.Default.Edit, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
             }
         }
 

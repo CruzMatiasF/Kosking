@@ -98,10 +98,21 @@ internal fun TabInicio(
 
     val hoy = remember { java.util.Date() }
     val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
-    val clientesUrgentes = remember(clientesConDeuda) {
+    val clientesVencidos = remember(clientesConDeuda) {
         clientesConDeuda
             .filter { it.fechaCompromiso != null && it.fechaCompromiso.toDate().before(hoy) }
             .sortedBy { it.fechaCompromiso!!.toDate() }
+    }
+    val LIMITE_URGENTES = 4
+    val clientesUrgentes = remember(clientesConDeuda, clientesVencidos) {
+        val vencidosIds = clientesVencidos.map { it.id }.toSet()
+        val relleno = clientesConDeuda
+            .filter { it.id !in vencidosIds }
+            .sortedByDescending { it.deudaTotal }
+        (clientesVencidos + relleno).take(LIMITE_URGENTES)
+    }
+    val hayMasUrgentes = remember(clientesConDeuda, clientesUrgentes) {
+        clientesConDeuda.size > clientesUrgentes.size
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -335,8 +346,8 @@ internal fun TabInicio(
         // Lista de clientes con deuda
         if (clientesUrgentes.isNotEmpty()) {
             item {
-                val clientesConFono = remember(clientesUrgentes) {
-                    clientesUrgentes.filter { it.telefono.isNotBlank() }
+                val clientesConFono = remember(clientesVencidos) {
+                    clientesVencidos.filter { it.telefono.isNotBlank() }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
@@ -355,31 +366,42 @@ internal fun TabInicio(
                 }
             }
             items(clientesUrgentes, key = { "deuda_${it.id}" }) { cliente ->
-                val diasVencido = cliente.fechaCompromiso?.let {
-                    val diff = hoy.time - it.toDate().time
+                val esVencido = cliente.fechaCompromiso != null && cliente.fechaCompromiso.toDate().before(hoy)
+                val diasVencido = if (esVencido) {
+                    val diff = hoy.time - cliente.fechaCompromiso!!.toDate().time
                     (diff / 86_400_000L).toInt().coerceAtLeast(1)
-                } ?: 0
+                } else 0
                 ListItem(
                     headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
                     supportingContent = {
-                        Text(
-                            "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · vencido hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        if (esVencido) {
+                            Text(
+                                "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · vencido hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            Text(
+                                "Deuda: $${"%.0f".format(cliente.deudaTotal)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     },
                     trailingContent = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    "$${"%.0f".format(cliente.deudaTotal)}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                            if (esVencido) {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "$${"%.0f".format(cliente.deudaTotal)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                             FilledTonalButton(
                                 onClick = { onRegistrarPago(cliente) },
@@ -403,6 +425,16 @@ internal fun TabInicio(
                     modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+            }
+            if (hayMasUrgentes) {
+                item {
+                    TextButton(
+                        onClick = { onTabChange(1) },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                    ) {
+                        Text("Ver todos los clientes", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
         }
 

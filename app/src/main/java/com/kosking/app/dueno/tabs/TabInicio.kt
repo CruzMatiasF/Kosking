@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -23,6 +24,7 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
+import com.kosking.app.ui.theme.VerdeClaro
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -95,6 +97,26 @@ internal fun TabInicio(
         agruparVisitas(movimientosHoy, clienteMap, fmtHora)
     }
     var visitaDetalle by remember { mutableStateOf<VisitaResumen?>(null) }
+
+    data class ResumenSemana(val fiado: Double, val cobrado: Double)
+    val (semanaActual, semanaAnterior) = remember(movimientosLocal) {
+        val ahora = Calendar.getInstance()
+        val inicioSemana = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val inicioSemanaAnterior = (inicioSemana.clone() as Calendar).apply { add(Calendar.WEEK_OF_YEAR, -1) }
+        val actual = ResumenSemana(
+            fiado = movimientosLocal.filter { !it.anulado && it.tipo == "cargo" && it.fecha.toDate().time >= inicioSemana.timeInMillis }.sumOf { it.monto },
+            cobrado = movimientosLocal.filter { !it.anulado && it.tipo == "pago" && it.fecha.toDate().time >= inicioSemana.timeInMillis }.sumOf { it.monto }
+        )
+        val anterior = ResumenSemana(
+            fiado = movimientosLocal.filter { !it.anulado && it.tipo == "cargo" && it.fecha.toDate().time >= inicioSemanaAnterior.timeInMillis && it.fecha.toDate().time < inicioSemana.timeInMillis }.sumOf { it.monto },
+            cobrado = movimientosLocal.filter { !it.anulado && it.tipo == "pago" && it.fecha.toDate().time >= inicioSemanaAnterior.timeInMillis && it.fecha.toDate().time < inicioSemana.timeInMillis }.sumOf { it.monto }
+        )
+        Pair(actual, anterior)
+    }
 
     val hoy = remember { java.util.Date() }
     val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
@@ -187,6 +209,65 @@ internal fun TabInicio(
                 }
             }
             HorizontalDivider()
+        }
+
+        // Resumen semanal
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Fiado esta semana
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Fiado esta semana", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "$${"%.0f".format(semanaActual.fiado)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        if (semanaAnterior.fiado > 0) {
+                            val diff = semanaActual.fiado - semanaAnterior.fiado
+                            val pct = (diff / semanaAnterior.fiado * 100).toInt()
+                            Text(
+                                "${if (pct >= 0) "+" else ""}$pct% vs semana pasada",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (pct > 0) MaterialTheme.colorScheme.error else Verde
+                            )
+                        }
+                    }
+                }
+                // Cobrado esta semana
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = VerdeClaro.copy(alpha = 0.6f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Cobrado esta semana", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "$${"%.0f".format(semanaActual.cobrado)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Verde
+                        )
+                        if (semanaAnterior.cobrado > 0) {
+                            val diff = semanaActual.cobrado - semanaAnterior.cobrado
+                            val pct = (diff / semanaAnterior.cobrado * 100).toInt()
+                            Text(
+                                "${if (pct >= 0) "+" else ""}$pct% vs semana pasada",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (pct >= 0) Verde else MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // Alertas: disputas pendientes

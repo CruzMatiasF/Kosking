@@ -14,9 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kosking.app.dueno.GrupoClienteDashboard
+import com.kosking.app.dueno.DetalleVisitaSheet
+import com.kosking.app.dueno.FilaVisitaMP
 import com.kosking.app.dueno.SeccionCard
-import com.kosking.app.dueno.agruparPorCliente
+import com.kosking.app.dueno.VisitaResumen
 import com.kosking.app.dueno.agruparVisitas
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
@@ -90,9 +91,10 @@ internal fun TabInicio(
         }
     }
 
-    val gruposHoy = remember(movimientosHoy, clienteMap) {
-        agruparPorCliente(agruparVisitas(movimientosHoy, clienteMap, fmtHora))
+    val visitasHoy = remember(movimientosHoy, clienteMap) {
+        agruparVisitas(movimientosHoy, clienteMap, fmtHora)
     }
+    var visitaDetalle by remember { mutableStateOf<VisitaResumen?>(null) }
 
     val clientesUrgentes = remember(clientesConDeuda, diasSinPagar) {
         clientesConDeuda
@@ -257,7 +259,7 @@ internal fun TabInicio(
                     Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(fechaHoy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (gruposHoy.isNotEmpty()) {
+                if (visitasHoy.isNotEmpty()) {
                     TextButton(onClick = onCompartirResumen,
                         contentPadding = PaddingValues(horizontal = 8.dp)) {
                         Text("Compartir", style = MaterialTheme.typography.labelSmall)
@@ -301,7 +303,7 @@ internal fun TabInicio(
             }
         }
 
-        if (gruposHoy.isEmpty()) {
+        if (visitasHoy.isEmpty()) {
             item {
                 Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                     Text("Todavía nada hoy", style = MaterialTheme.typography.bodyMedium,
@@ -310,15 +312,15 @@ internal fun TabInicio(
                 HorizontalDivider()
             }
         } else {
-            val gruposMostrados = gruposHoy.take(5)
-            val gruposRestantes = gruposHoy.size - gruposMostrados.size
-            items(gruposMostrados, key = { "hoy_${it.clienteId}" }) {
-                GrupoClienteDashboard(it)
+            val visitasMostradas = visitasHoy.take(8)
+            val visitasRestantes = visitasHoy.size - visitasMostradas.size
+            items(visitasMostradas, key = { "hoy_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
+                FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
             }
-            if (gruposRestantes > 0) {
+            if (visitasRestantes > 0) {
                 item {
                     Text(
-                        "y $gruposRestantes cliente${if (gruposRestantes != 1) "s" else ""} más hoy",
+                        "y $visitasRestantes más hoy",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
@@ -432,6 +434,10 @@ internal fun TabInicio(
         }
 
         item { Spacer(Modifier.height(16.dp)) }
+    }
+
+    visitaDetalle?.let { visita ->
+        DetalleVisitaSheet(visita = visita, onDismiss = { visitaDetalle = null })
     }
 
     if (mostrarHistorial) {

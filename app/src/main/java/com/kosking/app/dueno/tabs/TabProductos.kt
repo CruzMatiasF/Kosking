@@ -14,9 +14,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.kosking.app.datos.CatalogoRepository
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -225,6 +227,7 @@ internal fun TabProductos(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogProducto(
     producto: Producto?,
@@ -232,26 +235,87 @@ private fun DialogProducto(
     onGuardar: (nombre: String, precio: Double) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val esEdicion = producto != null
+
     var nombre by remember(producto) { mutableStateOf(producto?.nombre ?: "") }
     var precioTexto by remember(producto) { mutableStateOf(
         if (producto != null && producto.ultimoPrecio > 0) "%.0f".format(producto.ultimoPrecio) else ""
     ) }
+    var busqueda by remember { mutableStateOf(producto?.nombre ?: "") }
+    var mostrarSugerencias by remember { mutableStateOf(false) }
+
+    val sugerencias = remember(busqueda) {
+        if (busqueda.length >= 2) CatalogoRepository.buscar(context, busqueda).take(6)
+        else emptyList()
+    }
+
     val precioDouble = precioTexto.toDoubleOrNull() ?: 0.0
     val puedeGuardar = nombre.isNotBlank() && !cargando
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (producto == null) "Nuevo producto" else "Editar producto") },
+        title = { Text(if (esEdicion) "Editar producto" else "Agregar producto") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre") },
-                    placeholder = { Text("Ej: Coca 500ml") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Campo nombre con sugerencias del catálogo
+                Column {
+                    OutlinedTextField(
+                        value = if (mostrarSugerencias) busqueda else nombre,
+                        onValueChange = { v ->
+                            busqueda = v
+                            nombre = v
+                            mostrarSugerencias = v.isNotBlank()
+                        },
+                        label = { Text("Nombre del producto") },
+                        placeholder = { Text("Buscá o escribí el nombre") },
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            if (nombre.isNotBlank()) {
+                                IconButton(onClick = { nombre = ""; busqueda = ""; mostrarSugerencias = false }) {
+                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Sugerencias del catálogo
+                    if (mostrarSugerencias && sugerencias.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
+                        ) {
+                            sugerencias.forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            nombre = item.nombre
+                                            busqueda = item.nombre
+                                            mostrarSugerencias = false
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(item.nombre, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    if (item.categoria.isNotBlank()) {
+                                        Text(
+                                            item.categoria,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                HorizontalDivider()
+                            }
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = precioTexto,
                     onValueChange = { precioTexto = it.filter { c -> c.isDigit() || c == '.' } },
@@ -261,6 +325,14 @@ private fun DialogProducto(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (!esEdicion) {
+                    Text(
+                        "El precio se puede dejar en blanco y completarlo después.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         confirmButton = {

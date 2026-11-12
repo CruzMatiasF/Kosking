@@ -183,21 +183,6 @@ internal fun TabInicio(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (fiadoHoy > 0 || cobradoHoy > 0) {
-                        Spacer(Modifier.height(6.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            if (fiadoHoy > 0) Text(
-                                "↑ $${"%.0f".format(fiadoHoy)} fiado hoy",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            if (cobradoHoy > 0) Text(
-                                "↓ $${"%.0f".format(cobradoHoy)} cobrado hoy",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Verde
-                            )
-                        }
-                    }
                 }
                 Button(
                     onClick = onAnotar,
@@ -209,6 +194,91 @@ internal fun TabInicio(
                 }
             }
             HorizontalDivider()
+        }
+
+        // Resumen del día
+        item {
+            val saldoHoy = cobradoHoy - fiadoHoy
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(fechaHoy, style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (fiadoHoy > 0 || cobradoHoy > 0) {
+                            IconButton(
+                                onClick = onCompartirResumen,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Send, "Compartir",
+                                    Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    if (fiadoHoy == 0.0 && cobradoHoy == 0.0) {
+                        Text(
+                            "Sin movimientos por ahora",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (fiadoHoy > 0) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Fiado", style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("$${"%.0f".format(fiadoHoy)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                            if (cobradoHoy > 0) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Cobrado", style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("$${"%.0f".format(cobradoHoy)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Verde)
+                                }
+                            }
+                            if (fiadoHoy > 0 && cobradoHoy > 0) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Saldo", style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "${if (saldoHoy >= 0) "+" else ""}$${"%.0f".format(saldoHoy)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (saldoHoy >= 0) Verde else MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                        val cantClientes = remember(movimientosHoy) {
+                            movimientosHoy.map { it.clienteId }.distinct().size
+                        }
+                        Text(
+                            "$cantClientes cliente${if (cantClientes != 1) "s" else ""} · ${visitasHoy.size} visita${if (visitasHoy.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
 
         // Resumen semanal

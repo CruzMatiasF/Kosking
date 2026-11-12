@@ -23,11 +23,73 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Producto
 
 private data class ItemCarrito(val producto: Producto, val cantidad: Int)
+
+@Composable
+private fun FilaProductoAnotar(
+    prod: Producto,
+    cantidad: Int,
+    onAgregar: () -> Unit,
+    onQuitar: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                prod.nombre,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (cantidad > 0) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (prod.ultimoPrecio > 0) {
+                Text(
+                    "$${"%.0f".format(prod.ultimoPrecio)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (cantidad > 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (cantidad > 0) {
+            IconButton(onClick = onQuitar, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Remove, null, Modifier.size(16.dp))
+            }
+            Text(
+                cantidad.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.width(20.dp),
+                textAlign = TextAlign.Center
+            )
+        }
+        IconButton(
+            onClick = onAgregar,
+            modifier = Modifier.size(32.dp),
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(Icons.Default.Add, "Agregar", Modifier.size(18.dp))
+        }
+    }
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outlineVariant
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -60,10 +122,18 @@ fun AnotarRapidoSheet(
         else clientesOrdenados.filter { it.nombre.contains(busquedaCliente, ignoreCase = true) }
     }
 
+    // Búsqueda de productos
+    var busquedaProducto by remember { mutableStateOf("") }
+    val productosFiltrados = remember(productos, busquedaProducto) {
+        val base = productos.sortedByDescending { it.vecesUsado }
+        if (busquedaProducto.isBlank()) base
+        else base.filter { it.nombre.contains(busquedaProducto, ignoreCase = true) }
+    }
+
     // Entrada manual "Otro"
     var descripcionOtro by remember { mutableStateOf("") }
     var montoOtroTexto by remember { mutableStateOf("") }
-    var mostrarOtro by remember { mutableStateOf(false) }
+    var mostrarOtro by remember { mutableStateOf(productos.isEmpty()) }
 
     // Monto único para pago
     var montoTexto by remember { mutableStateOf("") }
@@ -286,73 +356,71 @@ fun AnotarRapidoSheet(
             }
 
             if (esCargo) {
-                // ── Grilla de productos ──────────────────────────────────────
-                if (productos.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        productos.forEach { prod ->
-                            val item = carrito.find { it.producto.id == prod.id }
-                            val cantidad = item?.cantidad ?: 0
-                            val enCarrito = cantidad > 0
-
-                            InputChip(
-                                selected = enCarrito,
-                                onClick = { toggleCarrito(prod) },
-                                label = {
-                                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                                        Text(
-                                            prod.nombre,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = if (enCarrito) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                        if (prod.ultimoPrecio > 0) {
-                                            Text(
-                                                "$${"%.0f".format(prod.ultimoPrecio)}",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = if (enCarrito) MaterialTheme.colorScheme.primary
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                },
-                                trailingIcon = if (enCarrito) ({
-                                    // tap en × quita una unidad
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        if (cantidad > 1) {
-                                            Text(
-                                                "×$cantidad",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = { quitarUno(prod) },
-                                            modifier = Modifier.size(20.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Clear,
-                                                contentDescription = "Quitar",
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                        }
-                                    }
-                                }) else null
-                            )
+                // ── Buscador de productos ────────────────────────────────────
+                OutlinedTextField(
+                    value = busquedaProducto,
+                    onValueChange = { busquedaProducto = it },
+                    label = { Text("Buscar producto") },
+                    placeholder = { Text("Ej: coca, pan, arroz...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
+                    trailingIcon = {
+                        if (busquedaProducto.isNotEmpty()) {
+                            IconButton(onClick = { busquedaProducto = "" }) {
+                                Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                            }
                         }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                        // Chip "Otro" para entrada manual
-                        InputChip(
-                            selected = mostrarOtro,
-                            onClick = { mostrarOtro = !mostrarOtro },
-                            label = { Text("Otro") },
-                            leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(14.dp)) }
-                        )
+                // ── Lista de productos ───────────────────────────────────────
+                if (productos.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+                            if (productosFiltrados.isEmpty()) {
+                                item {
+                                    Text(
+                                        "Sin resultados — usá \"Otro\" para agregar manual",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            } else {
+                                items(productosFiltrados, key = { it.id }) { prod ->
+                                    val cantidad = carrito.find { it.producto.id == prod.id }?.cantidad ?: 0
+                                    FilaProductoAnotar(
+                                        prod = prod,
+                                        cantidad = cantidad,
+                                        onAgregar = { toggleCarrito(prod) },
+                                        onQuitar = { quitarUno(prod) }
+                                    )
+                                }
+                            }
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { mostrarOtro = !mostrarOtro }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Add, null, Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        "No está en la lista — agregar manual",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -381,7 +449,7 @@ fun AnotarRapidoSheet(
                             ),
                             modifier = Modifier.width(90.dp)
                         )
-                        if (mostrarOtro) {
+                        if (productos.isNotEmpty()) {
                             IconButton(onClick = {
                                 mostrarOtro = false
                                 descripcionOtro = ""

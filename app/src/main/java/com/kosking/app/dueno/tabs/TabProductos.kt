@@ -173,7 +173,19 @@ internal fun TabProductos(
             }
         } else if (productosFiltrados.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Sin resultados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Icon(Icons.Default.SearchOff, null, Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                    Text("No encontramos \"$busqueda\"",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
+                }
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize()) {

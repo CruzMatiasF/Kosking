@@ -220,12 +220,53 @@ internal fun TabClientes(
 
         if (clientesFiltrados.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    if (clientes.isEmpty()) "Todavía no hay clientes\nTocá + para agregar el primero"
-                    else "Sin resultados para este filtro",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = androidx.compose.ui.Modifier.padding(32.dp)
+                ) {
+                    if (clientes.isEmpty()) {
+                        Icon(
+                            Icons.Default.PersonAdd,
+                            contentDescription = null,
+                            modifier = androidx.compose.ui.Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            "Todavía no tenés clientes",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Agregá tu primer cliente para empezar a registrar fiados",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Button(onClick = onAgregarCliente) {
+                            Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Agregar cliente")
+                        }
+                    } else {
+                        Icon(
+                            Icons.Default.SearchOff,
+                            contentDescription = null,
+                            modifier = androidx.compose.ui.Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            if (busqueda.isNotEmpty()) "No encontramos \"$busqueda\""
+                            else "Sin clientes en este filtro",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        if (busqueda.isNotEmpty()) {
+                            TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
+                        }
+                    }
+                }
             }
         } else if (vistaLista) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {

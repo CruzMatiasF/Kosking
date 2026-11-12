@@ -388,7 +388,10 @@ class DuenoViewModel : ViewModel() {
             _cargando.value = true
             try {
                 val localId = _localId.value
-                if (localId.isBlank()) return@launch
+                if (localId.isBlank()) {
+                    _error.value = "No se pudo identificar el local. Cerrá y volvé a abrir la app."
+                    return@launch
+                }
                 if (productoId != null) {
                     FiadoRepository.editarProducto(productoId, nombre, precio)
                 } else {

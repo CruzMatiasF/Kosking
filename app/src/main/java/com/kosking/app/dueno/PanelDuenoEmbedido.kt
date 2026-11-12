@@ -138,7 +138,7 @@ fun PanelDuenoEmbedido(
                 2 -> TabProductos(
                     productos = productos,
                     cargando = cargando,
-                    onGuardar = { nombre, precio, productoId -> vm.guardarProducto(nombre, precio, productoId) },
+                    onGuardar = { nombre, precio, productoId, onExito -> vm.guardarProducto(nombre, precio, productoId, onExito) },
                     onEliminar = { vm.eliminarProducto(it) }
                 )
                 3 -> TabEquipo(

@@ -24,7 +24,7 @@ import com.kosking.app.modelo.Producto
 internal fun TabProductos(
     productos: List<Producto>,
     cargando: Boolean,
-    onGuardar: (nombre: String, precio: Double, productoId: String?) -> Unit,
+    onGuardar: (nombre: String, precio: Double, productoId: String?, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit
 ) {
     var mostrarDialog by remember { mutableStateOf(false) }
@@ -42,9 +42,10 @@ internal fun TabProductos(
             producto = editando,
             cargando = cargando,
             onGuardar = { nombre, precio ->
-                onGuardar(nombre, precio, editando?.id)
-                mostrarDialog = false
-                editando = null
+                onGuardar(nombre, precio, editando?.id) {
+                    mostrarDialog = false
+                    editando = null
+                }
             },
             onDismiss = { mostrarDialog = false; editando = null }
         )

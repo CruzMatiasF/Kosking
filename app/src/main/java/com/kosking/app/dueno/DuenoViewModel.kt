@@ -177,6 +177,17 @@ class DuenoViewModel : ViewModel() {
         viewModelScope.launch { FiadoRepository.actualizarCliente(cliente) }
     }
 
+    fun setFechaCompromiso(clienteId: String, fecha: com.google.firebase.Timestamp?) {
+        viewModelScope.launch {
+            try {
+                FiadoRepository.setFechaCompromiso(clienteId, fecha)
+            } catch (e: Exception) {
+                CrashLogger.log(e, "setFechaCompromiso")
+                _error.value = "No se pudo guardar la fecha"
+            }
+        }
+    }
+
     // ── Movimiento seleccionado (para detalle) ────────────────────────────────
 
     private val _movimientoSeleccionado = MutableStateFlow<Movimiento?>(null)

@@ -89,9 +89,15 @@ object FiadoRepository {
                 "limiteCredito" to cliente.limiteCredito,
                 "fechaPago" to cliente.fechaPago,
                 "notaInterna" to cliente.notaInterna,
-                "alertaEmpleado" to cliente.alertaEmpleado
+                "alertaEmpleado" to cliente.alertaEmpleado,
+                "fechaCompromiso" to cliente.fechaCompromiso
             )
         ).await()
+    }
+
+    suspend fun setFechaCompromiso(clienteId: String, fecha: com.google.firebase.Timestamp?) {
+        db.collection("clientes").document(clienteId)
+            .update("fechaCompromiso", fecha).await()
     }
 
     suspend fun eliminarCliente(clienteId: String) {

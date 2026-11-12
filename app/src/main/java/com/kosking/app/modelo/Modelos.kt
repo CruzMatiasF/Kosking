@@ -28,7 +28,8 @@ data class Cliente(
     val limiteCredito: Double = 0.0,
     val fechaPago: Timestamp? = null,
     val notaInterna: String = "",
-    val alertaEmpleado: Boolean = false
+    val alertaEmpleado: Boolean = false,
+    val fechaCompromiso: Timestamp? = null
 )
 
 @Immutable

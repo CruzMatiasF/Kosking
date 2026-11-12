@@ -96,10 +96,12 @@ internal fun TabInicio(
     }
     var visitaDetalle by remember { mutableStateOf<VisitaResumen?>(null) }
 
-    val clientesUrgentes = remember(clientesConDeuda, diasSinPagar) {
+    val hoy = remember { java.util.Date() }
+    val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
+    val clientesUrgentes = remember(clientesConDeuda) {
         clientesConDeuda
-            .sortedByDescending { diasSinPagar[it.id] ?: 0 }
-            .take(5)
+            .filter { it.fechaCompromiso != null && it.fechaCompromiso.toDate().before(hoy) }
+            .sortedBy { it.fechaCompromiso!!.toDate() }
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -341,7 +343,7 @@ internal fun TabInicio(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Deudas urgentes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text("Acuerdos vencidos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     if (clientesConFono.isNotEmpty()) {
                         TextButton(
                             onClick = onRecordarTodos,
@@ -353,37 +355,19 @@ internal fun TabInicio(
                 }
             }
             items(clientesUrgentes, key = { "deuda_${it.id}" }) { cliente ->
-                val dias = diasSinPagar[cliente.id]
+                val diasVencido = cliente.fechaCompromiso?.let {
+                    val diff = hoy.time - it.toDate().time
+                    (diff / 86_400_000L).toInt().coerceAtLeast(1)
+                } ?: 0
                 ListItem(
                     headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
-                    supportingContent = if (cliente.notaInterna.isNotBlank() || dias == null || dias >= 7) ({
-                        Column {
-                            if (cliente.notaInterna.isNotBlank()) {
-                                Text(
-                                    cliente.notaInterna,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                            }
-                            if (dias == null) {
-                                Text(
-                                    "Sin pagar hace más de 90 días",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            } else if (dias >= 7) {
-                                val colorDias = if (dias >= 30) MaterialTheme.colorScheme.error
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                Text(
-                                    if (dias >= 30) "Sin pagar hace $dias días" else "Hace $dias días",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = colorDias
-                                )
-                            }
-                        }
-                    }) else null,
+                    supportingContent = {
+                        Text(
+                            "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · vencido hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
                     trailingContent = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

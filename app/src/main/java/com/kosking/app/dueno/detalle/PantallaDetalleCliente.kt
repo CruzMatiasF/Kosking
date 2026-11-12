@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,7 +36,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.util.WhatsAppUtil
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -404,6 +408,7 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
     var mostrarDialogoLimite by remember { mutableStateOf(false) }
     var mostrarDialogoFechaPago by remember { mutableStateOf(false) }
     var mostrarDialogoNota by remember { mutableStateOf(false) }
+    var mostrarDialogoCompromiso by remember { mutableStateOf(false) }
 
     if (mostrarDialogoNota) {
         DialogEditarNota(
@@ -425,6 +430,17 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                 mostrarDialogoFechaPago = false
             },
             onDismiss = { mostrarDialogoFechaPago = false }
+        )
+    }
+
+    if (mostrarDialogoCompromiso) {
+        DialogFechaCompromiso(
+            fechaActual = cliente.fechaCompromiso,
+            onGuardar = { ts ->
+                vm.setFechaCompromiso(cliente.id, ts)
+                mostrarDialogoCompromiso = false
+            },
+            onDismiss = { mostrarDialogoCompromiso = false }
         )
     }
 
@@ -611,6 +627,66 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                     )
                 }
                 Icon(Icons.Default.Edit, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            }
+        }
+
+        // Card fecha compromiso de pago
+        Spacer(Modifier.height(8.dp))
+        val fmtCompromiso = remember { SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es-AR")) }
+        val compromisoVencido = cliente.fechaCompromiso?.let { it.toDate().before(Date()) } ?: false
+        Card(
+            modifier = Modifier.clickable { mostrarDialogoCompromiso = true },
+            shape = RoundedCornerShape(12.dp),
+            colors = if (compromisoVencido) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                     else CardDefaults.cardColors()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(34.dp).background(
+                        color = when {
+                            compromisoVencido -> MaterialTheme.colorScheme.error
+                            cliente.fechaCompromiso != null -> MaterialTheme.colorScheme.primaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(18.dp),
+                        tint = when {
+                            compromisoVencido -> MaterialTheme.colorScheme.onError
+                            cliente.fechaCompromiso != null -> MaterialTheme.colorScheme.onPrimaryContainer
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Acuerdo de pago", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
+                        color = if (compromisoVencido) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        when {
+                            compromisoVencido -> "Venció: ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate()).replaceFirstChar { it.uppercase() }}"
+                            cliente.fechaCompromiso != null -> "Paga el ${fmtCompromiso.format(cliente.fechaCompromiso.toDate()).replaceFirstChar { it.uppercase() }}"
+                            else -> "Sin fecha acordada"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when {
+                            compromisoVencido -> MaterialTheme.colorScheme.onErrorContainer
+                            cliente.fechaCompromiso != null -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+                if (cliente.fechaCompromiso != null) {
+                    IconButton(onClick = { vm.setFechaCompromiso(cliente.id, null) }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, "Quitar fecha", Modifier.size(14.dp),
+                            tint = if (compromisoVencido) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
         }
 

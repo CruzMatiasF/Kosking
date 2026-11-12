@@ -1,6 +1,7 @@
 package com.kosking.app.dueno.detalle
 
 import com.kosking.app.modelo.Cliente
+import java.util.Calendar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.Timestamp
 import java.util.Date
 
 @Composable
@@ -272,5 +274,35 @@ internal fun CampoEditable(
             }
             Icon(Icons.Default.ChevronRight, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DialogFechaCompromiso(
+    fechaActual: Timestamp?,
+    onGuardar: (Timestamp?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val inicialMs = fechaActual?.toDate()?.time
+        ?: Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, 7) }.timeInMillis
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = inicialMs)
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                val ms = datePickerState.selectedDateMillis
+                val ts = if (ms != null) Timestamp(Date(ms)) else null
+                onGuardar(ts)
+            }) { Text("Guardar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    ) {
+        DatePicker(state = datePickerState, title = {
+            Text("¿Cuándo prometió pagar?", modifier = Modifier.padding(start = 24.dp, top = 16.dp))
+        })
     }
 }

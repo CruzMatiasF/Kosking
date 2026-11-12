@@ -141,10 +141,11 @@ object FiadoRepository {
     fun movimientosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
-            .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(200)
-            .addSnapshotListener { snap, _ ->
-                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
+            .addSnapshotListener { snap, error ->
+                if (error != null) { trySend(emptyList()); return@addSnapshotListener }
+                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
+                trySend(lista.sortedByDescending { it.fecha.toDate().time })
             }
         awaitClose { sub.remove() }
     }

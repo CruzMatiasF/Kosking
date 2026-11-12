@@ -124,6 +124,11 @@ fun PanelDuenoEmbedido(
                     icon = { Icon(Icons.Default.Badge, null) }, label = { Text("Equipo") },
                     colors = navColors
                 )
+                NavigationBarItem(
+                    selected = tabSeleccionado == 4, onClick = { onTabChange(4) },
+                    icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Reportes") },
+                    colors = navColors
+                )
             }
         }
     ) { scaffoldPadding ->
@@ -154,6 +159,10 @@ fun PanelDuenoEmbedido(
                     clientes = clientes,
                     onEliminarEmpleado = { vm.eliminarEmpleado(it) },
                     vm = vm
+                )
+                4 -> TabReportes(
+                    movimientos = movimientosLocal,
+                    clientes = clientes
                 )
                 else -> TabInicio(
                     clientes = clientes,

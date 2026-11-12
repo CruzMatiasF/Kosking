@@ -412,8 +412,9 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
     if (mostrarDialogoNota) {
         DialogEditarNota(
             notaActual = cliente.notaInterna,
-            onGuardar = { nuevaNota ->
-                vm.actualizarCliente(cliente.copy(notaInterna = nuevaNota))
+            alertaActual = cliente.alertaEmpleado,
+            onGuardar = { nuevaNota, nuevaAlerta ->
+                vm.actualizarCliente(cliente.copy(notaInterna = nuevaNota, alertaEmpleado = nuevaAlerta))
                 mostrarDialogoNota = false
             },
             onDismiss = { mostrarDialogoNota = false }
@@ -504,7 +505,12 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Nota interna", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Nota interna", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        if (cliente.alertaEmpleado) {
+                            Icon(Icons.Default.Warning, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
                     Text(
                         if (cliente.notaInterna.isNotBlank()) cliente.notaInterna else "Sin nota",
                         style = MaterialTheme.typography.bodySmall,
@@ -574,46 +580,6 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                             tint = if (compromisoVencido) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-        Card(shape = RoundedCornerShape(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .background(
-                            color = if (cliente.alertaEmpleado) MaterialTheme.colorScheme.errorContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(10.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Warning, null, Modifier.size(18.dp),
-                        tint = if (cliente.alertaEmpleado) MaterialTheme.colorScheme.error
-                               else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Alerta al empleado", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Text(
-                        if (cliente.alertaEmpleado) "Empleados ven aviso al anotar"
-                        else "Sin alerta para empleados",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (cliente.alertaEmpleado) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = cliente.alertaEmpleado,
-                    onCheckedChange = { vm.actualizarCliente(cliente.copy(alertaEmpleado = it)) }
-                )
             }
         }
 

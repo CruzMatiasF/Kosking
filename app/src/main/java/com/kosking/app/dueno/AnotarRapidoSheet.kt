@@ -399,10 +399,25 @@ fun AnotarRapidoSheet(
 
                     // Lista scrolleable que llena el espacio
                     LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        if (productosFiltrados.isEmpty()) {
+                        if (busquedaProducto.isBlank()) {
+                            // Estado inicial — invitar a escribir
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "Escribí para buscar un producto",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        } else if (productosFiltrados.isEmpty()) {
                             item {
                                 Text(
-                                    "Sin resultados",
+                                    "Sin resultados para \"$busquedaProducto\"",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(16.dp)

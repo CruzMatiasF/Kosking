@@ -112,10 +112,13 @@ object WhatsAppUtil {
         sb.append("─────────────────\n")
         activos.forEach { mov ->
             val fecha = fmtFecha.format(mov.fecha.toDate())
-            val signo = if (mov.tipo == "pago") "✅" else "🔴"
             val montoFmt = "%.0f".format(mov.monto)
-            val concepto = mov.producto.ifBlank { if (mov.tipo == "pago") "Pago" else "Fiado" }
-            sb.append("$signo $fecha — \$$montoFmt ($concepto)\n")
+            if (mov.tipo == "pago") {
+                sb.append("✅ $fecha — Abonó \$$montoFmt a cuenta\n")
+            } else {
+                val concepto = mov.producto.ifBlank { "Fiado" }
+                sb.append("🔴 $fecha — \$$montoFmt ($concepto)\n")
+            }
         }
         sb.append("─────────────────\n")
         sb.append("*Deuda actual: \$${"%.0f".format(deudaTotal)}*\n")

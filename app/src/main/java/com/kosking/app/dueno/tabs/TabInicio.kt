@@ -94,6 +94,12 @@ internal fun TabInicio(
         agruparPorCliente(agruparVisitas(movimientosHoy, clienteMap, fmtHora))
     }
 
+    val clientesUrgentes = remember(clientesConDeuda, diasSinPagar) {
+        clientesConDeuda
+            .sortedByDescending { diasSinPagar[it.id] ?: 0 }
+            .take(5)
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
         // Cabecera: deuda total + botón anotar
@@ -323,17 +329,17 @@ internal fun TabInicio(
         }
 
         // Lista de clientes con deuda
-        if (clientesConDeuda.isNotEmpty()) {
+        if (clientesUrgentes.isNotEmpty()) {
             item {
-                val clientesConFono = remember(clientesConDeuda) {
-                    clientesConDeuda.filter { it.telefono.isNotBlank() }
+                val clientesConFono = remember(clientesUrgentes) {
+                    clientesUrgentes.filter { it.telefono.isNotBlank() }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Deudas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text("Deudas urgentes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     if (clientesConFono.isNotEmpty()) {
                         TextButton(
                             onClick = onRecordarTodos,
@@ -344,7 +350,7 @@ internal fun TabInicio(
                     }
                 }
             }
-            items(clientesConDeuda, key = { "deuda_${it.id}" }) { cliente ->
+            items(clientesUrgentes, key = { "deuda_${it.id}" }) { cliente ->
                 val dias = diasSinPagar[cliente.id]
                 ListItem(
                     headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },

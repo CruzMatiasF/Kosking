@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.kosking.app.modelo.Movimiento
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 object WhatsAppUtil {
 
@@ -93,6 +95,31 @@ object WhatsAppUtil {
             }
         }
         sb.append("\n📱 Kosking")
+        return sb.toString()
+    }
+
+    fun historialCliente(
+        nombreCliente: String,
+        nombreLocal: String,
+        deudaTotal: Double,
+        movimientos: List<Movimiento>
+    ): String {
+        val fmtFecha = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
+        val activos = movimientos.filter { !it.anulado }.sortedByDescending { it.fecha.toDate().time }
+        val sb = StringBuilder()
+        sb.append("📋 *Historial de $nombreCliente*\n")
+        sb.append("Local: $nombreLocal\n")
+        sb.append("─────────────────\n")
+        activos.forEach { mov ->
+            val fecha = fmtFecha.format(mov.fecha.toDate())
+            val signo = if (mov.tipo == "pago") "✅" else "🔴"
+            val montoFmt = "%.0f".format(mov.monto)
+            val concepto = mov.producto.ifBlank { if (mov.tipo == "pago") "Pago" else "Fiado" }
+            sb.append("$signo $fecha — \$$montoFmt ($concepto)\n")
+        }
+        sb.append("─────────────────\n")
+        sb.append("*Deuda actual: \$${"%.0f".format(deudaTotal)}*\n")
+        sb.append("📱 Kosking")
         return sb.toString()
     }
 

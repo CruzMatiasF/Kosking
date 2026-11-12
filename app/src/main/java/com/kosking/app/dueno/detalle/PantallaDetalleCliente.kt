@@ -143,6 +143,21 @@ fun PantallaDetalleCliente(
                                 Icon(Icons.Default.MoreVert, "Más opciones")
                             }
                             DropdownMenu(expanded = mostrarMenu, onDismissRequest = { mostrarMenu = false }) {
+                                if (movimientos.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text("Compartir historial") },
+                                        onClick = {
+                                            mostrarMenu = false
+                                            val texto = WhatsAppUtil.historialCliente(
+                                                nombreCliente = cliente.nombre,
+                                                nombreLocal = localData?.nombre ?: "el local",
+                                                deudaTotal = cliente.deudaTotal,
+                                                movimientos = movimientos
+                                            )
+                                            WhatsAppUtil.compartir(context, texto)
+                                        }
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text("Recalcular deuda") },
                                     onClick = { mostrarMenu = false; mostrarConfirmarRecalcular = true }

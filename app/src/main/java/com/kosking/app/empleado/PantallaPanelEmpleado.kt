@@ -72,15 +72,14 @@ fun PantallaPanelEmpleado(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { mostrarPrecios = true }) {
+                        Icon(Icons.Default.Sell, "Lista de precios")
+                    }
                     Box {
                         IconButton(onClick = { mostrarMenu = true }) {
                             Icon(Icons.Default.MoreVert, "Opciones")
                         }
                         DropdownMenu(expanded = mostrarMenu, onDismissRequest = { mostrarMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Ver lista de precios") },
-                                onClick = { mostrarMenu = false; mostrarPrecios = true }
-                            )
                             DropdownMenuItem(
                                 text = { Text("Editar mi nombre") },
                                 onClick = { mostrarMenu = false; mostrarEditarNombre = true }
@@ -272,28 +271,32 @@ fun PantallaPanelEmpleado(
 
     if (mostrarPrecios) {
         val productosOrdenados = remember(productos) {
-            productos.sortedBy { it.nombre.lowercase() }
+            productos.filter { it.ultimoPrecio > 0 }.sortedByDescending { it.vecesUsado }
+        }
+        val productosSinPrecio = remember(productos) {
+            productos.filter { it.ultimoPrecio <= 0 }
         }
         ModalBottomSheet(onDismissRequest = { mostrarPrecios = false }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                Text(
-                    "Lista de precios",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    "${productosOrdenados.size} producto${if (productosOrdenados.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                if (productosOrdenados.isEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text("Precios", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "${productosOrdenados.size} producto${if (productosOrdenados.size != 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (productosOrdenados.isEmpty() && productosSinPrecio.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                         contentAlignment = Alignment.Center
@@ -307,25 +310,49 @@ fun PantallaPanelEmpleado(
                     }
                 } else {
                     productosOrdenados.forEach { prod ->
-                        ListItem(
-                            headlineContent = { Text(prod.nombre, fontWeight = FontWeight.Medium) },
-                            supportingContent = {
-                                Text(
-                                    "Usado ${prod.vecesUsado} ${if (prod.vecesUsado == 1) "vez" else "veces"}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            trailingContent = {
-                                Text(
-                                    if (prod.ultimoPrecio > 0) "${"$"}${"%.0f".format(prod.ultimoPrecio)}" else "—",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                prod.nombre,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                "${"$"}${"%.0f".format(prod.ultimoPrecio)}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        HorizontalDivider()
+                    }
+                    if (productosSinPrecio.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Sin precio registrado",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 6.dp)
                         )
-                        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                        productosSinPrecio.forEach { prod ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(prod.nombre, style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                                Text("—", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            HorizontalDivider()
+                        }
                     }
                 }
             }

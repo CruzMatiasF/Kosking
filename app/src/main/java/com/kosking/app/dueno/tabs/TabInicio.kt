@@ -533,34 +533,9 @@ private fun HistorialSheet(
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                         )
                     }
-                    items(movs, key = { it.id }) { mov ->
-                        val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "—"
-                        val esCargo = mov.tipo == "cargo"
-                        ListItem(
-                            headlineContent = { Text(nombreCliente, style = MaterialTheme.typography.bodyMedium) },
-                            supportingContent = {
-                                Text(
-                                    mov.producto.ifBlank { if (esCargo) "Fiado" else "Pago" },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            trailingContent = {
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        "${if (esCargo) "+" else "-"}${"$"}${"%.0f".format(mov.monto)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (esCargo) MaterialTheme.colorScheme.error else Verde
-                                    )
-                                    Text(fmtHora.format(mov.fecha.toDate()),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            },
-                            modifier = Modifier.clickable { onVerMovimiento(mov.id) }
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                    val visitas = agruparVisitas(movs, clienteMap, fmtHora)
+                    items(visitas, key = { "v_${diasAtras}_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
+                        FilaVisitaMP(visita, onClick = { /* historial no abre detalle */ })
                     }
                 }
             }

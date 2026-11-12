@@ -356,26 +356,46 @@ fun AnotarRapidoSheet(
             }
 
             if (esCargo) {
-                // ── Buscador de productos ────────────────────────────────────
-                OutlinedTextField(
-                    value = busquedaProducto,
-                    onValueChange = { busquedaProducto = it },
-                    label = { Text("Buscar producto") },
-                    placeholder = { Text("Ej: coca, pan, arroz...") },
-                    leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
-                    trailingIcon = {
-                        if (busquedaProducto.isNotEmpty()) {
-                            IconButton(onClick = { busquedaProducto = "" }) {
-                                Icon(Icons.Default.Close, null, Modifier.size(16.dp))
-                            }
+                if (productos.isEmpty()) {
+                    // Sin productos cargados — aviso
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "Todavía no cargaste productos",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Andá a la pestaña Productos y cargalos para anotarlos más rápido. Por ahora escribí la descripción y el monto.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    }
+                } else {
+                    // ── Buscador de productos ────────────────────────────────
+                    OutlinedTextField(
+                        value = busquedaProducto,
+                        onValueChange = { busquedaProducto = it },
+                        label = { Text("Buscar producto") },
+                        placeholder = { Text("Ej: coca, pan, arroz...") },
+                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
+                        trailingIcon = {
+                            if (busquedaProducto.isNotEmpty()) {
+                                IconButton(onClick = { busquedaProducto = "" }) {
+                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                // ── Lista de productos ───────────────────────────────────────
-                if (productos.isNotEmpty()) {
+                    // ── Lista de productos ───────────────────────────────────
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),

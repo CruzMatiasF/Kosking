@@ -116,7 +116,7 @@ fun PantallaHome(
             )
         }
     } else {
-        AppPublica(
+        TabMas(
             estaLogueado = estaLogueado,
             nombreUsuario = nombreUsuario,
             esDueno = esDueno,
@@ -133,121 +133,7 @@ fun PantallaHome(
 }
 
 @Composable
-private fun AppPublica(
-    estaLogueado: Boolean,
-    nombreUsuario: String,
-    esDueno: Boolean,
-    esEmpleado: Boolean,
-    onSoyDueno: () -> Unit,
-    onSoyEmpleado: () -> Unit,
-    onIniciarSesion: () -> Unit,
-    onCerrarSesion: () -> Unit,
-    onConfigurarPerfil: () -> Unit,
-    onConfiguracion: () -> Unit,
-    onAcercaDe: () -> Unit,
-) {
-    var tabSeleccionado by remember { mutableIntStateOf(0) }
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                val navColors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 0,
-                    onClick = { tabSeleccionado = 0 },
-                    icon = { Icon(Icons.Default.Explore, null) },
-                    label = { Text("Explorar") },
-                    colors = navColors
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 1,
-                    onClick = { tabSeleccionado = 1 },
-                    icon = {
-                        if (estaLogueado) {
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (tabSeleccionado == 1) MaterialTheme.colorScheme.onPrimaryContainer
-                                        else MaterialTheme.colorScheme.primaryContainer
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    nombreUsuario.firstOrNull()?.uppercase() ?: "?",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (tabSeleccionado == 1) MaterialTheme.colorScheme.primaryContainer
-                                            else MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        } else {
-                            Icon(Icons.Default.Person, null)
-                        }
-                    },
-                    label = { Text("Más") },
-                    colors = navColors
-                )
-            }
-        }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (tabSeleccionado) {
-                1 -> TabMas(
-                    estaLogueado = estaLogueado,
-                    nombreUsuario = nombreUsuario,
-                    esDueno = esDueno,
-                    esEmpleado = esEmpleado,
-                    onSoyDueno = onSoyDueno,
-                    onSoyEmpleado = onSoyEmpleado,
-                    onIniciarSesion = onIniciarSesion,
-                    onCerrarSesion = onCerrarSesion,
-                    onConfigurarPerfil = onConfigurarPerfil,
-                    onConfiguracion = onConfiguracion,
-                    onAcercaDe = onAcercaDe,
-                )
-                else -> TabExplorar()
-            }
-        }
-    }
-}
-
-@Composable
-private fun TabExplorar() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("🗺️", style = MaterialTheme.typography.displayMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Próximamente",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Vas a poder encontrar locales\ncerca tuyo en el mapa",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun TabMas(
+internal fun TabMas(
     estaLogueado: Boolean,
     nombreUsuario: String,
     esDueno: Boolean,
@@ -349,21 +235,21 @@ private fun TabMas(
         // Cards de rol (si no tiene ninguno)
         if (!esDueno && !esEmpleado) {
             Text(
-                if (estaLogueado) "¿Qué querés hacer?" else "¿Querés usar Kosking?",
+                "¿Qué querés hacer?",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             RolCard(
                 emoji = "🏪",
-                titulo = "Quiero ser dueño",
-                subtitulo = "Registrá tu local y manejá los fiaditos",
+                titulo = "Crear un local",
+                subtitulo = "Registrá tu kiosco, almacén o negocio y manejá los fiaditos",
                 onClick = onSoyDueno,
                 destacada = true
             )
             RolCard(
-                emoji = "👤",
-                titulo = "Soy empleado de un local",
-                subtitulo = "Entrá con el código que te dio el dueño",
+                emoji = "👥",
+                titulo = "Unirme a un local",
+                subtitulo = "Entrá como empleado con el código que te dio el dueño",
                 onClick = onSoyEmpleado
             )
         }

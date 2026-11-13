@@ -25,6 +25,7 @@ import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
+import java.util.Calendar
 
 @Composable
 internal fun TabClientes(
@@ -43,6 +44,26 @@ internal fun TabClientes(
     val conDeuda = remember(clientes) { clientes.count { it.deudaTotal > 0 && it.habilitado } }
     val alDia = remember(clientes) { clientes.count { it.deudaTotal <= 0 && it.habilitado } }
     val deudaTotal = remember(clientes) { clientes.sumOf { it.deudaTotal } }
+
+    data class ResumenMes(val fiado: Double, val cobrado: Double)
+    fun movimientosDeMes(anio: Int, mes: Int): ResumenMes {
+        var fiado = 0.0; var cobrado = 0.0
+        movimientos.filter { !it.anulado }.forEach { mov ->
+            val cal = Calendar.getInstance().also { c -> c.time = mov.fecha.toDate() }
+            if (cal.get(Calendar.YEAR) == anio && cal.get(Calendar.MONTH) == mes) {
+                if (mov.tipo == "cargo") fiado += mov.monto else cobrado += mov.monto
+            }
+        }
+        return ResumenMes(fiado, cobrado)
+    }
+    val resumenMes = remember(movimientos) {
+        val cal = Calendar.getInstance()
+        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
+    val resumenMesAnterior = remember(movimientos) {
+        val cal = Calendar.getInstance().also { it.add(Calendar.MONTH, -1) }
+        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
 
     val ultimaVisita = remember(movimientos) {
         movimientos.filter { !it.anulado }
@@ -101,6 +122,65 @@ internal fun TabClientes(
                 isError = clientes.size >= DuenoViewModel.LIMITE_CLIENTES_GRATIS,
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        // Resumen del mes
+        if (resumenMes.fiado > 0 || resumenMes.cobrado > 0) {
+            val saldoMes = resumenMes.cobrado - resumenMes.fiado
+            val pctFiado = if (resumenMesAnterior.fiado > 0)
+                ((resumenMes.fiado - resumenMesAnterior.fiado) / resumenMesAnterior.fiado * 100).toInt()
+            else null
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(1f)) {
+                    if (resumenMes.fiado > 0) {
+                        Column {
+                            Text("Fiado este mes", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${"%.0f".format(resumenMes.fiado)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    if (resumenMes.cobrado > 0) {
+                        Column {
+                            Text("Cobrado", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${"%.0f".format(resumenMes.cobrado)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Verde)
+                        }
+                    }
+                    if (resumenMes.fiado > 0 && resumenMes.cobrado > 0) {
+                        Column {
+                            Text("Saldo", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "${if (saldoMes >= 0) "+" else ""}$${"%.0f".format(saldoMes)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (saldoMes >= 0) Verde else MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+                if (pctFiado != null) {
+                    Text(
+                        "${if (pctFiado >= 0) "↑" else "↓"} ${kotlin.math.abs(pctFiado)}% vs mes pasado",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (pctFiado > 0) MaterialTheme.colorScheme.error else Verde
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
         }
 
         // Búsqueda + orden + agregar

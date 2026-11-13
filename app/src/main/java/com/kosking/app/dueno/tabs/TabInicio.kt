@@ -439,16 +439,7 @@ internal fun TabInicio(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    Text(fechaHoy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (visitasHoy.isNotEmpty()) {
-                    TextButton(onClick = onCompartirResumen,
-                        contentPadding = PaddingValues(horizontal = 8.dp)) {
-                        Text("Compartir", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
+                Text("Movimientos de hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
         }
 

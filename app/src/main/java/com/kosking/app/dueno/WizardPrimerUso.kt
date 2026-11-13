@@ -53,8 +53,11 @@ fun WizardPrimerUso(
     var guardandoLocal by remember { mutableStateOf(false) }
     var errorLocal by remember { mutableStateOf<String?>(null) }
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     ModalBottomSheet(
         onDismissRequest = { /* no se puede cerrar sin completar */ },
+        sheetState = sheetState,
         dragHandle = null,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {

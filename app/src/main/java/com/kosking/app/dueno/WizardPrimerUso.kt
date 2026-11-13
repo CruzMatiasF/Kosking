@@ -7,11 +7,15 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Storefront
@@ -21,10 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kosking.app.datos.CatalogoRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +43,7 @@ fun WizardPrimerUso(
     // 0 = producto, 1 = cliente, 2 = listo
     var paso by remember { mutableStateOf(0) }
 
+    val context = LocalContext.current
     var nombreProducto by remember { mutableStateOf("") }
     var precioTexto by remember { mutableStateOf("") }
     var nombreCliente by remember { mutableStateOf("") }
@@ -81,6 +88,9 @@ fun WizardPrimerUso(
                             val precio = precioTexto.toDoubleOrNull() ?: 0.0
                             guardandoLocal = true
                             errorLocal = null
+                            if (!CatalogoRepository.existeEnCache(context, nombreProducto)) {
+                                CatalogoRepository.contribuir(nombreProducto.trim())
+                            }
                             onGuardarProducto(nombreProducto.trim(), precio) {
                                 guardandoLocal = false
                                 productoGuardado = true
@@ -166,6 +176,13 @@ private fun PasoProducto(
     onSiguiente: () -> Unit,
     onSaltar: () -> Unit
 ) {
+    val context = LocalContext.current
+    val sugerencias = remember(nombre) {
+        if (nombre.length >= 2) CatalogoRepository.buscar(context, nombre).take(5)
+        else emptyList()
+    }
+    val mostrarSugerencias = sugerencias.isNotEmpty() && precio.isBlank()
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         IconoCentrado(Icons.Default.Storefront)
 
@@ -177,7 +194,7 @@ private fun PasoProducto(
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            "Cargá un producto con su precio. Al anotar un fiado solo vas a tocar el nombre — sin escribir ni buscar el precio.",
+            "Buscá en el catálogo y poné tu precio. Si no existe, lo agregás vos.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -187,22 +204,58 @@ private fun PasoProducto(
         OutlinedTextField(
             value = nombre,
             onValueChange = onNombreChange,
-            label = { Text("Nombre del producto") },
-            placeholder = { Text("Ej: Coca 500ml, pan, aceite...") },
+            label = { Text("Buscar producto") },
+            placeholder = { Text("Ej: Coca, pan, aceite...") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         )
-        OutlinedTextField(
-            value = precio,
-            onValueChange = onPrecioChange,
-            label = { Text("Precio $") },
-            placeholder = { Text("Ej: 500") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
+
+        // Sugerencias del catálogo
+        if (mostrarSugerencias) {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                    items(sugerencias) { item ->
+                        ListItem(
+                            headlineContent = { Text(item.nombre) },
+                            supportingContent = { Text(item.categoria, style = MaterialTheme.typography.bodySmall) },
+                            modifier = Modifier.clickable { onNombreChange(item.nombre) },
+                            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        )
+                        HorizontalDivider()
+                    }
+                    // Opción de agregar si no hay coincidencia exacta
+                    if (sugerencias.none { it.nombre.equals(nombre.trim(), ignoreCase = true) }) {
+                        item {
+                            ListItem(
+                                headlineContent = { Text("Agregar \"${nombre.trim()}\"") },
+                                leadingContent = { Icon(Icons.Default.Add, null, Modifier.size(20.dp)) },
+                                modifier = Modifier.clickable { /* nombre ya está puesto, solo cerramos sugerencias */ onNombreChange(nombre) },
+                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Campo de precio (aparece cuando hay nombre)
+        if (nombre.isNotBlank()) {
+            OutlinedTextField(
+                value = precio,
+                onValueChange = onPrecioChange,
+                label = { Text("Precio $") },
+                placeholder = { Text("Ej: 500") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
 
         errorLocal?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)

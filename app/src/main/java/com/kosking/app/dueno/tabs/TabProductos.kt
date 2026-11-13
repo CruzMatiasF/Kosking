@@ -38,12 +38,18 @@ internal fun TabProductos(
         else productos.filter { it.nombre.contains(busqueda, ignoreCase = true) }
     }
 
+    val context = LocalContext.current
+
     // Diálogo agregar/editar
     if (mostrarDialog) {
         DialogProducto(
             producto = editando,
             cargando = cargando,
             onGuardar = { nombre, precio ->
+                // Contribuye al catálogo global si es un producto nuevo desconocido
+                if (editando == null && !CatalogoRepository.existeEnCache(context, nombre)) {
+                    CatalogoRepository.contribuir(nombre)
+                }
                 onGuardar(nombre, precio, editando?.id) {
                     mostrarDialog = false
                     editando = null

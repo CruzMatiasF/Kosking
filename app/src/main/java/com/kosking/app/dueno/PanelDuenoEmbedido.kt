@@ -2,8 +2,10 @@
 
 import com.kosking.app.dueno.tabs.*
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -41,8 +43,6 @@ fun PanelDuenoEmbedido(
     val localId by vm.localId.collectAsState()
     val cargando by vm.cargando.collectAsState()
 
-    BackHandler(enabled = tabSeleccionado != 0) { onTabChange(0) }
-
     val clientesConDeuda = remember(clientes) {
         clientes.filter { it.deudaTotal > 0 }.sortedByDescending { it.deudaTotal }
     }
@@ -53,6 +53,10 @@ fun PanelDuenoEmbedido(
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
+    var mostrarEquipo by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = mostrarEquipo) { mostrarEquipo = false }
+    BackHandler(enabled = tabSeleccionado != 0 && !mostrarEquipo) { onTabChange(0) }
 
     // Actualiza las prefs que leen los workers de notificaciones
     LaunchedEffect(totalDeuda, clientesConDeuda.size, localId) {
@@ -108,7 +112,7 @@ fun PanelDuenoEmbedido(
                             if (alertasInicio > 0) Badge { Text("$alertasInicio") }
                         }) { Icon(Icons.Default.Home, null) }
                     },
-                    label = { Text("Inicio") },
+                    label = { Text("Panel") },
                     colors = navColors
                 )
                 NavigationBarItem(
@@ -119,11 +123,6 @@ fun PanelDuenoEmbedido(
                 NavigationBarItem(
                     selected = tabSeleccionado == 2, onClick = { onTabChange(2) },
                     icon = { Icon(Icons.Default.Storefront, null) }, label = { Text("Productos") },
-                    colors = navColors
-                )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 3, onClick = { onTabChange(3) },
-                    icon = { Icon(Icons.Default.Badge, null) }, label = { Text("Equipo") },
                     colors = navColors
                 )
             }
@@ -151,19 +150,13 @@ fun PanelDuenoEmbedido(
                     onGuardar = { nombre, precio, productoId, onExito -> vm.guardarProducto(nombre, precio, productoId, onExito) },
                     onEliminar = { vm.eliminarProducto(it) }
                 )
-                3 -> TabEquipo(
-                    empleados = empleados,
-                    movimientos = movimientosLocal,
-                    clientes = clientes,
-                    onEliminarEmpleado = { vm.eliminarEmpleado(it) },
-                    vm = vm
-                )
                 else -> TabInicio(
                     clientes = clientes,
                     movimientosLocal = movimientosLocal,
                     totalDeuda = totalDeuda,
                     clientesConDeuda = clientesConDeuda,
                     localData = localData,
+                    empleados = empleados,
                     disputados = disputados,
                     sobreLimite = sobreLimite,
                     onTabChange = onTabChange,
@@ -186,7 +179,8 @@ fun PanelDuenoEmbedido(
                         )
                         WhatsAppUtil.compartir(context, texto)
                     },
-                    onWhatsAppCliente = { clienteWhatsApp = it }
+                    onWhatsAppCliente = { clienteWhatsApp = it },
+                    onGestionarEquipo = { mostrarEquipo = true }
                 )
             }
 
@@ -210,6 +204,34 @@ fun PanelDuenoEmbedido(
             )
             } // Box weight(1f)
             } // Column
+
+            // Pantalla equipo como overlay dentro del panel (sin tab)
+            if (mostrarEquipo) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        TopAppBar(
+                            title = { Text("Equipo") },
+                            navigationIcon = {
+                                IconButton(onClick = { mostrarEquipo = false }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                                }
+                            }
+                        )
+                        TabEquipo(
+                            empleados = empleados,
+                            movimientos = movimientosLocal,
+                            clientes = clientes,
+                            onEliminarEmpleado = { vm.eliminarEmpleado(it) },
+                            vm = vm
+                        )
+                    }
+                }
+            }
         }
     }
 

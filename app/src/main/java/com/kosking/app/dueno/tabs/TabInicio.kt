@@ -1,7 +1,10 @@
 package com.kosking.app.dueno.tabs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +23,9 @@ import com.kosking.app.dueno.FilaVisitaMP
 import com.kosking.app.dueno.SeccionCard
 import com.kosking.app.dueno.VisitaResumen
 import com.kosking.app.dueno.agruparVisitas
+import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
@@ -36,6 +41,7 @@ internal fun TabInicio(
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     localData: Local?,
+    empleados: List<Empleado> = emptyList(),
     disputados: List<Movimiento> = emptyList(),
     sobreLimite: List<Cliente> = emptyList(),
     onTabChange: (Int) -> Unit,
@@ -46,9 +52,11 @@ internal fun TabInicio(
     onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
-    onVerMovimiento: (String) -> Unit = {}
+    onVerMovimiento: (String) -> Unit = {},
+    onGestionarEquipo: () -> Unit = {}
 ) {
     var mostrarHistorial by remember { mutableStateOf(false) }
+    val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val fechaHoy = remember {
@@ -126,6 +134,31 @@ internal fun TabInicio(
             .sortedBy { it.fechaCompromiso!!.toDate() }
     }
     val clientesUrgentes = clientesVencidos
+
+    // Caja del día por persona (para sección equipo)
+    data class StatPersona(val uid: String, val nombre: String, val anoto: Int, val cobro: Double)
+    val inicioDiaEquipo = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+    val statsHoyEquipo = remember(movimientosLocal, duenoUid, inicioDiaEquipo) {
+        if (empleados.isEmpty()) return@remember emptyList()
+        val movsHoyEq = movimientosLocal.filter { !it.anulado && it.fecha.toDate().time >= inicioDiaEquipo }
+        val map = mutableMapOf<String, StatPersona>()
+        movsHoyEq.forEach { mov ->
+            val uid = mov.anotadoPorUid.ifBlank { duenoUid }
+            val nombre = if (uid == duenoUid) "Vos"
+                         else mov.anotadoPorNombre.ifBlank { "Empleado" }
+            val actual = map[uid] ?: StatPersona(uid, nombre, 0, 0.0)
+            map[uid] = actual.copy(
+                anoto = actual.anoto + 1,
+                cobro = actual.cobro + if (mov.tipo == "pago") mov.monto else 0.0
+            )
+        }
+        map.values.sortedByDescending { if (it.uid == duenoUid) Int.MAX_VALUE else it.anoto }
+    }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
@@ -528,6 +561,65 @@ internal fun TabInicio(
                     modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+            }
+        }
+
+        // Sección compacta de equipo
+        if (empleados.isNotEmpty()) {
+            item {
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Default.Badge, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Equipo hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    }
+                    TextButton(
+                        onClick = onGestionarEquipo,
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        Text("Gestionar →", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                if (statsHoyEquipo.isEmpty()) {
+                    Text(
+                        "Sin actividad hoy",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                } else {
+                    statsHoyEquipo.forEach { stat ->
+                        ListItem(
+                            headlineContent = { Text(stat.nombre, style = MaterialTheme.typography.bodyMedium) },
+                            supportingContent = {
+                                Text(
+                                    "${stat.anoto} mov${if (stat.anoto != 1) "s" else ""}${if (stat.cobro > 0) " · cobró $${"%.0f".format(stat.cobro)}" else ""}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        stat.nombre.firstOrNull()?.uppercase() ?: "?",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
 

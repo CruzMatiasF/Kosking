@@ -49,7 +49,7 @@ object WhatsAppUtil {
             ultimosMovimientos.take(5).forEach { mov ->
                 val signo = if (mov.tipo == "pago") "✅ −" else "🔴 +"
                 val montoFmt = "%.0f".format(mov.monto)
-                val concepto = mov.producto.ifBlank { if (mov.tipo == "pago") "Pago" else "Fiado" }
+                val concepto = mov.producto.ifBlank { if (mov.tipo == "pago") "Pago" else "Cargo" }
                 sb.append("$signo\$$montoFmt $concepto\n")
             }
         }
@@ -66,7 +66,7 @@ object WhatsAppUtil {
     ): String {
         val sb = StringBuilder()
         sb.append("📊 Resumen de hoy — $nombreLocal\n\n")
-        if (fiadoHoy > 0) sb.append("🔴 Fiado: \$${"%.0f".format(fiadoHoy)} ($cantFiados operación${if (cantFiados != 1) "es" else ""})\n")
+        if (fiadoHoy > 0) sb.append("🔴 Debe: \$${"%.0f".format(fiadoHoy)} ($cantFiados operación${if (cantFiados != 1) "es" else ""})\n")
         if (cobradoHoy > 0) sb.append("✅ Cobrado: \$${"%.0f".format(cobradoHoy)} ($cantPagos pago${if (cantPagos != 1) "s" else ""})\n")
         val saldo = cobradoHoy - fiadoHoy
         sb.append("\nSaldo neto del día: ${if (saldo >= 0) "+" else ""}\$${"%.0f".format(saldo)}")
@@ -85,7 +85,7 @@ object WhatsAppUtil {
         val saldo = cobradoTotal - fiadoTotal
         val sb = StringBuilder()
         sb.append("📊 Resumen $labelPeriodo — $nombreLocal\n\n")
-        if (fiadoTotal > 0) sb.append("🔴 Fiado: \$${"%.0f".format(fiadoTotal)} ($cantFiados op.)\n")
+        if (fiadoTotal > 0) sb.append("🔴 Debe: \$${"%.0f".format(fiadoTotal)} ($cantFiados op.)\n")
         if (cobradoTotal > 0) sb.append("✅ Cobrado: \$${"%.0f".format(cobradoTotal)} ($cantPagos pagos)\n")
         sb.append("Saldo neto: ${if (saldo >= 0) "+" else ""}\$${"%.0f".format(saldo)}\n")
         if (topClientes.isNotEmpty()) {
@@ -116,7 +116,7 @@ object WhatsAppUtil {
             if (mov.tipo == "pago") {
                 sb.append("✅ $fecha — Abonó \$$montoFmt a cuenta\n")
             } else {
-                val concepto = mov.producto.ifBlank { "Fiado" }
+                val concepto = mov.producto.ifBlank { "Cargo" }
                 sb.append("🔴 $fecha — \$$montoFmt ($concepto)\n")
             }
         }

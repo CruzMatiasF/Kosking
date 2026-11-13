@@ -122,7 +122,7 @@ private fun PantallaAgregarFiadoUI(
             TopAppBar(
                 title = {
                     Column {
-                        Text(if (tipo == "cargo") "Anotar fiado" else "Registrar pago")
+                        Text(if (tipo == "cargo") "Anotar" else "Registrar pago")
                         if (nombreCliente.isNotBlank())
                             Text(nombreCliente, style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -179,7 +179,7 @@ private fun PantallaAgregarFiadoUI(
                     ) {
                         if (cargando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         else Text(
-                            if (tipo == "cargo") "Confirmar fiado $${"%.0f".format(montoEfectivo)}"
+                            if (tipo == "cargo") "Confirmar $${"%.0f".format(montoEfectivo)}"
                             else "Registrar pago $${"%.0f".format(montoEfectivo)}"
                         )
                     }

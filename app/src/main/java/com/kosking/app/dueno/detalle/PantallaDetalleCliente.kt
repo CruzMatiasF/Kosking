@@ -281,7 +281,7 @@ fun PantallaDetalleCliente(
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Anotá el primer fiado con el botón de arriba",
+                        Text("Anotá el primer cargo con el botón de arriba",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -603,7 +603,7 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Bloquear cliente", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Text(
-                        if (!cliente.habilitado) "No se pueden anotar más fiados"
+                        if (!cliente.habilitado) "Cliente bloqueado"
                         else "El cliente puede seguir fiando",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (!cliente.habilitado) MaterialTheme.colorScheme.error

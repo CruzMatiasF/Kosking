@@ -38,7 +38,7 @@ fun PantallaPrivacidad(onVolver: () -> Unit) {
                 )
             }
             item { SeccionPrivacidad("1. Información que recopilamos") {
-                "Kosking recopila la información que vos mismo ingresás: nombre de tu local, datos de tus clientes (nombre, teléfono, domicilio), movimientos de fiados y pagos, y datos de tu cuenta (email).\n\nNo recopilamos información sin tu consentimiento."
+                "Kosking recopila la información que vos mismo ingresás: nombre de tu local, datos de tus clientes (nombre, teléfono, domicilio), movimientos y pagos, y datos de tu cuenta (email).\n\nNo recopilamos información sin tu consentimiento."
             }}
             item { SeccionPrivacidad("2. Cómo usamos tu información") {
                 "Usamos tu información exclusivamente para brindarte el servicio de gestión de fiaditos. Nunca vendemos ni compartimos tus datos con terceros.\n\nLos datos de tus clientes son privados y solo vos y tus empleados autorizados pueden verlos."

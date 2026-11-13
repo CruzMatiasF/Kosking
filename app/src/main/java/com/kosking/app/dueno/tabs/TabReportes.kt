@@ -102,7 +102,7 @@ internal fun TabReportes(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MesCard(
                     modifier = Modifier.weight(1f),
-                    label = "Fiado",
+                    label = "Anotado",
                     mesActual = fiadoMesActual,
                     mesAnterior = fiadoMesAnterior,
                     nombreMesActual = fmtMesCompleto.format(inicioMesActual.time).replaceFirstChar { it.uppercase() },
@@ -142,7 +142,7 @@ internal fun TabReportes(
                             ) {
                                 Text(mes, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    if (fiado > 0) Text("F $${"%.0f".format(fiado)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                    if (fiado > 0) Text("A $${"%.0f".format(fiado)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                                     if (cobrado > 0) Text("C $${"%.0f".format(cobrado)}", style = MaterialTheme.typography.labelSmall, color = Verde)
                                 }
                             }
@@ -289,7 +289,7 @@ private fun MesCard(
                 Text(
                     "${if (pct >= 0) "+" else ""}$pct% vs $nombreMesAnterior",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (label == "Fiado") {
+                    color = if (label == "Anotado") {
                         if (pct > 0) MaterialTheme.colorScheme.error else Verde
                     } else {
                         if (pct >= 0) Verde else MaterialTheme.colorScheme.error

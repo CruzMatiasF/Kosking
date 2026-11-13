@@ -53,7 +53,7 @@ fun PantallaLogin(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Kosking", style = MaterialTheme.typography.headlineLarge)
-        Text("Control de fiados", style = MaterialTheme.typography.bodyMedium,
+        Text("Llevá la cuenta de tus clientes", style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Spacer(Modifier.height(40.dp))

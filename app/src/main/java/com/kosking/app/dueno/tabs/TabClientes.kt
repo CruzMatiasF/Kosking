@@ -141,7 +141,7 @@ internal fun TabClientes(
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(1f)) {
                     if (resumenMes.fiado > 0) {
                         Column {
-                            Text("Fiado este mes", style = MaterialTheme.typography.labelSmall,
+                            Text("Anotado este mes", style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("$${"%.0f".format(resumenMes.fiado)}",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -318,7 +318,7 @@ internal fun TabClientes(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Agregá tu primer cliente para empezar a registrar fiados",
+                            "Agregá tu primer cliente para empezar a anotar",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -388,7 +388,7 @@ internal fun TabClientes(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                                     modifier = Modifier.height(32.dp)
                                 ) {
-                                    Text("Fiado", style = MaterialTheme.typography.labelSmall)
+                                    Text("Debe", style = MaterialTheme.typography.labelSmall)
                                 }
                                 OutlinedButton(
                                     onClick = { onAnotarRapido(cliente, "pago") },

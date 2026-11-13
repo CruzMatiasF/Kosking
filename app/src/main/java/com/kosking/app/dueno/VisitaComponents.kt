@@ -131,8 +131,8 @@ fun FilaVisitaMP(visita: VisitaResumen, onClick: () -> Unit) {
 
     val subtitulo = when {
         esPago -> "Pago"
-        visita.items.size == 1 -> visita.items.first().producto.ifBlank { "Fiado" }
-        else -> "Fiado · ${visita.items.size} productos"
+        visita.items.size == 1 -> visita.items.first().producto.ifBlank { "Cargo" }
+        else -> "${visita.items.size} productos"
     }
 
     Row(
@@ -264,7 +264,7 @@ fun DetalleVisitaSheet(visita: VisitaResumen, onDismiss: () -> Unit) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            item.producto.ifBlank { "Fiado" },
+                            item.producto.ifBlank { "Cargo" },
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
@@ -283,7 +283,7 @@ fun DetalleVisitaSheet(visita: VisitaResumen, onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Total fiado", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Total", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
                         "${"%.0f".format(visita.totalCargo)}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -326,7 +326,7 @@ private fun SubFilaVisita(visita: VisitaResumen) {
     } else {
         visita.items
             .filter { it.tipo != "pago" }
-            .map { it.producto.ifBlank { "Fiado" } }
+            .map { it.producto.ifBlank { "Cargo" } }
             .joinToString(", ")
     }
 
@@ -425,7 +425,7 @@ fun FilaVisitaDashboard(visita: VisitaResumen) {
             if (visita.items.size == 1) {
                 val item0 = visita.items.first()
                 Text(
-                    item0.producto.ifBlank { if (item0.tipo == "cargo") "Fiado" else "Pago" },
+                    item0.producto.ifBlank { if (item0.tipo == "cargo") "Cargo" else "Pago" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1

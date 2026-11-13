@@ -109,7 +109,7 @@ fun PantallaDetalleMovimiento(
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (esCargo) "Fiado" else "Pago", style = MaterialTheme.typography.labelLarge,
+                        Text(if (esCargo) "Cargo" else "Pago", style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (movActual.anulado) {
                             Badge(containerColor = MaterialTheme.colorScheme.surfaceVariant) {

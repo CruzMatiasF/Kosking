@@ -109,7 +109,7 @@ fun PantallaPanelEmpleado(
                 Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("$fiadosHoy", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Text("fiado${if (fiadosHoy != 1) "s" else ""} hoy",
+                        Text("anotado${if (fiadosHoy != 1) "s" else ""} hoy",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

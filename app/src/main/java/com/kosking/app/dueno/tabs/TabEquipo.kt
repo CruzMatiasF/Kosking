@@ -207,7 +207,7 @@ internal fun TabEquipo(
                         Modifier.size(16.dp).padding(top = 2.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer)
                     Text(
-                        "Los empleados pueden anotar fiados y registrar pagos.",
+                        "Los empleados pueden anotar y registrar pagos.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -270,7 +270,7 @@ internal fun TabEquipo(
                                     fontWeight = FontWeight.Medium,
                                     style = MaterialTheme.typography.bodyLarge)
                                 if (ultimoMov != null) {
-                                    val accion = if (ultimoMov.tipo == "cargo") "Anotó fiado" else "Cobró"
+                                    val accion = if (ultimoMov.tipo == "cargo") "Anotó" else "Cobró"
                                     val esHoy = ultimoMov.fecha.toDate().time >= inicioDia
                                     val fechaStr = if (esHoy) "hoy ${fmtHora.format(ultimoMov.fecha.toDate())}"
                                                   else fmtFecha.format(ultimoMov.fecha.toDate())
@@ -513,7 +513,7 @@ private fun ResumenPeriodoSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    StatResumenCard("Fiado", "$${"%.0f".format(fiadoTotal)}", "$cantFiados op.", isError = true, modifier = Modifier.weight(1f))
+                    StatResumenCard("Anotado", "$${"%.0f".format(fiadoTotal)}", "$cantFiados op.", isError = true, modifier = Modifier.weight(1f))
                     StatResumenCard("Cobrado", "$${"%.0f".format(cobradoTotal)}", "$cantPagos pagos", isSuccess = true, modifier = Modifier.weight(1f))
                 }
             }
@@ -599,7 +599,7 @@ private fun ResumenPeriodoSheet(
             // Top clientes
             if (topClientes.isNotEmpty()) {
                 item {
-                    Text("Top clientes (fiado generado)",
+                    Text("Top clientes (más deben)",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)

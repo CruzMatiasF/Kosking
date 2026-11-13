@@ -338,7 +338,7 @@ fun AnotarRapidoSheet(
                     FilterChip(
                         selected = esCargo,
                         onClick = { mostrarListaClientes = false; if (!esCargo) esCargo = true },
-                        label = { Text("Fiado") },
+                        label = { Text("Cargo") },
                         leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(16.dp)) },
                         modifier = Modifier.weight(1f)
                     )
@@ -557,8 +557,8 @@ fun AnotarRapidoSheet(
                     } else {
                         val monto = if (esCargo) totalConOtro else montoUnicoDouble
                         val label = if (monto > 0)
-                            "${if (esCargo) "Registrar fiado" else "Registrar pago"} ${"$"}${"%.0f".format(monto)}"
-                        else if (esCargo) "Registrar fiado" else "Registrar pago"
+                            "${if (esCargo) "Registrar" else "Registrar pago"} ${"$"}${"%.0f".format(monto)}"
+                        else if (esCargo) "Registrar" else "Registrar pago"
                         Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }

@@ -51,7 +51,7 @@ fun construirExtracto(movimientos: List<Movimiento>): List<VisitaExtracto> {
                 listOf("Pago")
             } else {
                 movs.filter { it.tipo != "pago" }
-                    .map { it.producto.ifBlank { "Fiado" } }
+                    .map { it.producto.ifBlank { "Cargo" } }
             }
             VisitaExtracto(
                 fecha = mov0.fecha.toDate(),

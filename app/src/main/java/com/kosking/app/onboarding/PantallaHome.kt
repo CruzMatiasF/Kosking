@@ -52,6 +52,8 @@ fun PantallaHome(
 ) {
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
     var tabPanelDueno by remember { mutableIntStateOf(tabInicialDueno) }
+    // 0 = Panel/Inicio, 1 = Más
+    var tabNav by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(mostrarPanelDueno) {
         if (mostrarPanelDueno) {
@@ -60,7 +62,7 @@ fun PantallaHome(
         }
     }
 
-    BackHandler(enabled = mostrarPanelDueno && vistaDueno !is NavDueno.Panel) {
+    BackHandler(enabled = vistaDueno !is NavDueno.Panel) {
         vistaDueno = when (val v = vistaDueno) {
             is NavDueno.AgregarFiado -> if (v.volverAPanel) NavDueno.Panel
                                         else NavDueno.DetalleCliente(v.clienteId)
@@ -68,69 +70,105 @@ fun PantallaHome(
         }
     }
 
-    if (mostrarPanelDueno) {
-        when (val vista = vistaDueno) {
-            is NavDueno.Panel -> PanelDuenoEmbedido(
-                vm = duenoVm,
-                tabSeleccionado = tabPanelDueno,
-                onTabChange = { tabPanelDueno = it },
-                onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
-                onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
-                onAbrirAgregarFiado = { clienteId, tipo ->
-                    vistaDueno = NavDueno.AgregarFiado(clienteId, tipo, volverAPanel = tabPanelDueno != 0)
-                },
-                onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
-            )
-            is NavDueno.AgregarCliente -> PantallaAgregarCliente(
-                onVolver = { vistaDueno = NavDueno.Panel },
-                vm = duenoVm
-            )
-            is NavDueno.DetalleCliente -> PantallaDetalleCliente(
-                clienteId = vista.id,
-                onVolver = { vistaDueno = NavDueno.Panel },
-                onVerMovimiento = { movId ->
-                    vistaDueno = NavDueno.DetalleMovimiento(movId, clienteId = vista.id)
-                },
-                onAnotarFiado = { clienteId -> vistaDueno = NavDueno.AgregarFiado(clienteId, "cargo") },
-                onCobrar = { clienteId -> vistaDueno = NavDueno.AgregarFiado(clienteId, "pago") },
-                vm = duenoVm
-            )
-            is NavDueno.AgregarFiado -> PantallaAgregarFiado(
-                clienteId = vista.clienteId,
-                onGuardado = {
-                    vistaDueno = if (vista.volverAPanel) NavDueno.Panel
-                                 else NavDueno.DetalleCliente(vista.clienteId)
-                },
-                onVolver = {
-                    vistaDueno = if (vista.volverAPanel) NavDueno.Panel
-                                 else NavDueno.DetalleCliente(vista.clienteId)
-                },
-                vm = duenoVm,
-                tipoInicial = vista.tipoInicial
-            )
-            is NavDueno.DetalleMovimiento -> PantallaDetalleMovimiento(
-                movimientoId = vista.id,
-                onVolver = {
-                    vistaDueno = vista.clienteId?.let { NavDueno.DetalleCliente(it) } ?: NavDueno.Panel
-                },
-                vm = duenoVm
-            )
+    // Si hay una sub-pantalla del panel abierta, ocultar la nav bar
+    val enSubPantalla = vistaDueno !is NavDueno.Panel
+
+    Scaffold(
+        bottomBar = {
+            if (!enSubPantalla) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = tabNav == 1,
+                        onClick = { tabNav = 1 },
+                        icon = { Icon(Icons.Default.Menu, null) },
+                        label = { Text("Más") }
+                    )
+                }
+            }
         }
-    } else {
-        TabMas(
-            estaLogueado = estaLogueado,
-            nombreUsuario = nombreUsuario,
-            esDueno = esDueno,
-            esEmpleado = esEmpleado,
-            onSoyDueno = onSoyDueno,
-            onSoyEmpleado = onSoyEmpleado,
-            onIniciarSesion = onIniciarSesion,
-            onRegistrarse = onRegistrarse,
-            onCerrarSesion = onCerrarSesionCuenta,
-            onConfigurarPerfil = onConfigurarPerfil,
-            onConfiguracion = onConfiguracion,
-            onAcercaDe = onAcercaDe,
-        )
+    ) { padding ->
+        Box(modifier = androidx.compose.ui.Modifier.padding(padding)) {
+            when {
+                enSubPantalla || tabNav == 0 -> when (val vista = vistaDueno) {
+                    is NavDueno.Panel -> if (mostrarPanelDueno) {
+                        PanelDuenoEmbedido(
+                            vm = duenoVm,
+                            tabSeleccionado = tabPanelDueno,
+                            onTabChange = { tabPanelDueno = it },
+                            onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
+                            onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
+                            onAbrirAgregarFiado = { clienteId, tipo ->
+                                vistaDueno = NavDueno.AgregarFiado(clienteId, tipo, volverAPanel = tabPanelDueno != 0)
+                            },
+                            onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
+                        )
+                    } else {
+                        TabMas(
+                            estaLogueado = estaLogueado,
+                            nombreUsuario = nombreUsuario,
+                            esDueno = esDueno,
+                            esEmpleado = esEmpleado,
+                            onSoyDueno = onSoyDueno,
+                            onSoyEmpleado = onSoyEmpleado,
+                            onIniciarSesion = onIniciarSesion,
+                            onRegistrarse = onRegistrarse,
+                            onCerrarSesion = onCerrarSesionCuenta,
+                            onConfigurarPerfil = onConfigurarPerfil,
+                            onConfiguracion = onConfiguracion,
+                            onAcercaDe = onAcercaDe,
+                        )
+                    }
+                    is NavDueno.AgregarCliente -> PantallaAgregarCliente(
+                        onVolver = { vistaDueno = NavDueno.Panel },
+                        vm = duenoVm
+                    )
+                    is NavDueno.DetalleCliente -> PantallaDetalleCliente(
+                        clienteId = vista.id,
+                        onVolver = { vistaDueno = NavDueno.Panel },
+                        onVerMovimiento = { movId ->
+                            vistaDueno = NavDueno.DetalleMovimiento(movId, clienteId = vista.id)
+                        },
+                        onAnotarFiado = { clienteId -> vistaDueno = NavDueno.AgregarFiado(clienteId, "cargo") },
+                        onCobrar = { clienteId -> vistaDueno = NavDueno.AgregarFiado(clienteId, "pago") },
+                        vm = duenoVm
+                    )
+                    is NavDueno.AgregarFiado -> PantallaAgregarFiado(
+                        clienteId = vista.clienteId,
+                        onGuardado = {
+                            vistaDueno = if (vista.volverAPanel) NavDueno.Panel
+                                         else NavDueno.DetalleCliente(vista.clienteId)
+                        },
+                        onVolver = {
+                            vistaDueno = if (vista.volverAPanel) NavDueno.Panel
+                                         else NavDueno.DetalleCliente(vista.clienteId)
+                        },
+                        vm = duenoVm,
+                        tipoInicial = vista.tipoInicial
+                    )
+                    is NavDueno.DetalleMovimiento -> PantallaDetalleMovimiento(
+                        movimientoId = vista.id,
+                        onVolver = {
+                            vistaDueno = vista.clienteId?.let { NavDueno.DetalleCliente(it) } ?: NavDueno.Panel
+                        },
+                        vm = duenoVm
+                    )
+                }
+                else -> TabMas(
+                    estaLogueado = estaLogueado,
+                    nombreUsuario = nombreUsuario,
+                    esDueno = esDueno,
+                    esEmpleado = esEmpleado,
+                    onSoyDueno = { onSoyDueno(); tabNav = 0 },
+                    onSoyEmpleado = onSoyEmpleado,
+                    onIniciarSesion = onIniciarSesion,
+                    onRegistrarse = onRegistrarse,
+                    onCerrarSesion = onCerrarSesionCuenta,
+                    onConfigurarPerfil = onConfigurarPerfil,
+                    onConfiguracion = onConfiguracion,
+                    onAcercaDe = onAcercaDe,
+                )
+            }
+        }
     }
 }
 

@@ -71,7 +71,7 @@ fun PantallaAcercaDe(onVolver: () -> Unit, onPrivacidad: () -> Unit = {}) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "La app para gestionar fiados, precios y clientes de tu negocio.",
+                    "La app para gestionar cuentas, precios y clientes de tu negocio.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

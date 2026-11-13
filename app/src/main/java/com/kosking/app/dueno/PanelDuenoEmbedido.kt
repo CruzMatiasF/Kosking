@@ -55,9 +55,12 @@ fun PanelDuenoEmbedido(
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
     var mostrarEquipo by remember { mutableStateOf(false) }
+    var mostrarProductos by remember { mutableStateOf(false) }
+    var mostrarClientes by remember { mutableStateOf(false) }
 
+    BackHandler(enabled = mostrarClientes) { mostrarClientes = false }
+    BackHandler(enabled = mostrarProductos) { mostrarProductos = false }
     BackHandler(enabled = mostrarEquipo) { mostrarEquipo = false }
-    BackHandler(enabled = tabSeleccionado != 0 && !mostrarEquipo) { onTabChange(0) }
 
     // Actualiza las prefs que leen los workers de notificaciones
     LaunchedEffect(totalDeuda, clientesConDeuda.size, localId) {
@@ -87,83 +90,40 @@ fun PanelDuenoEmbedido(
         Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
             Column(modifier = Modifier.fillMaxSize()) {
             BannerOffline()
-            val alertasInicio = disputados.size + sobreLimite.size
-            TabRow(selectedTabIndex = tabSeleccionado) {
-                Tab(
-                    selected = tabSeleccionado == 0,
-                    onClick = { onTabChange(0) },
-                    icon = {
-                        BadgedBox(badge = {
-                            if (alertasInicio > 0) Badge { Text("$alertasInicio") }
-                        }) { Icon(Icons.Default.Home, null) }
-                    },
-                    text = { Text("Panel") }
-                )
-                Tab(
-                    selected = tabSeleccionado == 1,
-                    onClick = { onTabChange(1) },
-                    icon = { Icon(Icons.Default.People, null) },
-                    text = { Text("Clientes") }
-                )
-                Tab(
-                    selected = tabSeleccionado == 2,
-                    onClick = { onTabChange(2) },
-                    icon = { Icon(Icons.Default.Storefront, null) },
-                    text = { Text("Productos") }
-                )
-            }
             Box(modifier = Modifier.weight(1f)) {
-            when (tabSeleccionado) {
-                1 -> TabClientes(
-                    clientes = clientes,
-                    movimientos = movimientosLocal,
-                    onVerCliente = onAbrirDetalleCliente,
-                    onAgregarCliente = onAbrirAgregarCliente,
-                    onAnotarRapido = { cliente, tipo ->
-                        clientePreseleccionado = cliente
-                        tipoAnotar = tipo
-                        mostrarAnotar = true
-                    }
-                )
-                2 -> TabProductos(
-                    productos = productos,
-                    cargando = cargando,
-                    onGuardar = { nombre, precio, productoId, onExito -> vm.guardarProducto(nombre, precio, productoId, onExito) },
-                    onEliminar = { vm.eliminarProducto(it) }
-                )
-                else -> TabInicio(
-                    clientes = clientes,
-                    movimientosLocal = movimientosLocal,
-                    totalDeuda = totalDeuda,
-                    clientesConDeuda = clientesConDeuda,
-                    localData = localData,
-                    empleados = empleados,
-                    disputados = disputados,
-                    sobreLimite = sobreLimite,
-                    onTabChange = onTabChange,
-                    onAbrirDetalleCliente = onAbrirDetalleCliente,
-                    onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
-                    onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
-                    onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
-                    onRecordarTodos = { mostrarRecordarTodos = true },
-                    onCompartirResumen = {
-                        val resumen = vm.resumenHoy.value
-                        val (movHoy, fiadoHoy, cobradoHoy) = resumen
-                        val cantFiados = movHoy.count { it.tipo == "cargo" }
-                        val cantPagos = movHoy.count { it.tipo == "pago" }
-                        val texto = WhatsAppUtil.mensajeResumenDia(
-                            nombreLocal = localData?.nombre ?: "Mi local",
-                            fiadoHoy = fiadoHoy,
-                            cobradoHoy = cobradoHoy,
-                            cantFiados = cantFiados,
-                            cantPagos = cantPagos
-                        )
-                        WhatsAppUtil.compartir(context, texto)
-                    },
-                    onWhatsAppCliente = { clienteWhatsApp = it },
-                    onGestionarEquipo = { mostrarEquipo = true }
-                )
-            }
+            TabInicio(
+                clientes = clientes,
+                movimientosLocal = movimientosLocal,
+                totalDeuda = totalDeuda,
+                clientesConDeuda = clientesConDeuda,
+                localData = localData,
+                empleados = empleados,
+                disputados = disputados,
+                sobreLimite = sobreLimite,
+                onTabChange = { mostrarClientes = true },
+                onAbrirDetalleCliente = onAbrirDetalleCliente,
+                onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
+                onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
+                onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
+                onRecordarTodos = { mostrarRecordarTodos = true },
+                onCompartirResumen = {
+                    val resumen = vm.resumenHoy.value
+                    val (movHoy, fiadoHoy, cobradoHoy) = resumen
+                    val cantFiados = movHoy.count { it.tipo == "cargo" }
+                    val cantPagos = movHoy.count { it.tipo == "pago" }
+                    val texto = WhatsAppUtil.mensajeResumenDia(
+                        nombreLocal = localData?.nombre ?: "Mi local",
+                        fiadoHoy = fiadoHoy,
+                        cobradoHoy = cobradoHoy,
+                        cantFiados = cantFiados,
+                        cantPagos = cantPagos
+                    )
+                    WhatsAppUtil.compartir(context, texto)
+                },
+                onWhatsAppCliente = { clienteWhatsApp = it },
+                onGestionarEquipo = { mostrarEquipo = true },
+                onAbrirProductos = { mostrarProductos = true }
+            )
 
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -185,6 +145,65 @@ fun PanelDuenoEmbedido(
             )
             } // Box weight(1f)
             } // Column
+
+            // Clientes como overlay
+            if (mostrarClientes) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        TopAppBar(
+                            title = { Text("Clientes") },
+                            navigationIcon = {
+                                IconButton(onClick = { mostrarClientes = false }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                                }
+                            }
+                        )
+                        TabClientes(
+                            clientes = clientes,
+                            movimientos = movimientosLocal,
+                            onVerCliente = onAbrirDetalleCliente,
+                            onAgregarCliente = onAbrirAgregarCliente,
+                            onAnotarRapido = { cliente, tipo ->
+                                clientePreseleccionado = cliente
+                                tipoAnotar = tipo
+                                mostrarAnotar = true
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Pantalla productos como overlay dentro del panel (sin tab)
+            if (mostrarProductos) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        TopAppBar(
+                            title = { Text("Productos") },
+                            navigationIcon = {
+                                IconButton(onClick = { mostrarProductos = false }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                                }
+                            }
+                        )
+                        TabProductos(
+                            productos = productos,
+                            cargando = cargando,
+                            onGuardar = { nombre, precio, productoId, onExito -> vm.guardarProducto(nombre, precio, productoId, onExito) },
+                            onEliminar = { vm.eliminarProducto(it) }
+                        )
+                    }
+                }
+            }
 
             // Pantalla equipo como overlay dentro del panel (sin tab)
             if (mostrarEquipo) {
@@ -239,7 +258,7 @@ fun PanelDuenoEmbedido(
                             val deudaNueva = if (tipo == "cargo") cliente.deudaTotal + montoTotal
                                             else (cliente.deudaTotal - montoTotal).coerceAtLeast(0.0)
                             ultimoAnotado = UltimoAnotado(cliente, montoTotal, descripcionItems, tipo, deudaNueva)
-                            val accion = if (tipo == "cargo") "fiado" else "pago"
+                            val accion = if (tipo == "cargo") "anotado" else "pago"
                             val montoFmt = "%.0f".format(montoTotal)
                             scope.launch {
                                 val resultado = snackbarHostState.showSnackbar(

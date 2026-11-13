@@ -165,7 +165,7 @@ internal fun TabProductos(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "Al anotar un fiado vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
+                        "Al anotar vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center

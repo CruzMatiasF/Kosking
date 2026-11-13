@@ -14,6 +14,8 @@ object Rutas {
     const val ACERCA_DE = "acerca_de"
     const val PRIVACIDAD = "privacidad"
     const val ONBOARDING = "onboarding"
+    const val PERFIL = "perfil"
+    const val COLABORADORES = "colaboradores"
 
     fun agregarFiadoEmpleado(clienteId: String) = "agregar_fiado_empleado/$clienteId"
     fun detalleMovimiento(movimientoId: String) = "detalle_movimiento/$movimientoId"

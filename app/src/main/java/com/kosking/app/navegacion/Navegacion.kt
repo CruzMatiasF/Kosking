@@ -27,6 +27,8 @@ import com.kosking.app.datos.StartupDestino
 import com.kosking.app.perfil.PantallaAcercaDe
 import com.kosking.app.perfil.PantallaConfigurarPerfil
 import com.kosking.app.perfil.PantallaConfiguracion
+import com.kosking.app.perfil.PantallaPerfil
+import com.kosking.app.dueno.PantallaColaboradores
 import com.kosking.app.onboarding.PantallaOnboarding
 import com.kosking.app.perfil.PantallaPrivacidad
 import androidx.compose.ui.platform.LocalContext
@@ -159,6 +161,7 @@ fun KoskingNavHost() {
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
                 onConfigurarPerfil = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
+                onAbrirPerfil = { nav.navigate(Rutas.PERFIL) },
                 onConfiguracion = { nav.navigate(Rutas.CONFIGURACION) },
                 onAcercaDe = { nav.navigate(Rutas.ACERCA_DE) },
             )
@@ -263,6 +266,37 @@ fun KoskingNavHost() {
             val movimientoId = back.arguments?.getString("movimientoId") ?: return@composable
             PantallaDetalleMovimiento(
                 movimientoId = movimientoId,
+                onVolver = { nav.popBackStack() },
+                vm = duenoVm
+            )
+        }
+
+        composable(Rutas.PERFIL) {
+            val localData by duenoVm.localData.collectAsState()
+            val esDuenoVal by duenoVm.localId.collectAsState()
+            PantallaPerfil(
+                nombreUsuario = nombreUsuario,
+                rol = when {
+                    esDuenoVal.isNotBlank() -> "Dueño de local"
+                    else -> "Cuenta personal"
+                },
+                esDueno = esDuenoVal.isNotBlank(),
+                onVolver = { nav.popBackStack() },
+                onInformacionPersonal = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
+                onColaboradores = { nav.navigate(Rutas.COLABORADORES) },
+                onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) }
+            )
+        }
+
+        composable(Rutas.COLABORADORES) {
+            val empleados by duenoVm.empleados.collectAsState()
+            val movimientos by duenoVm.movimientosLocal.collectAsState()
+            val clientes by duenoVm.clientes.collectAsState()
+            PantallaColaboradores(
+                empleados = empleados,
+                movimientos = movimientos,
+                clientes = clientes,
+                onEliminarEmpleado = { duenoVm.eliminarEmpleado(it) },
                 onVolver = { nav.popBackStack() },
                 vm = duenoVm
             )

@@ -1,15 +1,18 @@
 package com.kosking.app.perfil
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.kosking.app.datos.PreferenciasRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,26 +23,20 @@ fun PantallaConfiguracion(
     onCerrarSesion: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val version = remember {
-        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "—" }
-        catch (_: Exception) { "—" }
-    }
-    var mostrarConfirmar by remember { mutableStateOf(false) }
 
-    if (mostrarConfirmar) {
-        AlertDialog(
-            onDismissRequest = { mostrarConfirmar = false },
-            title = { Text("¿Cerrar sesión?") },
-            text = { Text("Vas a volver a la pantalla de inicio.") },
-            confirmButton = {
-                TextButton(onClick = { mostrarConfirmar = false; onCerrarSesion() }) {
-                    Text("Cerrar sesión", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { mostrarConfirmar = false }) { Text("Cancelar") }
-            }
-        )
+    var notifDeuda by remember {
+        mutableStateOf(PreferenciasRepository.getNotifDeuda(context))
+    }
+    var notifAcuerdos by remember {
+        mutableStateOf(PreferenciasRepository.getNotifAcuerdos(context))
+    }
+    var limiteDefault by remember {
+        mutableStateOf(PreferenciasRepository.getLimiteDefault(context).let {
+            if (it > 0) "%.0f".format(it) else ""
+        })
+    }
+    var empleadosVerDeuda by remember {
+        mutableStateOf(PreferenciasRepository.getEmpleadosVerDeuda(context))
     }
 
     Scaffold(
@@ -58,36 +55,102 @@ fun PantallaConfiguracion(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (esDueno || esEmpleado) {
-                    Text(
-                        "Cuenta",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-                    )
-                    OutlinedButton(
-                        onClick = { mostrarConfirmar = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Cerrar sesión")
-                    }
-                }
-            }
+            Spacer(Modifier.height(4.dp))
 
+            // ── Notificaciones ──────────────────────────────────────────
             Text(
-                "Kosking v$version",
-                style = MaterialTheme.typography.labelSmall,
+                "Notificaciones",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
             )
+            SwitchItem(
+                titulo = "Recordatorio de deudas",
+                subtitulo = "Aviso semanal de clientes con deuda pendiente",
+                checked = notifDeuda,
+                onCheckedChange = {
+                    notifDeuda = it
+                    PreferenciasRepository.setNotifDeuda(context, it)
+                }
+            )
+            HorizontalDivider()
+            SwitchItem(
+                titulo = "Acuerdos vencidos",
+                subtitulo = "Aviso diario de compromisos de pago vencidos",
+                checked = notifAcuerdos,
+                onCheckedChange = {
+                    notifAcuerdos = it
+                    PreferenciasRepository.setNotifAcuerdos(context, it)
+                }
+            )
+
+            // ── Solo dueño ──────────────────────────────────────────────
+            if (esDueno) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Mi local",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                )
+                OutlinedTextField(
+                    value = limiteDefault,
+                    onValueChange = { v ->
+                        limiteDefault = v
+                        val num = v.toDoubleOrNull()
+                        if (num != null) PreferenciasRepository.setLimiteDefault(context, num)
+                        else if (v.isBlank()) PreferenciasRepository.setLimiteDefault(context, 0.0)
+                    },
+                    label = { Text("Límite de crédito por defecto") },
+                    placeholder = { Text("Sin límite") },
+                    suffix = { Text("$") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    "Se aplica automáticamente al agregar un cliente nuevo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                HorizontalDivider()
+                SwitchItem(
+                    titulo = "Empleados ven deuda total",
+                    subtitulo = "Permitir que tus empleados vean el monto total adeudado",
+                    checked = empleadosVerDeuda,
+                    onCheckedChange = {
+                        empleadosVerDeuda = it
+                        PreferenciasRepository.setEmpleadosVerDeuda(context, it)
+                    }
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun SwitchItem(
+    titulo: String,
+    subtitulo: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(subtitulo, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

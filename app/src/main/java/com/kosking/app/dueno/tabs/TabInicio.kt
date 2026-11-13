@@ -53,7 +53,6 @@ internal fun TabInicio(
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
     onVerMovimiento: (String) -> Unit = {},
-    onGestionarEquipo: () -> Unit = {},
     onAbrirProductos: () -> Unit = {}
 ) {
     var mostrarHistorial by remember { mutableStateOf(false) }
@@ -567,61 +566,6 @@ internal fun TabInicio(
 
         // Sección compacta de equipo
         if (empleados.isNotEmpty()) {
-            item {
-                HorizontalDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.Badge, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Equipo hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    }
-                    TextButton(
-                        onClick = onGestionarEquipo,
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Text("Gestionar →", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                if (statsHoyEquipo.isEmpty()) {
-                    Text(
-                        "Sin actividad hoy",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                } else {
-                    statsHoyEquipo.forEach { stat ->
-                        ListItem(
-                            headlineContent = { Text(stat.nombre, style = MaterialTheme.typography.bodyMedium) },
-                            supportingContent = {
-                                Text(
-                                    "${stat.anoto} mov${if (stat.anoto != 1) "s" else ""}${if (stat.cobro > 0) " · cobró $${"%.0f".format(stat.cobro)}" else ""}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            leadingContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        stat.nombre.firstOrNull()?.uppercase() ?: "?",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-            }
         }
 
         item {

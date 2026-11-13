@@ -54,13 +54,11 @@ fun PanelDuenoEmbedido(
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
-    var mostrarEquipo by remember { mutableStateOf(false) }
     var mostrarProductos by remember { mutableStateOf(false) }
     var mostrarClientes by remember { mutableStateOf(false) }
 
     BackHandler(enabled = mostrarClientes) { mostrarClientes = false }
     BackHandler(enabled = mostrarProductos) { mostrarProductos = false }
-    BackHandler(enabled = mostrarEquipo) { mostrarEquipo = false }
 
     // Actualiza las prefs que leen los workers de notificaciones
     LaunchedEffect(totalDeuda, clientesConDeuda.size, localId) {
@@ -121,7 +119,6 @@ fun PanelDuenoEmbedido(
                     WhatsAppUtil.compartir(context, texto)
                 },
                 onWhatsAppCliente = { clienteWhatsApp = it },
-                onGestionarEquipo = { mostrarEquipo = true },
                 onAbrirProductos = { mostrarProductos = true }
             )
 
@@ -205,33 +202,6 @@ fun PanelDuenoEmbedido(
                 }
             }
 
-            // Pantalla equipo como overlay dentro del panel (sin tab)
-            if (mostrarEquipo) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        @OptIn(ExperimentalMaterial3Api::class)
-                        TopAppBar(
-                            title = { Text("Equipo") },
-                            navigationIcon = {
-                                IconButton(onClick = { mostrarEquipo = false }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                                }
-                            }
-                        )
-                        TabEquipo(
-                            empleados = empleados,
-                            movimientos = movimientosLocal,
-                            clientes = clientes,
-                            onEliminarEmpleado = { vm.eliminarEmpleado(it) },
-                            vm = vm
-                        )
-                    }
-                }
-            }
         }
     }
 

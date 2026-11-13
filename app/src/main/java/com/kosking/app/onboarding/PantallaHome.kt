@@ -47,6 +47,7 @@ fun PantallaHome(
     onRegistrarse: () -> Unit = {},
     onCerrarSesionCuenta: () -> Unit,
     onConfigurarPerfil: () -> Unit,
+    onAbrirPerfil: () -> Unit = {},
     onConfiguracion: () -> Unit = {},
     onAcercaDe: () -> Unit = {},
 ) {
@@ -114,6 +115,7 @@ fun PantallaHome(
                             onRegistrarse = onRegistrarse,
                             onCerrarSesion = onCerrarSesionCuenta,
                             onConfigurarPerfil = onConfigurarPerfil,
+                            onAbrirPerfil = onAbrirPerfil,
                             onConfiguracion = onConfiguracion,
                             onAcercaDe = onAcercaDe,
                         )
@@ -164,6 +166,7 @@ fun PantallaHome(
                     onRegistrarse = onRegistrarse,
                     onCerrarSesion = onCerrarSesionCuenta,
                     onConfigurarPerfil = onConfigurarPerfil,
+                    onAbrirPerfil = onAbrirPerfil,
                     onConfiguracion = onConfiguracion,
                     onAcercaDe = onAcercaDe,
                 )
@@ -184,6 +187,7 @@ internal fun TabMas(
     onRegistrarse: () -> Unit = {},
     onCerrarSesion: () -> Unit,
     onConfigurarPerfil: () -> Unit,
+    onAbrirPerfil: () -> Unit = {},
     onConfiguracion: () -> Unit,
     onAcercaDe: () -> Unit,
 ) {
@@ -299,10 +303,14 @@ internal fun TabMas(
                 Text("Iniciar sesión")
             }
         } else {
-            // Con sesión: avatar + nombre + rol
+            // Con sesión: avatar + nombre + rol (clickeable → perfil)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onAbrirPerfil)
+                    .padding(vertical = 4.dp)
             ) {
                 Box(
                     modifier = Modifier.size(52.dp).clip(CircleShape)
@@ -316,7 +324,7 @@ internal fun TabMas(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         nombreUsuario.ifBlank { "Mi cuenta" },
                         style = MaterialTheme.typography.titleMedium,
@@ -332,6 +340,11 @@ internal fun TabMas(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                Icon(
+                    Icons.Default.ChevronRight, null,
+                    Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -377,17 +390,6 @@ internal fun TabMas(
         // ── CONFIGURACIÓN (si está logueado) ─────────────────────────
         if (estaLogueado) {
             HorizontalDivider()
-            Text(
-                "Cuenta",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ListItem(
-                headlineContent = { Text("Configurar perfil") },
-                leadingContent = { Icon(Icons.Default.Edit, null, Modifier.size(20.dp)) },
-                modifier = Modifier.clickable(onClick = onConfigurarPerfil).fillMaxWidth()
-            )
-            HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
             ListItem(
                 headlineContent = { Text("Configuración") },
                 leadingContent = { Icon(Icons.Default.Settings, null, Modifier.size(20.dp)) },

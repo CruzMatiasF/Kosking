@@ -44,6 +44,7 @@ fun PantallaHome(
     onSoyDueno: () -> Unit,
     onSoyEmpleado: () -> Unit,
     onIniciarSesion: () -> Unit,
+    onRegistrarse: () -> Unit = {},
     onCerrarSesionCuenta: () -> Unit,
     onConfigurarPerfil: () -> Unit,
     onConfiguracion: () -> Unit = {},
@@ -124,6 +125,7 @@ fun PantallaHome(
             onSoyDueno = onSoyDueno,
             onSoyEmpleado = onSoyEmpleado,
             onIniciarSesion = onIniciarSesion,
+            onRegistrarse = onRegistrarse,
             onCerrarSesion = onCerrarSesionCuenta,
             onConfigurarPerfil = onConfigurarPerfil,
             onConfiguracion = onConfiguracion,
@@ -141,6 +143,7 @@ internal fun TabMas(
     onSoyDueno: () -> Unit,
     onSoyEmpleado: () -> Unit,
     onIniciarSesion: () -> Unit,
+    onRegistrarse: () -> Unit = {},
     onCerrarSesion: () -> Unit,
     onConfigurarPerfil: () -> Unit,
     onConfiguracion: () -> Unit,
@@ -155,60 +158,90 @@ internal fun TabMas(
             .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header: avatar + nombre o "Invitado"
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.padding(bottom = 4.dp)
-        ) {
+        // ── CUENTA ──────────────────────────────────────────────────
+        if (!estaLogueado) {
+            // Sin sesión: invitar a crear cuenta o iniciar sesión
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (estaLogueado) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    ),
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center
             ) {
-                if (estaLogueado) {
+                Icon(Icons.Default.Person, null, Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(
+                "Crear una cuenta es gratis",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Text(
+                "Con tu cuenta podés crear o unirte a un local.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(4.dp))
+            Button(
+                onClick = onRegistrarse,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Crear cuenta")
+            }
+            OutlinedButton(
+                onClick = onIniciarSesion,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Login, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Iniciar sesión")
+            }
+        } else {
+            // Con sesión: avatar + nombre + rol
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(52.dp).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         nombreUsuario.firstOrNull()?.uppercase() ?: "?",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                } else {
-                    Icon(
-                        Icons.Default.Person,
-                        null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Column {
+                    Text(
+                        nombreUsuario.ifBlank { "Mi cuenta" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        when {
+                            esDueno -> "Dueño de local"
+                            esEmpleado -> "Empleado"
+                            else -> "Cuenta personal"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-            Column {
-                Text(
-                    if (estaLogueado) nombreUsuario.ifBlank { "Mi cuenta" } else "Invitado",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    when {
-                        esDueno -> "Dueño de local"
-                        esEmpleado -> "Empleado"
-                        estaLogueado -> "Sin rol configurado"
-                        else -> "No iniciaste sesión"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 
         HorizontalDivider()
 
-        // Acceso al panel (si ya tiene rol)
+        // ── PANEL (si tiene rol) ─────────────────────────────────────
         if (esDueno) {
             Button(
                 onClick = onSoyDueno,
@@ -217,7 +250,7 @@ internal fun TabMas(
             ) {
                 Icon(Icons.Default.Store, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Abrir mi panel de dueño")
+                Text("Abrir mi panel")
             }
         }
         if (esEmpleado) {
@@ -228,12 +261,12 @@ internal fun TabMas(
             ) {
                 Icon(Icons.Default.Badge, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Ir a mi panel de empleado")
+                Text("Ir a mi panel")
             }
         }
 
-        // Cards de rol (si no tiene ninguno)
-        if (!esDueno && !esEmpleado) {
+        // ── LOCALES (si no tiene rol y está logueado) ────────────────
+        if (estaLogueado && !esDueno && !esEmpleado) {
             Text(
                 "¿Qué querés hacer?",
                 style = MaterialTheme.typography.labelLarge,
@@ -254,26 +287,7 @@ internal fun TabMas(
             )
         }
 
-        // Login/Registro si no está logueado
-        if (!estaLogueado) {
-            HorizontalDivider()
-            Text(
-                "¿Ya tenés cuenta?",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedButton(
-                onClick = onIniciarSesion,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Login, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Iniciar sesión")
-            }
-        }
-
-        // Opciones de cuenta (si está logueado)
+        // ── CONFIGURACIÓN (si está logueado) ─────────────────────────
         if (estaLogueado) {
             HorizontalDivider()
             Text(
@@ -294,7 +308,7 @@ internal fun TabMas(
             )
         }
 
-        // Opciones generales
+        // ── APP ───────────────────────────────────────────────────────
         HorizontalDivider()
         Text(
             "App",
@@ -310,21 +324,17 @@ internal fun TabMas(
         ListItem(
             headlineContent = { Text("Compartir con un amigo") },
             leadingContent = { Icon(Icons.Default.Share, null, Modifier.size(20.dp)) },
-            modifier = Modifier.clickable(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            "¡Usá Kosking para manejar los fiaditos de tu local! Es gratis para empezar. Buscalo como \"Kosking\" en Play Store 📱"
-                        )
-                    }
-                    context.startActivity(Intent.createChooser(intent, "Compartir Kosking"))
+            modifier = Modifier.clickable(onClick = {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT,
+                        "¡Usá Kosking para manejar los fiaditos de tu local! Es gratis para empezar. Buscalo como \"Kosking\" en Play Store 📱")
                 }
-            ).fillMaxWidth()
+                context.startActivity(Intent.createChooser(intent, "Compartir Kosking"))
+            }).fillMaxWidth()
         )
 
-        // Cerrar sesión
+        // ── CERRAR SESIÓN ─────────────────────────────────────────────
         if (estaLogueado) {
             Spacer(Modifier.height(4.dp))
             TextButton(

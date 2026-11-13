@@ -34,7 +34,7 @@ import com.kosking.app.datos.PreferenciasRepository
 import kotlinx.coroutines.launch
 
 private sealed class DestinoPostLogin {
-    object PanelDueno : DestinoPostLogin()
+    object CrearLocal : DestinoPostLogin()
     object IngresarCodigo : DestinoPostLogin()
 }
 
@@ -133,7 +133,7 @@ fun KoskingNavHost() {
                 onSoyDueno = {
                     when {
                         !estaLogueado -> {
-                            destinoPostLogin = DestinoPostLogin.PanelDueno
+                            destinoPostLogin = DestinoPostLogin.CrearLocal
                             nav.navigate(Rutas.LOGIN)
                         }
                         duenoTieneSession -> mostrarPanelDueno = true
@@ -141,19 +141,17 @@ fun KoskingNavHost() {
                     }
                 },
                 onSoyEmpleado = {
-                    if (!estaLogueado) {
-                        destinoPostLogin = DestinoPostLogin.IngresarCodigo
-                        nav.navigate(Rutas.LOGIN)
-                    } else if (empleadoTieneSession) {
-                        nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
-                    } else {
-                        nav.navigate(Rutas.INGRESAR_CODIGO)
+                    when {
+                        !estaLogueado -> {
+                            destinoPostLogin = DestinoPostLogin.IngresarCodigo
+                            nav.navigate(Rutas.LOGIN)
+                        }
+                        empleadoTieneSession -> nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                        else -> nav.navigate(Rutas.INGRESAR_CODIGO)
                     }
                 },
-                onIniciarSesion = {
-                    destinoPostLogin = null
-                    nav.navigate(Rutas.LOGIN)
-                },
+                onIniciarSesion = { nav.navigate(Rutas.LOGIN) },
+                onRegistrarse = { nav.navigate(Rutas.REGISTRO) },
                 onCerrarSesionCuenta = {
                     empleadoVm.cerrarSesion()
                     duenoVm.cerrarSesion()
@@ -170,15 +168,12 @@ fun KoskingNavHost() {
             PantallaLogin(
                 onLoginExitoso = {
                     nav.popBackStack()
-                    when (destinoPostLogin) {
-                        DestinoPostLogin.IngresarCodigo -> {
-                            destinoPostLogin = null
-                            nav.navigate(Rutas.INGRESAR_CODIGO)
-                        }
-                        else -> {
-                            destinoPostLogin = null
-                            mostrarPanelDueno = true
-                        }
+                    val destino = destinoPostLogin
+                    destinoPostLogin = null
+                    when (destino) {
+                        DestinoPostLogin.CrearLocal -> nav.navigate(Rutas.CREAR_LOCAL)
+                        DestinoPostLogin.IngresarCodigo -> nav.navigate(Rutas.INGRESAR_CODIGO)
+                        null -> {}
                     }
                 },
                 onIrARegistro = { nav.navigate(Rutas.REGISTRO) },
@@ -189,15 +184,13 @@ fun KoskingNavHost() {
         composable(Rutas.REGISTRO) {
             PantallaRegistro(
                 onRegistroExitoso = {
-                    when (destinoPostLogin) {
-                        DestinoPostLogin.IngresarCodigo -> {
-                            destinoPostLogin = null
-                            nav.navigate(Rutas.INGRESAR_CODIGO) { popUpTo(Rutas.EXPLORAR) }
-                        }
-                        else -> {
-                            destinoPostLogin = null
-                            nav.navigate(Rutas.CREAR_LOCAL) { popUpTo(Rutas.EXPLORAR) }
-                        }
+                    nav.popBackStack(Rutas.EXPLORAR, inclusive = false)
+                    val destino = destinoPostLogin
+                    destinoPostLogin = null
+                    when (destino) {
+                        DestinoPostLogin.CrearLocal -> nav.navigate(Rutas.CREAR_LOCAL)
+                        DestinoPostLogin.IngresarCodigo -> nav.navigate(Rutas.INGRESAR_CODIGO)
+                        null -> {}
                     }
                 },
                 onVolver = { nav.popBackStack() }

@@ -24,7 +24,6 @@ fun PantallaPerfil(
     onVolver: () -> Unit,
     onInformacionPersonal: () -> Unit,
     onSeguridad: () -> Unit = {},
-    onColaboradores: () -> Unit = {},
     onPrivacidad: () -> Unit,
 ) {
     Scaffold(
@@ -96,15 +95,6 @@ fun PantallaPerfil(
                 subtitulo = "Contraseña y acceso",
                 onClick = onSeguridad
             )
-            if (esDueno) {
-                HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
-                PerfilItem(
-                    icono = Icons.Default.Group,
-                    titulo = "Colaboradores",
-                    subtitulo = "Empleados de tu local",
-                    onClick = onColaboradores
-                )
-            }
             HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
             PerfilItem(
                 icono = Icons.Default.PrivacyTip,

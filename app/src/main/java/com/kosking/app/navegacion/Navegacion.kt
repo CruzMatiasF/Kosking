@@ -284,7 +284,6 @@ fun KoskingNavHost() {
                 esDueno = esDuenoVal.isNotBlank(),
                 onVolver = { nav.popBackStack() },
                 onInformacionPersonal = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
-                onColaboradores = { nav.navigate(Rutas.COLABORADORES) },
                 onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) }
             )
         }
@@ -323,6 +322,7 @@ fun KoskingNavHost() {
                         nav.popBackStack()
                     }
                 },
+                onColaboradores = { nav.navigate(Rutas.COLABORADORES) },
                 onVolver = { nav.popBackStack() }
             )
         }

@@ -1,11 +1,13 @@
 package com.kosking.app.dueno.local
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ fun PantallaConfigurarLocal(
     localData: Local,
     cargando: Boolean = false,
     onGuardar: (nombre: String, direccion: String, telefono: String, horarios: Map<String, HorarioDia>) -> Unit,
+    onColaboradores: () -> Unit = {},
     onVolver: () -> Unit
 ) {
     var nombre by remember(localData) { mutableStateOf(localData.nombre) }
@@ -94,6 +97,17 @@ fun PantallaConfigurarLocal(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            HorizontalDivider()
+
+            // Colaboradores
+            ListItem(
+                headlineContent = { Text("Colaboradores", fontWeight = FontWeight.Medium) },
+                supportingContent = { Text("Empleados de tu local", style = MaterialTheme.typography.bodySmall) },
+                leadingContent = { Icon(Icons.Default.Group, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) },
+                trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable(onClick = onColaboradores)
             )
 
             HorizontalDivider()

@@ -1,9 +1,11 @@
 package com.kosking.app.perfil
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,23 +22,29 @@ fun PantallaConfiguracion(
     esDueno: Boolean,
     esEmpleado: Boolean,
     onVolver: () -> Unit,
+    onMiLocal: () -> Unit = {},
     onCerrarSesion: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    var notifDeuda by remember {
-        mutableStateOf(PreferenciasRepository.getNotifDeuda(context))
-    }
-    var notifAcuerdos by remember {
-        mutableStateOf(PreferenciasRepository.getNotifAcuerdos(context))
-    }
+    var notifDeuda by remember { mutableStateOf(PreferenciasRepository.getNotifDeuda(context)) }
+    var notifAcuerdos by remember { mutableStateOf(PreferenciasRepository.getNotifAcuerdos(context)) }
     var limiteDefault by remember {
         mutableStateOf(PreferenciasRepository.getLimiteDefault(context).let {
             if (it > 0) "%.0f".format(it) else ""
         })
     }
-    var empleadosVerDeuda by remember {
-        mutableStateOf(PreferenciasRepository.getEmpleadosVerDeuda(context))
+    var empleadosVerDeuda by remember { mutableStateOf(PreferenciasRepository.getEmpleadosVerDeuda(context)) }
+
+    val localLabel = when {
+        esDueno -> "Editar datos del local"
+        esEmpleado -> "Unirse a un local"
+        else -> "Crear mi local"
+    }
+    val localSubtitulo = when {
+        esDueno -> "Nombre, dirección y teléfono"
+        esEmpleado -> "Ingresá el código de tu dueño"
+        else -> "Registrá tu negocio en Kosking"
     }
 
     Scaffold(
@@ -60,38 +68,50 @@ fun PantallaConfiguracion(
         ) {
             Spacer(Modifier.height(4.dp))
 
+            // ── Mi local ───────────────────────────────────────────────
+            Text(
+                "Local",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+            )
+            ListItem(
+                headlineContent = { Text(localLabel, fontWeight = FontWeight.Medium) },
+                supportingContent = { Text(localSubtitulo, style = MaterialTheme.typography.bodySmall) },
+                leadingContent = { Icon(Icons.Default.Store, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) },
+                trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable(onClick = onMiLocal)
+            )
+
             // ── Notificaciones ──────────────────────────────────────────
+            HorizontalDivider()
             Text(
                 "Notificaciones",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
             )
             SwitchItem(
                 titulo = "Recordatorio de deudas",
                 subtitulo = "Aviso semanal de clientes con deuda pendiente",
                 checked = notifDeuda,
-                onCheckedChange = {
-                    notifDeuda = it
-                    PreferenciasRepository.setNotifDeuda(context, it)
-                }
+                onCheckedChange = { notifDeuda = it; PreferenciasRepository.setNotifDeuda(context, it) }
             )
-            HorizontalDivider()
-            SwitchItem(
-                titulo = "Acuerdos vencidos",
-                subtitulo = "Aviso diario de compromisos de pago vencidos",
-                checked = notifAcuerdos,
-                onCheckedChange = {
-                    notifAcuerdos = it
-                    PreferenciasRepository.setNotifAcuerdos(context, it)
-                }
-            )
+            if (esDueno) {
+                HorizontalDivider()
+                SwitchItem(
+                    titulo = "Acuerdos vencidos",
+                    subtitulo = "Aviso diario de compromisos de pago vencidos",
+                    checked = notifAcuerdos,
+                    onCheckedChange = { notifAcuerdos = it; PreferenciasRepository.setNotifAcuerdos(context, it) }
+                )
+            }
 
             // ── Solo dueño ──────────────────────────────────────────────
             if (esDueno) {
-                Spacer(Modifier.height(8.dp))
+                HorizontalDivider()
                 Text(
-                    "Mi local",
+                    "Mi negocio",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
@@ -112,20 +132,16 @@ fun PantallaConfiguracion(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "Se aplica automáticamente al agregar un cliente nuevo.",
+                    "Se aplica al agregar un cliente nuevo.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(4.dp))
                 HorizontalDivider()
                 SwitchItem(
                     titulo = "Empleados ven deuda total",
                     subtitulo = "Permitir que tus empleados vean el monto total adeudado",
                     checked = empleadosVerDeuda,
-                    onCheckedChange = {
-                        empleadosVerDeuda = it
-                        PreferenciasRepository.setEmpleadosVerDeuda(context, it)
-                    }
+                    onCheckedChange = { empleadosVerDeuda = it; PreferenciasRepository.setEmpleadosVerDeuda(context, it) }
                 )
             }
         }
@@ -140,9 +156,7 @@ private fun SwitchItem(
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

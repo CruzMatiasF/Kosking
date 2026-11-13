@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import com.kosking.app.datos.PreferenciasRepository
 import com.kosking.app.util.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.launch
@@ -68,18 +67,6 @@ fun PanelDuenoEmbedido(
             .apply()
     }
 
-    // Wizard primer uso: aparece solo si SharedPrefs dice que no fue completado
-    // Y además no tiene ni clientes ni productos (reinstalación en teléfono nuevo)
-    var wizardCompletado by remember { mutableStateOf(PreferenciasRepository.isWizardCompletado(context)) }
-    val localCargado = localData != null
-    // Una vez que llegan los datos de Firestore, si ya tiene clientes o productos lo marcamos completado
-    LaunchedEffect(localCargado, clientes.size, productos.size) {
-        if (localCargado && !wizardCompletado && (clientes.isNotEmpty() || productos.isNotEmpty())) {
-            PreferenciasRepository.marcarWizardCompletado(context)
-            wizardCompletado = true
-        }
-    }
-    val mostrarWizard = localCargado && !wizardCompletado
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -316,24 +303,6 @@ fun PanelDuenoEmbedido(
         clienteWhatsApp = null
     }
 
-    // Wizard primer uso — overlay pantalla completa
-    if (mostrarWizard) {
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            WizardPrimerUso(
-                cargando = cargando,
-                onGuardarProducto = { nombre, precio, onExito ->
-                    vm.guardarProducto(nombre, precio, null, onExito)
-                },
-                onGuardarCliente = { nombre, telefono, onExito ->
-                    vm.agregarCliente(nombre = nombre, telefono = telefono, domicilio = "", limiteCredito = 0.0, onExito)
-                },
-                onTerminar = {
-                    PreferenciasRepository.marcarWizardCompletado(context)
-                    wizardCompletado = true
-                }
-            )
-        }
-    }
 
     // BottomSheet recordar a todos
     if (mostrarRecordarTodos) {

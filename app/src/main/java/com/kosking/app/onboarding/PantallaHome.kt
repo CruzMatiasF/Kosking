@@ -150,6 +150,64 @@ internal fun TabMas(
     onAcercaDe: () -> Unit,
 ) {
     val context = LocalContext.current
+    var mostrarDialogRol by remember { mutableStateOf(false) }
+
+    if (mostrarDialogRol) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogRol = false },
+            title = { Text("¿Cómo querés usar Kosking?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Card(
+                        onClick = { mostrarDialogRol = false; onSoyDueno() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🏪", style = MaterialTheme.typography.headlineSmall)
+                            Column {
+                                Text("Soy el dueño", style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("Creo y administro mi local",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f))
+                            }
+                        }
+                    }
+                    Card(
+                        onClick = { mostrarDialogRol = false; onSoyEmpleado() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("👥", style = MaterialTheme.typography.headlineSmall)
+                            Column {
+                                Text("Soy empleado", style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Me uno con el código del dueño",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogRol = false }) { Text("Cancelar") }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -265,26 +323,17 @@ internal fun TabMas(
             }
         }
 
-        // ── LOCALES (si no tiene rol y está logueado) ────────────────
+        // ── LOCAL (si no tiene rol y está logueado) ──────────────────
         if (estaLogueado && !esDueno && !esEmpleado) {
-            Text(
-                "¿Qué querés hacer?",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            RolCard(
-                emoji = "🏪",
-                titulo = "Crear un local",
-                subtitulo = "Registrá tu kiosco, almacén o negocio y manejá los fiaditos",
-                onClick = onSoyDueno,
-                destacada = true
-            )
-            RolCard(
-                emoji = "👥",
-                titulo = "Unirme a un local",
-                subtitulo = "Entrá como empleado con el código que te dio el dueño",
-                onClick = onSoyEmpleado
-            )
+            Button(
+                onClick = { mostrarDialogRol = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Store, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Configurar mi local")
+            }
         }
 
         // ── CONFIGURACIÓN (si está logueado) ─────────────────────────
@@ -352,37 +401,3 @@ internal fun TabMas(
     }
 }
 
-@Composable
-private fun RolCard(
-    emoji: String,
-    titulo: String,
-    subtitulo: String,
-    onClick: () -> Unit,
-    destacada: Boolean = false
-) {
-    val containerColor = if (destacada) MaterialTheme.colorScheme.primaryContainer
-                         else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (destacada) MaterialTheme.colorScheme.onPrimaryContainer
-                       else MaterialTheme.colorScheme.onSurfaceVariant
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(emoji, style = MaterialTheme.typography.headlineSmall)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(titulo, style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold, color = contentColor)
-                Text(subtitulo, style = MaterialTheme.typography.bodySmall,
-                    color = contentColor.copy(alpha = 0.75f))
-            }
-        }
-    }
-}

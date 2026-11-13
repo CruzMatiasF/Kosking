@@ -3,6 +3,8 @@ package com.kosking.app.autenticacion
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,10 +17,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaLogin(
     onLoginExitoso: () -> Unit,
     onIrARegistro: () -> Unit,
+    onVolver: (() -> Unit)? = null,
     vm: AuthViewModel = viewModel()
 ) {
     val error by vm.error.collectAsState()
@@ -29,8 +33,22 @@ fun PantallaLogin(
     var mostrarRecuperar by remember { mutableStateOf(false) }
     val passwordFocus = remember { FocusRequester() }
 
+    Scaffold(
+        topBar = {
+            if (onVolver != null) {
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = onVolver) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        }
+                    }
+                )
+            }
+        }
+    ) { padding ->
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -96,6 +114,7 @@ fun PantallaLogin(
             Text("¿No tenés cuenta? Registrate")
         }
     }
+    } // Scaffold
 
     if (mostrarRecuperar) {
         DialogRecuperarPassword(

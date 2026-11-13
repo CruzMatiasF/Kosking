@@ -181,7 +181,8 @@ fun KoskingNavHost() {
                         }
                     }
                 },
-                onIrARegistro = { nav.navigate(Rutas.REGISTRO) }
+                onIrARegistro = { nav.navigate(Rutas.REGISTRO) },
+                onVolver = { nav.popBackStack() }
             )
         }
 
@@ -209,6 +210,7 @@ fun KoskingNavHost() {
                     nav.popBackStack(Rutas.EXPLORAR, inclusive = false)
                     mostrarPanelDueno = true
                 },
+                onVolver = { nav.popBackStack(Rutas.EXPLORAR, inclusive = false) },
                 vm = duenoVm
             )
         }

@@ -7,11 +7,13 @@ import com.kosking.app.ui.theme.Verde
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -48,6 +50,12 @@ internal fun TabEquipo(
     var codigoGenerado by remember { mutableStateOf<String?>(null) }
     var empleadoAEliminar by remember { mutableStateOf<Empleado?>(null) }
     var mostrarResumen by remember { mutableStateOf(false) }
+    var busqueda by remember { mutableStateOf("") }
+
+    val empleadosFiltrados = remember(empleados, busqueda) {
+        if (busqueda.isBlank()) empleados
+        else empleados.filter { it.nombre.contains(busqueda, ignoreCase = true) }
+    }
 
     val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
 
@@ -175,13 +183,49 @@ internal fun TabEquipo(
             }
         }
 
+        if (empleados.size > 3) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    BasicTextField(
+                        value = busqueda,
+                        onValueChange = { busqueda = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                        decorationBox = { inner ->
+                            Box {
+                                if (busqueda.isEmpty()) Text("Buscar empleado",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                inner()
+                            }
+                        }
+                    )
+                    if (busqueda.isNotEmpty()) {
+                        Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { busqueda = "" },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+
         item {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("EMPLEADOS · ${empleados.size}",
+                Text("EMPLEADOS · ${if (busqueda.isBlank()) empleados.size else "${empleadosFiltrados.size}/${empleados.size}"}",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -215,7 +259,20 @@ internal fun TabEquipo(
             }
         }
 
-        if (empleados.isEmpty()) {
+        if (empleadosFiltrados.isEmpty() && busqueda.isNotBlank()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.SearchOff, null, Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        Text("No encontramos \"$busqueda\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
+                    }
+                }
+            }
+        } else if (empleados.isEmpty()) {
             item {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -231,7 +288,7 @@ internal fun TabEquipo(
                 }
             }
         } else {
-            items(empleados, key = { it.id }) { emp ->
+            items(empleadosFiltrados, key = { it.id }) { emp ->
                 val ultimoMov = ultimoMovPorUid[emp.uid]
                 val reclamos = disputasPorUid[emp.uid] ?: 0
                 val esActivoHoy = ultimoMov != null && ultimoMov.fecha.toDate().time >= inicioDia

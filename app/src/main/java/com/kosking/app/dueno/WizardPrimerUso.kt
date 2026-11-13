@@ -11,9 +11,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -53,20 +55,17 @@ fun WizardPrimerUso(
     var guardandoLocal by remember { mutableStateOf(false) }
     var errorLocal by remember { mutableStateOf<String?>(null) }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = { /* no se puede cerrar sin completar */ },
-        sheetState = sheetState,
-        dragHandle = null,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.92f)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = 28.dp, bottom = 36.dp),
+                .padding(top = 48.dp, bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Indicador de pasos

@@ -316,21 +316,23 @@ fun PanelDuenoEmbedido(
         clienteWhatsApp = null
     }
 
-    // Wizard primer uso
+    // Wizard primer uso — overlay pantalla completa
     if (mostrarWizard) {
-        WizardPrimerUso(
-            cargando = cargando,
-            onGuardarProducto = { nombre, precio, onExito ->
-                vm.guardarProducto(nombre, precio, null, onExito)
-            },
-            onGuardarCliente = { nombre, telefono, onExito ->
-                vm.agregarCliente(nombre = nombre, telefono = telefono, domicilio = "", limiteCredito = 0.0, onExito)
-            },
-            onTerminar = {
-                PreferenciasRepository.marcarWizardCompletado(context)
-                wizardCompletado = true
-            }
-        )
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            WizardPrimerUso(
+                cargando = cargando,
+                onGuardarProducto = { nombre, precio, onExito ->
+                    vm.guardarProducto(nombre, precio, null, onExito)
+                },
+                onGuardarCliente = { nombre, telefono, onExito ->
+                    vm.agregarCliente(nombre = nombre, telefono = telefono, domicilio = "", limiteCredito = 0.0, onExito)
+                },
+                onTerminar = {
+                    PreferenciasRepository.marcarWizardCompletado(context)
+                    wizardCompletado = true
+                }
+            )
+        }
     }
 
     // BottomSheet recordar a todos

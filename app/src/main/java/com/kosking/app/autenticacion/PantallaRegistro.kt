@@ -65,7 +65,7 @@ fun PantallaRegistro(
                 value = email,
                 onValueChange = { email = it; tocadoEmail = true },
                 label = { Text("Email") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 isError = tocadoEmail && !emailValido,
                 supportingText = if (tocadoEmail && !emailValido) {
                     { Text("Ingresá un email válido") }

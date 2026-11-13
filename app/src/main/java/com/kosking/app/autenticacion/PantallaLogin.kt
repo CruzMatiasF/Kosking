@@ -62,7 +62,7 @@ fun PantallaLogin(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -149,7 +149,7 @@ private fun DialogRecuperarPassword(
                         value = emailRecuperar,
                         onValueChange = { emailRecuperar = it; errorLocal = null },
                         label = { Text("Email") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         isError = errorLocal != null,
                         supportingText = errorLocal?.let { { Text(it) } },
                         modifier = Modifier.fillMaxWidth()

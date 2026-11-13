@@ -62,7 +62,7 @@ fun DialogInvitarEmpleado(
                         onValueChange = { email = it },
                         label = { Text("Email") },
                         placeholder = { Text("empleado@email.com") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )

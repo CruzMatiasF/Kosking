@@ -4,6 +4,13 @@ import androidx.compose.runtime.Immutable
 import com.google.firebase.Timestamp
 
 @Immutable
+data class HorarioDia(
+    val abierto: Boolean = false,
+    val horaApertura: String = "09:00",
+    val horaCierre: String = "20:00"
+)
+
+@Immutable
 data class Local(
     val id: String = "",
     val nombre: String = "",
@@ -13,7 +20,8 @@ data class Local(
     val direccion: String = "",
     val latitud: Double = 0.0,
     val longitud: Double = 0.0,
-    val abierto: Boolean = false
+    val abierto: Boolean = false,
+    val horarios: Map<String, HorarioDia> = emptyMap()
 )
 
 @Immutable

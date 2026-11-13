@@ -15,6 +15,7 @@ import com.kosking.app.autenticacion.PantallaLogin
 import com.kosking.app.autenticacion.PantallaRegistro
 import com.kosking.app.autenticacion.AuthViewModel
 import com.kosking.app.dueno.local.PantallaCrearLocal
+import com.kosking.app.dueno.local.PantallaConfigurarLocal
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
 import com.kosking.app.empleado.EmpleadoViewModel
@@ -303,14 +304,25 @@ fun KoskingNavHost() {
         }
 
         composable(Rutas.CONFIGURAR_PERFIL) {
-            val localData by duenoVm.localData.collectAsState()
             PantallaConfigurarPerfil(
                 nombreActual = nombreUsuario,
                 emailActual = emailUsuario,
-                localData = localData,
-                onGuardarLocal = if (localData != null) { nombre, direccion, telefono ->
-                    duenoVm.actualizarLocal(nombre, direccion, telefono)
-                } else null,
+                onVolver = { nav.popBackStack() }
+            )
+        }
+
+        composable(Rutas.CONFIGURAR_LOCAL) {
+            val localData by duenoVm.localData.collectAsState()
+            val cargando by duenoVm.cargando.collectAsState()
+            val local = localData ?: return@composable
+            PantallaConfigurarLocal(
+                localData = local,
+                cargando = cargando,
+                onGuardar = { nombre, direccion, telefono, horarios ->
+                    duenoVm.actualizarLocalCompleto(nombre, direccion, telefono, horarios) {
+                        nav.popBackStack()
+                    }
+                },
                 onVolver = { nav.popBackStack() }
             )
         }
@@ -322,6 +334,13 @@ fun KoskingNavHost() {
                 esDueno = esDuenoVal.isNotBlank(),
                 esEmpleado = esEmpleadoVal,
                 onVolver = { nav.popBackStack() },
+                onMiLocal = {
+                    when {
+                        esDuenoVal.isNotBlank() -> nav.navigate(Rutas.CONFIGURAR_LOCAL)
+                        esEmpleadoVal -> nav.navigate(Rutas.INGRESAR_CODIGO)
+                        else -> nav.navigate(Rutas.CREAR_LOCAL)
+                    }
+                },
                 onCerrarSesion = {
                     empleadoVm.cerrarSesion()
                     duenoVm.cerrarSesion()

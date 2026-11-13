@@ -151,6 +151,35 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarLocalCompleto(
+        nombre: String,
+        direccion: String,
+        telefono: String,
+        horarios: Map<String, com.kosking.app.modelo.HorarioDia>,
+        onExito: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _cargando.value = true
+            _error.value = null
+            try {
+                val local = localData.value?.copy(
+                    nombre = nombre,
+                    direccion = direccion,
+                    telefono = telefono,
+                    horarios = horarios
+                ) ?: return@launch
+                FiadoRepository.actualizarLocal(local)
+                _nombreLocal.value = nombre
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarLocalCompleto")
+                _error.value = "No se pudo guardar"
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+
     val clientes: StateFlow<List<Cliente>> = _localId
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.clientesFlow(id) else flowOf(emptyList())

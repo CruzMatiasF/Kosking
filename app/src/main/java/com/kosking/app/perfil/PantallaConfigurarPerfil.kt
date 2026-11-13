@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.userProfileChangeRequest
 import com.kosking.app.datos.FiadoRepository
-import com.kosking.app.modelo.Local
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,14 +25,9 @@ import kotlinx.coroutines.launch
 fun PantallaConfigurarPerfil(
     nombreActual: String,
     emailActual: String,
-    localData: Local? = null,
-    onGuardarLocal: ((nombre: String, direccion: String, telefono: String) -> Unit)? = null,
     onVolver: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(nombreActual) }
-    var nombreLocal by remember(localData) { mutableStateOf(localData?.nombre ?: "") }
-    var direccionLocal by remember(localData) { mutableStateOf(localData?.direccion ?: "") }
-    var telefonoLocal by remember(localData) { mutableStateOf(localData?.telefono ?: "") }
     var guardando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
@@ -41,7 +35,7 @@ fun PantallaConfigurarPerfil(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Configurar perfil") },
+                title = { Text("Información personal") },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
@@ -113,39 +107,6 @@ fun PantallaConfigurarPerfil(
                 }
             }
 
-            // Datos del local
-            if (onGuardarLocal != null) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("TU LOCAL", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = androidx.compose.ui.Modifier.padding(start = 4.dp))
-                    OutlinedTextField(
-                        value = nombreLocal,
-                        onValueChange = { nombreLocal = it },
-                        label = { Text("Nombre del local") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = direccionLocal,
-                        onValueChange = { direccionLocal = it },
-                        label = { Text("Dirección") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = telefonoLocal,
-                        onValueChange = { telefonoLocal = it },
-                        label = { Text("Teléfono del local") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
             Button(
                 onClick = {
                     if (nombre.isBlank()) { error = "El nombre no puede estar vacío"; return@Button }
@@ -158,9 +119,6 @@ fun PantallaConfigurarPerfil(
                                 FirebaseAuth.getInstance().currentUser?.updateProfile(
                                     userProfileChangeRequest { displayName = nombre.trim() }
                                 )
-                            }
-                            if (onGuardarLocal != null && nombreLocal.isNotBlank()) {
-                                onGuardarLocal(nombreLocal.trim(), direccionLocal.trim(), telefonoLocal.trim())
                             }
                             onVolver()
                         } catch (e: Exception) {

@@ -64,6 +64,7 @@ fun WizardPrimerUso(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(0.92f)
                 .padding(horizontal = 24.dp)
                 .padding(top = 28.dp, bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)

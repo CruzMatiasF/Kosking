@@ -209,27 +209,6 @@ fun PantallaDetalleCliente(
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { onAnotarFiado(clienteId) },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Anotar fiado")
-                            }
-                            OutlinedButton(
-                                onClick = { onCobrar(clienteId) },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("Cobrar")
-                            }
-                        }
                         if (it.telefono.isNotBlank() && it.deudaTotal > 0) {
                             OutlinedButton(
                                 onClick = {

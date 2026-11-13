@@ -144,8 +144,9 @@ fun PanelDuenoEmbedido(
                     movimientos = movimientosLocal,
                     onVerCliente = onAbrirDetalleCliente,
                     onAgregarCliente = onAbrirAgregarCliente,
-                    onAnotarRapido = { cliente ->
+                    onAnotarRapido = { cliente, tipo ->
                         clientePreseleccionado = cliente
+                        tipoAnotar = tipo
                         mostrarAnotar = true
                     }
                 )

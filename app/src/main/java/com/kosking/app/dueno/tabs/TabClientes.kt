@@ -32,7 +32,7 @@ internal fun TabClientes(
     movimientos: List<Movimiento> = emptyList(),
     onVerCliente: (String) -> Unit,
     onAgregarCliente: () -> Unit,
-    onAnotarRapido: ((Cliente) -> Unit)? = null
+    onAnotarRapido: ((Cliente, String) -> Unit)? = null
 ) {
     var filtro by rememberSaveable { mutableStateOf("deuda") }
     var busqueda by rememberSaveable { mutableStateOf("") }
@@ -302,8 +302,21 @@ internal fun TabClientes(
                             )
                         },
                         trailingContent = if (onAnotarRapido != null && cliente.habilitado) ({
-                            IconButton(onClick = { onAnotarRapido(cliente) }, modifier = Modifier.size(40.dp)) {
-                                Icon(Icons.Default.Add, "Anotar", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalButton(
+                                    onClick = { onAnotarRapido(cliente, "cargo") },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text("Fiado", style = MaterialTheme.typography.labelSmall)
+                                }
+                                OutlinedButton(
+                                    onClick = { onAnotarRapido(cliente, "pago") },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text("Cobrar", style = MaterialTheme.typography.labelSmall)
+                                }
                             }
                         }) else null,
                         modifier = Modifier.clickable { onVerCliente(cliente.id) }
@@ -326,7 +339,7 @@ internal fun TabClientes(
                         ultimaVisitaDate = ultimaVisita[cliente.id],
                         ahoraMs = ahora,
                         onVerCliente = onVerCliente,
-                        onAnotarRapido = if (onAnotarRapido != null) ({ onAnotarRapido(cliente) }) else null
+                        onAnotarRapido = if (onAnotarRapido != null) ({ onAnotarRapido(cliente, "cargo") }) else null
                     )
                 }
                 item { Spacer(Modifier.height(80.dp)) }

@@ -3,20 +3,23 @@ package com.kosking.app.onboarding
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,11 +65,6 @@ fun PantallaHome(
                                         else NavDueno.DetalleCliente(v.clienteId)
             else -> NavDueno.Panel
         }
-    }
-
-    // Dueño logueado → ir directo al panel, sin pasar por bienvenida
-    LaunchedEffect(estaLogueado, esDueno) {
-        if (estaLogueado && esDueno && !mostrarPanelDueno) onSoyDueno()
     }
 
     if (mostrarPanelDueno) {
@@ -118,7 +116,7 @@ fun PantallaHome(
             )
         }
     } else {
-        PantallaBienvenida(
+        AppPublica(
             estaLogueado = estaLogueado,
             nombreUsuario = nombreUsuario,
             esDueno = esDueno,
@@ -135,7 +133,121 @@ fun PantallaHome(
 }
 
 @Composable
-private fun PantallaBienvenida(
+private fun AppPublica(
+    estaLogueado: Boolean,
+    nombreUsuario: String,
+    esDueno: Boolean,
+    esEmpleado: Boolean,
+    onSoyDueno: () -> Unit,
+    onSoyEmpleado: () -> Unit,
+    onIniciarSesion: () -> Unit,
+    onCerrarSesion: () -> Unit,
+    onConfigurarPerfil: () -> Unit,
+    onConfiguracion: () -> Unit,
+    onAcercaDe: () -> Unit,
+) {
+    var tabSeleccionado by remember { mutableIntStateOf(0) }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                val navColors = NavigationBarItemDefaults.colors(
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                NavigationBarItem(
+                    selected = tabSeleccionado == 0,
+                    onClick = { tabSeleccionado = 0 },
+                    icon = { Icon(Icons.Default.Explore, null) },
+                    label = { Text("Explorar") },
+                    colors = navColors
+                )
+                NavigationBarItem(
+                    selected = tabSeleccionado == 1,
+                    onClick = { tabSeleccionado = 1 },
+                    icon = {
+                        if (estaLogueado) {
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (tabSeleccionado == 1) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.primaryContainer
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    nombreUsuario.firstOrNull()?.uppercase() ?: "?",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (tabSeleccionado == 1) MaterialTheme.colorScheme.primaryContainer
+                                            else MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        } else {
+                            Icon(Icons.Default.Person, null)
+                        }
+                    },
+                    label = { Text("Más") },
+                    colors = navColors
+                )
+            }
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when (tabSeleccionado) {
+                1 -> TabMas(
+                    estaLogueado = estaLogueado,
+                    nombreUsuario = nombreUsuario,
+                    esDueno = esDueno,
+                    esEmpleado = esEmpleado,
+                    onSoyDueno = onSoyDueno,
+                    onSoyEmpleado = onSoyEmpleado,
+                    onIniciarSesion = onIniciarSesion,
+                    onCerrarSesion = onCerrarSesion,
+                    onConfigurarPerfil = onConfigurarPerfil,
+                    onConfiguracion = onConfiguracion,
+                    onAcercaDe = onAcercaDe,
+                )
+                else -> TabExplorar()
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabExplorar() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("🗺️", style = MaterialTheme.typography.displayMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Próximamente",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Vas a poder encontrar locales\ncerca tuyo en el mapa",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun TabMas(
     estaLogueado: Boolean,
     nombreUsuario: String,
     esDueno: Boolean,
@@ -153,121 +265,199 @@ private fun PantallaBienvenida(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Logo
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
+        // Header: avatar + nombre o "Invitado"
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(bottom = 4.dp)
         ) {
-            Text(
-                "K",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (estaLogueado) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (estaLogueado) {
+                    Text(
+                        nombreUsuario.firstOrNull()?.uppercase() ?: "?",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Column {
+                Text(
+                    if (estaLogueado) nombreUsuario.ifBlank { "Mi cuenta" } else "Invitado",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    when {
+                        esDueno -> "Dueño de local"
+                        esEmpleado -> "Empleado"
+                        estaLogueado -> "Sin rol configurado"
+                        else -> "No iniciaste sesión"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
-        Spacer(Modifier.height(16.dp))
+        HorizontalDivider()
 
-        Text(
-            "Kosking",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Gestioná tus fiaditos por WhatsApp",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+        // Acceso al panel (si ya tiene rol)
+        if (esDueno) {
+            Button(
+                onClick = onSoyDueno,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Store, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Abrir mi panel de dueño")
+            }
+        }
+        if (esEmpleado) {
+            Button(
+                onClick = onSoyEmpleado,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Badge, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ir a mi panel de empleado")
+            }
+        }
 
-        Spacer(Modifier.height(48.dp))
-
-        if (estaLogueado) {
-            // Usuario logueado pero sin panel activo (caso raro)
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp).clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            nombreUsuario.firstOrNull()?.uppercase() ?: "",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(nombreUsuario.ifBlank { "Mi cuenta" },
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            if (esDueno) {
-                Button(onClick = onSoyDueno, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Store, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Ir a mi panel")
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onCerrarSesion, modifier = Modifier.fillMaxWidth()) {
-                Text("Cerrar sesión")
-            }
-        } else {
-            // Tres opciones como cards para mayor claridad visual
-            OpcionEntrada(
+        // Cards de rol (si no tiene ninguno)
+        if (!esDueno && !esEmpleado) {
+            Text(
+                if (estaLogueado) "¿Qué querés hacer?" else "¿Querés usar Kosking?",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            RolCard(
                 emoji = "🏪",
-                titulo = "Soy dueño",
-                subtitulo = "Registrate y manejá tu local",
+                titulo = "Quiero ser dueño",
+                subtitulo = "Registrá tu local y manejá los fiaditos",
                 onClick = onSoyDueno,
                 destacada = true
             )
-            Spacer(Modifier.height(10.dp))
-            OpcionEntrada(
+            RolCard(
                 emoji = "👤",
-                titulo = "Soy empleado",
-                subtitulo = "Entrá con el código del local",
+                titulo = "Soy empleado de un local",
+                subtitulo = "Entrá con el código que te dio el dueño",
                 onClick = onSoyEmpleado
             )
         }
 
-        Spacer(Modifier.height(32.dp))
-        TextButton(
-            onClick = {
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(
-                        Intent.EXTRA_TEXT,
-                        "¡Usá Kosking para manejar los fiaditos de tu local! Es gratis para empezar. Buscalo como \"Kosking\" en Play Store 📱"
-                    )
-                }
-                context.startActivity(Intent.createChooser(intent, "Compartir Kosking"))
+        // Login/Registro si no está logueado
+        if (!estaLogueado) {
+            HorizontalDivider()
+            Text(
+                "¿Ya tenés cuenta?",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                onClick = onIniciarSesion,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Login, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Iniciar sesión")
             }
-        ) {
-            Icon(Icons.Default.Share, null, Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Compartir con un amigo", style = MaterialTheme.typography.bodySmall)
         }
+
+        // Opciones de cuenta (si está logueado)
+        if (estaLogueado) {
+            HorizontalDivider()
+            Text(
+                "Cuenta",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ListItem(
+                headlineContent = { Text("Configurar perfil") },
+                leadingContent = { Icon(Icons.Default.Edit, null, Modifier.size(20.dp)) },
+                modifier = Modifier.clickable(onClick = onConfigurarPerfil).fillMaxWidth()
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+            ListItem(
+                headlineContent = { Text("Configuración") },
+                leadingContent = { Icon(Icons.Default.Settings, null, Modifier.size(20.dp)) },
+                modifier = Modifier.clickable(onClick = onConfiguracion).fillMaxWidth()
+            )
+        }
+
+        // Opciones generales
+        HorizontalDivider()
+        Text(
+            "App",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        ListItem(
+            headlineContent = { Text("Acerca de Kosking") },
+            leadingContent = { Icon(Icons.Default.Info, null, Modifier.size(20.dp)) },
+            modifier = Modifier.clickable(onClick = onAcercaDe).fillMaxWidth()
+        )
+        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+        ListItem(
+            headlineContent = { Text("Compartir con un amigo") },
+            leadingContent = { Icon(Icons.Default.Share, null, Modifier.size(20.dp)) },
+            modifier = Modifier.clickable(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "¡Usá Kosking para manejar los fiaditos de tu local! Es gratis para empezar. Buscalo como \"Kosking\" en Play Store 📱"
+                        )
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Compartir Kosking"))
+                }
+            ).fillMaxWidth()
+        )
+
+        // Cerrar sesión
+        if (estaLogueado) {
+            Spacer(Modifier.height(4.dp))
+            TextButton(
+                onClick = onCerrarSesion,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Cerrar sesión")
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun OpcionEntrada(
+private fun RolCard(
     emoji: String,
     titulo: String,
     subtitulo: String,

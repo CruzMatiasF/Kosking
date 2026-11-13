@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.util.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.launch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,43 +83,35 @@ fun PanelDuenoEmbedido(
         vm.clearError()
     }
 
-    Scaffold(
-        bottomBar = {
-            val navColors = NavigationBarItemDefaults.colors(
-                indicatorColor = MaterialTheme.colorScheme.tertiaryContainer,
-                selectedIconColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.tertiary,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            NavigationBar {
-                val alertasInicio = disputados.size + sobreLimite.size
-                NavigationBarItem(
-                    selected = tabSeleccionado == 0, onClick = { onTabChange(0) },
+    Scaffold { scaffoldPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+            BannerOffline()
+            val alertasInicio = disputados.size + sobreLimite.size
+            TabRow(selectedTabIndex = tabSeleccionado) {
+                Tab(
+                    selected = tabSeleccionado == 0,
+                    onClick = { onTabChange(0) },
                     icon = {
                         BadgedBox(badge = {
                             if (alertasInicio > 0) Badge { Text("$alertasInicio") }
                         }) { Icon(Icons.Default.Home, null) }
                     },
-                    label = { Text("Panel") },
-                    colors = navColors
+                    text = { Text("Panel") }
                 )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 1, onClick = { onTabChange(1) },
-                    icon = { Icon(Icons.Default.People, null) }, label = { Text("Clientes") },
-                    colors = navColors
+                Tab(
+                    selected = tabSeleccionado == 1,
+                    onClick = { onTabChange(1) },
+                    icon = { Icon(Icons.Default.People, null) },
+                    text = { Text("Clientes") }
                 )
-                NavigationBarItem(
-                    selected = tabSeleccionado == 2, onClick = { onTabChange(2) },
-                    icon = { Icon(Icons.Default.Storefront, null) }, label = { Text("Productos") },
-                    colors = navColors
+                Tab(
+                    selected = tabSeleccionado == 2,
+                    onClick = { onTabChange(2) },
+                    icon = { Icon(Icons.Default.Storefront, null) },
+                    text = { Text("Productos") }
                 )
             }
-        }
-    ) { scaffoldPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
-            Column(modifier = Modifier.fillMaxSize()) {
-            BannerOffline()
             Box(modifier = Modifier.weight(1f)) {
             when (tabSeleccionado) {
                 1 -> TabClientes(

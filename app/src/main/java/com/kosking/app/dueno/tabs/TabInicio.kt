@@ -125,17 +125,7 @@ internal fun TabInicio(
             .filter { it.fechaCompromiso != null && it.fechaCompromiso.toDate().before(hoy) }
             .sortedBy { it.fechaCompromiso!!.toDate() }
     }
-    val LIMITE_URGENTES = 4
-    val clientesUrgentes = remember(clientesConDeuda, clientesVencidos) {
-        val vencidosIds = clientesVencidos.map { it.id }.toSet()
-        val relleno = clientesConDeuda
-            .filter { it.id !in vencidosIds }
-            .sortedByDescending { it.deudaTotal }
-        (clientesVencidos + relleno).take(LIMITE_URGENTES)
-    }
-    val hayMasUrgentes = remember(clientesConDeuda, clientesUrgentes) {
-        clientesConDeuda.size > clientesUrgentes.size
-    }
+    val clientesUrgentes = clientesVencidos
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
@@ -587,16 +577,6 @@ internal fun TabInicio(
                     modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-            }
-            if (hayMasUrgentes) {
-                item {
-                    TextButton(
-                        onClick = { onTabChange(1) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-                    ) {
-                        Text("Ver todos los clientes", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
             }
         }
 

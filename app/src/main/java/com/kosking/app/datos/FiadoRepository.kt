@@ -352,8 +352,8 @@ object FiadoRepository {
                     "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1)
                 ),
                 com.google.firebase.firestore.SetOptions.merge()
-        cacheGlobal = null
             ).await()
+        cacheGlobal = null
     }
 
     suspend fun syncProductosGlobales(nombres: List<String>) {

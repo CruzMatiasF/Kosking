@@ -35,6 +35,8 @@ import com.kosking.app.perfil.PantallaSeguridad
 import com.kosking.app.perfil.PantallaPrivacidad
 import com.kosking.app.perfil.PantallaPoliticaPrivacidad
 import com.kosking.app.perfil.PantallaConfigurarPerfil
+import com.kosking.app.perfil.PantallaConfiguracion
+import com.kosking.app.perfil.PantallaAcercaDe
 
 private sealed class VistaExtra {
     object Ninguna : VistaExtra()
@@ -43,6 +45,8 @@ private sealed class VistaExtra {
     object Privacidad : VistaExtra()
     object PoliticaPrivacidad : VistaExtra()
     object ConfigurarPerfil : VistaExtra()
+    object Configuracion : VistaExtra()
+    object AcercaDe : VistaExtra()
 }
 
 @Composable
@@ -94,6 +98,9 @@ fun PantallaHome(
         }
     }
 
+    val esDuenoState = esDueno
+    val esEmpleadoState = esEmpleado
+
     // Si hay una sub-pantalla del panel abierta, ocultar la nav bar
     val enSubPantalla = vistaDueno !is NavDueno.Panel || vistaExtra !is VistaExtra.Ninguna
 
@@ -139,8 +146,8 @@ fun PantallaHome(
                             onCerrarSesion = onCerrarSesionCuenta,
                             onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
                             onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
-                            onConfiguracion = onConfiguracion,
-                            onAcercaDe = onAcercaDe,
+                            onConfiguracion = { vistaExtra = VistaExtra.Configuracion },
+                            onAcercaDe = { vistaExtra = VistaExtra.AcercaDe },
                         )
                     }
                     is NavDueno.AgregarCliente -> PantallaAgregarCliente(
@@ -190,8 +197,8 @@ fun PantallaHome(
                     onCerrarSesion = onCerrarSesionCuenta,
                     onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
                     onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
-                    onConfiguracion = onConfiguracion,
-                    onAcercaDe = onAcercaDe,
+                    onConfiguracion = { vistaExtra = VistaExtra.Configuracion },
+                    onAcercaDe = { vistaExtra = VistaExtra.AcercaDe },
                 )
             }
 
@@ -224,6 +231,17 @@ fun PantallaHome(
                 )
                 is VistaExtra.PoliticaPrivacidad -> PantallaPoliticaPrivacidad(
                     onVolver = { vistaExtra = VistaExtra.Privacidad }
+                )
+                is VistaExtra.Configuracion -> PantallaConfiguracion(
+                    esDueno = esDuenoState,
+                    esEmpleado = esEmpleadoState,
+                    onVolver = { vistaExtra = VistaExtra.Ninguna },
+                    onMiLocal = onConfiguracion,
+                    onCerrarSesion = onCerrarSesionCuenta
+                )
+                is VistaExtra.AcercaDe -> PantallaAcercaDe(
+                    onVolver = { vistaExtra = VistaExtra.Ninguna },
+                    onPrivacidad = { vistaExtra = VistaExtra.PoliticaPrivacidad }
                 )
                 else -> {}
             }

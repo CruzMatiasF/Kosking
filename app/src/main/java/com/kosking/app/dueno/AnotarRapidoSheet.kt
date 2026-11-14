@@ -40,6 +40,7 @@ fun AnotarRapidoSheet(
     clienteInicial: Cliente? = null,
     productos: List<Producto> = emptyList(),
     tipoInicial: String = "cargo",
+    onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardar: (clienteId: String, items: List<Pair<String, Double>>, tipo: String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -84,6 +85,14 @@ fun AnotarRapidoSheet(
     var montoOtroTexto by remember { mutableStateOf("") }
     var mostrarOtro by remember { mutableStateOf(productos.isEmpty()) }
     var montoTexto by remember { mutableStateOf("") }
+    var sugerenciasOtro by remember { mutableStateOf(emptyList<String>()) }
+    var pedirConfirmSinPrecio by remember { mutableStateOf(false) }
+
+    LaunchedEffect(descripcionOtro) {
+        if (descripcionOtro.length < 2) { sugerenciasOtro = emptyList(); return@LaunchedEffect }
+        kotlinx.coroutines.delay(300)
+        sugerenciasOtro = try { onBuscarGlobal(descripcionOtro) } catch (_: Exception) { emptyList() }
+    }
 
     fun limpiarCarrito() {
         carrito.clear()
@@ -418,28 +427,52 @@ fun AnotarRapidoSheet(
             ) {
                 // Entrada manual "Otro"
                 if (esCargo && (mostrarOtro || productos.isEmpty())) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = descripcionOtro,
-                            onValueChange = { descripcionOtro = it },
-                            label = { Text("Descripción") },
-                            placeholder = { Text("Ej: pan") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        OutlinedTextField(
-                            value = montoOtroTexto,
-                            onValueChange = { montoOtroTexto = it.filter { c -> c.isDigit() || c == '.' } },
-                            label = { Text("$") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.width(90.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        if (productos.isNotEmpty()) {
-                            IconButton(onClick = { mostrarOtro = false; descripcionOtro = ""; montoOtroTexto = "" }) {
-                                Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = descripcionOtro,
+                                onValueChange = { descripcionOtro = it; sugerenciasOtro = emptyList() },
+                                label = { Text("Descripción") },
+                                placeholder = { Text("Ej: pan") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            OutlinedTextField(
+                                value = montoOtroTexto,
+                                onValueChange = { montoOtroTexto = it.filter { c -> c.isDigit() || c == '.' } },
+                                label = { Text("$") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.width(90.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            if (productos.isNotEmpty()) {
+                                IconButton(onClick = { mostrarOtro = false; descripcionOtro = ""; montoOtroTexto = ""; sugerenciasOtro = emptyList() }) {
+                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                        if (sugerenciasOtro.isNotEmpty()) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                elevation = CardDefaults.cardElevation(4.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                sugerenciasOtro.forEach { sugerencia ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { descripcionOtro = sugerencia; sugerenciasOtro = emptyList() }
+                                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(sugerencia, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    HorizontalDivider()
+                                }
                             }
                         }
                     }
@@ -506,6 +539,30 @@ fun AnotarRapidoSheet(
                     }
                 }
 
+                // Confirmación guardar con productos sin precio
+                if (pedirConfirmSinPrecio) {
+                    val sinPrecio = carrito.filter { it.producto.ultimoPrecio <= 0 }.map { it.producto.nombre }
+                    AlertDialog(
+                        onDismissRequest = { pedirConfirmSinPrecio = false },
+                        title = { Text("Registrar sin precio") },
+                        text = { Text("${sinPrecio.joinToString(", ")} no ${if (sinPrecio.size == 1) "tiene" else "tienen"} precio y no ${if (sinPrecio.size == 1) "suma" else "suman"} al total. ¿Registrar igual?") },
+                        confirmButton = {
+                            Button(onClick = {
+                                pedirConfirmSinPrecio = false
+                                val cliente = clienteSeleccionado ?: return@Button
+                                val items = buildList {
+                                    carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
+                                    if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
+                                }
+                                onGuardar(cliente.id, items, "cargo")
+                            }) { Text("Registrar igual") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { pedirConfirmSinPrecio = false }) { Text("Cancelar") }
+                        }
+                    )
+                }
+
                 // Botón guardar
                 Button(
                     onClick = {
@@ -515,6 +572,8 @@ fun AnotarRapidoSheet(
                             if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
                             if (!esCargo) add(Pair("", montoUnicoDouble))
                         }
+                        val haySinPrecio = esCargo && carrito.any { it.producto.ultimoPrecio <= 0 }
+                        if (haySinPrecio) { pedirConfirmSinPrecio = true; return@Button }
                         onGuardar(cliente.id, items, if (esCargo) "cargo" else "pago")
                     },
                     enabled = puedeGuardar,

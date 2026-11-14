@@ -217,6 +217,7 @@ fun PanelDuenoEmbedido(
             clienteInicial = clientePreseleccionado,
             productos = productos,
             tipoInicial = tipoAnotar,
+            onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
             onGuardar = { clienteId, items, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,

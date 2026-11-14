@@ -8,14 +8,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.kosking.app.datos.PreferenciasRepository
 import com.kosking.app.navegacion.KoskingNavHost
+import com.kosking.app.ajustes.PantallaBloqueo
 import com.kosking.app.notificaciones.NotificacionDeudaWorker
 import com.kosking.app.notificaciones.NotificacionAcuerdosWorker
 import com.kosking.app.ui.theme.KoskingTheme
@@ -35,8 +42,34 @@ class MainActivity : ComponentActivity() {
         pedirPermisoNotificacionSiNecesario()
         programarRecordatorioSemanal()
         setContent {
-            KoskingTheme {
-                KoskingNavHost()
+            val context = this
+            var tema by remember { mutableStateOf(PreferenciasRepository.getTema(context)) }
+            val esDark = when (tema) {
+                "claro" -> false
+                "oscuro" -> true
+                else -> isSystemInDarkTheme()
+            }
+            // Bloqueo por PIN: se activa al iniciar y al volver desde segundo plano
+            var bloqueado by remember {
+                mutableStateOf(PreferenciasRepository.isPinHabilitado(context))
+            }
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_STOP &&
+                        PreferenciasRepository.isPinHabilitado(context)) {
+                        bloqueado = true
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
+            KoskingTheme(darkTheme = esDark) {
+                if (bloqueado) {
+                    PantallaBloqueo(onDesbloqueado = { bloqueado = false })
+                } else {
+                    KoskingNavHost(onTemaChanged = { tema = it })
+                }
             }
         }
     }

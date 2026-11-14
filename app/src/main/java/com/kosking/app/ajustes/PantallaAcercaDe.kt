@@ -1,4 +1,4 @@
-package com.kosking.app.perfil
+﻿package com.kosking.app.ajustes
 
 import android.content.Intent
 import android.net.Uri
@@ -107,45 +107,6 @@ fun PantallaAcercaDe(onVolver: () -> Unit, onPrivacidad: () -> Unit = {}) {
                                     tint = MaterialTheme.colorScheme.primary)
                             }
                         )
-                    }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "¿Encontraste un problema?",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Reportalo y lo solucionamos lo antes posible.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        OutlinedButton(
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:")
-                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("matiasfc.info@gmail.com"))
-                                    putExtra(Intent.EXTRA_SUBJECT, "Reporte de problema - Kosking")
-                                }
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Email, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Reportar problema")
-                        }
                     }
                 }
             }

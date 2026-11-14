@@ -25,15 +25,17 @@ internal fun TabReportes(
     movimientos: List<Movimiento>,
     clientes: List<Cliente>
 ) {
-    val ahora = Calendar.getInstance()
+    val ahora = remember { Calendar.getInstance() }
 
-    val inicioMesActual = Calendar.getInstance().apply {
-        set(Calendar.DAY_OF_MONTH, 1)
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    val inicioMesActual = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
     }
-    val inicioMesAnterior = (inicioMesActual.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
-    val inicioHace6Meses = (inicioMesActual.clone() as Calendar).apply { add(Calendar.MONTH, -5) }
+    val inicioMesAnterior = remember { (inicioMesActual.clone() as Calendar).apply { add(Calendar.MONTH, -1) } }
+    val inicioHace6Meses = remember { (inicioMesActual.clone() as Calendar).apply { add(Calendar.MONTH, -5) } }
 
     val fmtMes = remember { SimpleDateFormat("MMM", Locale.forLanguageTag("es-AR")) }
     val fmtMesCompleto = remember { SimpleDateFormat("MMMM", Locale.forLanguageTag("es-AR")) }

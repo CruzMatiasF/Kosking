@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,10 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.userProfileChangeRequest
 import com.kosking.app.datos.FiadoRepository
+import com.kosking.app.modelo.Usuario
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,12 +28,21 @@ import kotlinx.coroutines.launch
 fun PantallaConfigurarPerfil(
     nombreActual: String,
     emailActual: String,
+    usuario: Usuario? = null,
     onVolver: () -> Unit
 ) {
     var nombre by remember { mutableStateOf(nombreActual) }
+    var telefono by remember { mutableStateOf(usuario?.telefono ?: "") }
+    var dni by remember { mutableStateOf(usuario?.dni ?: "") }
     var guardando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+
+    val rolTexto = when (usuario?.rol) {
+        "dueno" -> "Dueño de local"
+        "empleado" -> "Empleado"
+        else -> "Cuenta personal"
+    }
 
     Scaffold(
         topBar = {
@@ -77,22 +89,27 @@ fun PantallaConfigurarPerfil(
                 }
             }
 
-            // Datos del usuario
+            // Campos editables
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("TU CUENTA", style = MaterialTheme.typography.labelSmall,
+                Text(
+                    "TU CUENTA",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = androidx.compose.ui.Modifier.padding(start = 4.dp, bottom = 4.dp))
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it; error = "" },
-                    label = { Text("Tu nombre") },
+                    label = { Text("Nombre de usuario") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     isError = error.isNotBlank()
                 )
+
                 OutlinedTextField(
                     value = emailActual,
                     onValueChange = {},
@@ -101,9 +118,40 @@ fun PantallaConfigurarPerfil(
                     enabled = false,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                OutlinedTextField(
+                    value = telefono,
+                    onValueChange = { telefono = it },
+                    label = { Text("Teléfono") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = dni,
+                    onValueChange = { dni = it },
+                    label = { Text("DNI") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = rolTexto,
+                    onValueChange = {},
+                    label = { Text("Rol de la cuenta") },
+                    singleLine = true,
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 if (error.isNotBlank()) {
-                    Text(error, color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 
@@ -115,7 +163,7 @@ fun PantallaConfigurarPerfil(
                         try {
                             val uid = FirebaseAuth.getInstance().currentUser?.uid
                             if (uid != null) {
-                                FiadoRepository.actualizarNombreUsuario(uid, nombre.trim())
+                                FiadoRepository.actualizarDatosPersonales(uid, nombre.trim(), telefono.trim(), dni.trim())
                                 FirebaseAuth.getInstance().currentUser?.updateProfile(
                                     userProfileChangeRequest { displayName = nombre.trim() }
                                 )
@@ -132,8 +180,11 @@ fun PantallaConfigurarPerfil(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (guardando) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.width(8.dp))
                 }
                 Text("Guardar cambios")

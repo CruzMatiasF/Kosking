@@ -21,16 +21,18 @@ import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
 import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.empleado.PantallaPanelEmpleado
-import com.kosking.app.onboarding.PantallaHome
+import com.kosking.app.home.PantallaHome
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.datos.StartupUseCase
 import com.kosking.app.datos.StartupDestino
-import com.kosking.app.perfil.PantallaAcercaDe
+import com.kosking.app.ajustes.PantallaAcercaDe
+import com.kosking.app.ajustes.PantallaConfiguracion
+import com.kosking.app.ajustes.PantallaSeguridad
+import com.kosking.app.ajustes.PantallaNotificaciones
 import com.kosking.app.perfil.PantallaConfigurarPerfil
-import com.kosking.app.perfil.PantallaConfiguracion
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.dueno.PantallaColaboradores
-import com.kosking.app.onboarding.PantallaOnboarding
+import com.kosking.app.autenticacion.PantallaOnboarding
 import com.kosking.app.perfil.PantallaPrivacidad
 import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.datos.PreferenciasRepository
@@ -42,7 +44,7 @@ private sealed class DestinoPostLogin {
 }
 
 @Composable
-fun KoskingNavHost() {
+fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
     val nav = rememberNavController()
     val authVm: AuthViewModel = viewModel()
     val duenoVm: DuenoViewModel = viewModel()
@@ -65,11 +67,13 @@ fun KoskingNavHost() {
     val emailUsuario = authUser?.email ?: ""
 
     var nombreUsuario by remember { mutableStateOf("") }
+    var usuarioCompleto by remember { mutableStateOf<com.kosking.app.modelo.Usuario?>(null) }
     LaunchedEffect(authUser?.uid) {
-        val uid = authUser?.uid ?: run { nombreUsuario = ""; return@LaunchedEffect }
+        val uid = authUser?.uid ?: run { nombreUsuario = ""; usuarioCompleto = null; return@LaunchedEffect }
         try {
-            nombreUsuario = FiadoRepository.obtenerUsuario(uid)?.nombre
-                ?: authUser?.displayName ?: ""
+            val u = FiadoRepository.obtenerUsuario(uid)
+            usuarioCompleto = u
+            nombreUsuario = u?.nombre ?: authUser?.displayName ?: ""
         } catch (_: Exception) {}
     }
 
@@ -153,6 +157,7 @@ fun KoskingNavHost() {
                         else -> nav.navigate(Rutas.INGRESAR_CODIGO)
                     }
                 },
+                onTemaChanged = onTemaChanged,
                 onIniciarSesion = { nav.navigate(Rutas.LOGIN) },
                 onRegistrarse = { nav.navigate(Rutas.REGISTRO) },
                 onCerrarSesionCuenta = {
@@ -284,12 +289,13 @@ fun KoskingNavHost() {
                 onVolver = { nav.popBackStack() },
                 onInformacionPersonal = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
                 onSeguridad = { nav.navigate(Rutas.SEGURIDAD) },
-                onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) }
+                onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) },
+                onNotificaciones = { nav.navigate(Rutas.NOTIFICACIONES) }
             )
         }
 
         composable(Rutas.SEGURIDAD) {
-            com.kosking.app.perfil.PantallaSeguridad(onVolver = { nav.popBackStack() })
+            PantallaSeguridad(onVolver = { nav.popBackStack() })
         }
 
         composable(Rutas.COLABORADORES) {
@@ -310,6 +316,7 @@ fun KoskingNavHost() {
             PantallaConfigurarPerfil(
                 nombreActual = nombreUsuario,
                 emailActual = emailUsuario,
+                usuario = usuarioCompleto,
                 onVolver = { nav.popBackStack() }
             )
         }
@@ -373,6 +380,14 @@ fun KoskingNavHost() {
 
         composable(Rutas.POLITICA_PRIVACIDAD) {
             com.kosking.app.perfil.PantallaPoliticaPrivacidad(onVolver = { nav.popBackStack() })
+        }
+
+        composable(Rutas.NOTIFICACIONES) {
+            val esDuenoVal by duenoVm.localId.collectAsState()
+            PantallaNotificaciones(
+                esDueno = esDuenoVal.isNotBlank(),
+                onVolver = { nav.popBackStack() }
+            )
         }
     }
 }

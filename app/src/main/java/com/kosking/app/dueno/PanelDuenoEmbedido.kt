@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import com.kosking.app.util.BannerOffline
+import com.kosking.app.ui.components.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Tab

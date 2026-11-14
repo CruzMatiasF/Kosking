@@ -3,7 +3,6 @@
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
@@ -28,7 +27,6 @@ import java.util.Calendar
 class DuenoViewModel : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
-    private val db = FirebaseFirestore.getInstance()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
@@ -121,12 +119,12 @@ class DuenoViewModel : ViewModel() {
             _error.value = null
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
-                val ref = db.collection("locales").document()
-                val local = Local(id = ref.id, nombre = nombre, duenoUid = uid,
+                val localId = FiadoRepository.nuevoLocalId()
+                val local = Local(id = localId, nombre = nombre, duenoUid = uid,
                     tipo = tipo, direccion = direccion)
                 FiadoRepository.crearLocal(local)
-                db.collection("usuarios").document(uid).update("localId", ref.id).await()
-                _localId.value = ref.id
+                FiadoRepository.actualizarLocalIdUsuario(uid, localId)
+                _localId.value = localId
                 _nombreLocal.value = nombre
                 onExito()
             } catch (e: Exception) {

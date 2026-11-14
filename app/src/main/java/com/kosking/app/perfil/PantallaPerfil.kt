@@ -25,6 +25,7 @@ fun PantallaPerfil(
     onInformacionPersonal: () -> Unit,
     onSeguridad: () -> Unit = {},
     onPrivacidad: () -> Unit,
+    onNotificaciones: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {

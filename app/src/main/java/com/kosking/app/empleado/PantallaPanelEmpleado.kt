@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.AnotarRapidoSheet
 import com.kosking.app.modelo.Cliente
-import com.kosking.app.util.BannerOffline
+import com.kosking.app.ui.components.BannerOffline
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,12 +47,14 @@ fun PantallaPanelEmpleado(
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
 
-    val calHoy = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    val inicioHoy = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
     }
     val movsHoy = remember(movimientos) {
-        movimientos.filter { it.fecha.toDate().time >= calHoy.timeInMillis && !it.anulado }
+        movimientos.filter { it.fecha.toDate().time >= inicioHoy && !it.anulado }
     }
     val fiadosHoy = remember(movsHoy) { movsHoy.count { it.tipo == "cargo" } }
     val cobradoHoy = remember(movsHoy) { movsHoy.filter { it.tipo == "pago" }.sumOf { it.monto } }

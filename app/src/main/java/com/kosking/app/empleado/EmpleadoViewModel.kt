@@ -3,7 +3,6 @@ package com.kosking.app.empleado
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
@@ -20,12 +19,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EmpleadoViewModel : ViewModel() {
 
-    private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
     private val _error = MutableStateFlow<String?>(null)
@@ -91,19 +89,9 @@ class EmpleadoViewModel : ViewModel() {
                 }
                 val uid = user.uid
 
-                val snap = db.collection("codigosEmpleado")
-                    .whereEqualTo("codigo", codigo)
-                    .get().await()
-
-                val doc = snap.documents.firstOrNull { it.getBoolean("usado") == false }
-                if (doc == null) {
+                val localId = FiadoRepository.verificarYUsarCodigoEmpleado(codigo, uid)
+                if (localId == null) {
                     _error.value = "Código incorrecto o ya usado"
-                    return@launch
-                }
-
-                val localId = doc.getString("localId") ?: ""
-                if (localId.isBlank()) {
-                    _error.value = "Código inválido. Pedile uno nuevo al dueño"
                     return@launch
                 }
 
@@ -112,7 +100,6 @@ class EmpleadoViewModel : ViewModel() {
                 val nombreEmpleado = listOf(usuario?.nombre, user.displayName)
                     .firstOrNull { !it.isNullOrBlank() } ?: "Empleado"
 
-                doc.reference.update("usado", true, "usadoPorUid", uid).await()
                 FiadoRepository.agregarEmpleado(Empleado(localId = localId, uid = uid, nombre = nombreEmpleado))
                 FiadoRepository.guardarEmpleoEnUsuario(uid, localId, local?.nombre ?: "")
 

@@ -1,4 +1,4 @@
-package com.kosking.app.onboarding
+﻿package com.kosking.app.autenticacion
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background

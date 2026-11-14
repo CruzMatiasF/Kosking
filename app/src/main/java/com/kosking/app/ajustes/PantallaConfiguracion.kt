@@ -1,4 +1,4 @@
-package com.kosking.app.perfil
+﻿package com.kosking.app.ajustes
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,8 +27,6 @@ fun PantallaConfiguracion(
 ) {
     val context = LocalContext.current
 
-    var notifDeuda by remember { mutableStateOf(PreferenciasRepository.getNotifDeuda(context)) }
-    var notifAcuerdos by remember { mutableStateOf(PreferenciasRepository.getNotifAcuerdos(context)) }
     var limiteDefault by remember {
         mutableStateOf(PreferenciasRepository.getLimiteDefault(context).let {
             if (it > 0) "%.0f".format(it) else ""
@@ -82,30 +80,6 @@ fun PantallaConfiguracion(
                 trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 modifier = Modifier.clickable(onClick = onMiLocal)
             )
-
-            // ── Notificaciones ──────────────────────────────────────────
-            HorizontalDivider()
-            Text(
-                "Notificaciones",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-            )
-            SwitchItem(
-                titulo = "Recordatorio de deudas",
-                subtitulo = "Aviso semanal de clientes con deuda pendiente",
-                checked = notifDeuda,
-                onCheckedChange = { notifDeuda = it; PreferenciasRepository.setNotifDeuda(context, it) }
-            )
-            if (esDueno) {
-                HorizontalDivider()
-                SwitchItem(
-                    titulo = "Acuerdos vencidos",
-                    subtitulo = "Aviso diario de compromisos de pago vencidos",
-                    checked = notifAcuerdos,
-                    onCheckedChange = { notifAcuerdos = it; PreferenciasRepository.setNotifAcuerdos(context, it) }
-                )
-            }
 
             // ── Solo dueño ──────────────────────────────────────────────
             if (esDueno) {

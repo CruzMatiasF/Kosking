@@ -20,6 +20,8 @@ object FiadoRepository {
 
     // ── Local ────────────────────────────────────────────────────────────────
 
+    fun nuevoLocalId(): String = db.collection("locales").document().id
+
     suspend fun crearLocal(local: Local) {
         db.collection("locales").document(local.id).set(local).await()
     }
@@ -56,8 +58,17 @@ object FiadoRepository {
             .toObject(Usuario::class.java)
     }
 
+    suspend fun actualizarLocalIdUsuario(uid: String, localId: String) {
+        db.collection("usuarios").document(uid).update("localId", localId).await()
+    }
+
     suspend fun actualizarNombreUsuario(uid: String, nombre: String) {
         db.collection("usuarios").document(uid).update("nombre", nombre).await()
+    }
+
+    suspend fun actualizarDatosPersonales(uid: String, nombre: String, telefono: String, dni: String) {
+        db.collection("usuarios").document(uid)
+            .update("nombre", nombre, "telefono", telefono, "dni", dni).await()
     }
 
     // ── Clientes ─────────────────────────────────────────────────────────────
@@ -218,6 +229,16 @@ object FiadoRepository {
 
     suspend fun eliminarEmpleado(empleadoId: String) {
         db.collection("empleados").document(empleadoId).delete().await()
+    }
+
+    suspend fun verificarYUsarCodigoEmpleado(codigo: String, uid: String): String? {
+        val snap = db.collection("codigosEmpleado")
+            .whereEqualTo("codigo", codigo)
+            .get().await()
+        val doc = snap.documents.firstOrNull { it.getBoolean("usado") == false } ?: return null
+        val localId = doc.getString("localId")?.takeIf { it.isNotBlank() } ?: return null
+        doc.reference.update("usado", true, "usadoPorUid", uid).await()
+        return localId
     }
 
     suspend fun guardarCodigoEmpleado(localId: String, nombreLocal: String, codigo: String) {

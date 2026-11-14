@@ -29,27 +29,17 @@ private val slides = listOf(
     SlideOnboarding(
         emoji = "📒",
         titulo = "¿Cuánto te deben hoy?",
-        descripcion = "Con el cuaderno nunca sabés exactamente. Con Kosking ves la deuda total en segundos, siempre actualizada."
-    ),
-    SlideOnboarding(
-        emoji = "🏷️",
-        titulo = "\"¿A cuánto estaba el aceite?\"",
-        descripcion = "Cargá tus precios una vez. Tu empleado y vos siempre saben cuánto cobrar, sin adivinar."
-    ),
-    SlideOnboarding(
-        emoji = "👥",
-        titulo = "¿Tu empleado anotó mal?",
-        descripcion = "Cada movimiento queda registrado con nombre y hora. Sabés quién anotó qué, desde tu celu."
+        descripcion = "Con el cuaderno nunca sabés cuánto. Con Kosking ves la deuda total de cada cliente en segundos, siempre actualizada."
     ),
     SlideOnboarding(
         emoji = "💬",
         titulo = "Cobrar sin incomodar",
-        descripcion = "Mandá el resumen de deuda por WhatsApp con un toque. El cliente lo ve y paga. Sin vueltas."
+        descripcion = "Mandá el resumen de deuda por WhatsApp con un toque. El cliente lo ve, se acuerda y paga. Sin vueltas."
     ),
     SlideOnboarding(
         emoji = "🚀",
         titulo = "Empezá gratis ahora",
-        descripcion = "Sin tarjeta. Sin complicaciones. En 2 minutos tenés tu kiosco organizado."
+        descripcion = "Sin tarjeta. Sin complicaciones. En 60 segundos tenés tu kiosco organizado."
     )
 )
 

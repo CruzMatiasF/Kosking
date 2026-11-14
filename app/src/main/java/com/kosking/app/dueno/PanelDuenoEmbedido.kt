@@ -18,6 +18,7 @@ import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.ui.components.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
+import com.kosking.app.widget.KoskingWidget
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -60,14 +61,16 @@ fun PanelDuenoEmbedido(
     BackHandler(enabled = mostrarClientes) { mostrarClientes = false }
     BackHandler(enabled = mostrarProductos) { mostrarProductos = false }
 
-    // Actualiza las prefs que leen los workers de notificaciones
-    LaunchedEffect(totalDeuda, clientesConDeuda.size, localId) {
+    // Actualiza las prefs que leen los workers de notificaciones y el widget
+    LaunchedEffect(totalDeuda, clientesConDeuda.size, localId, localData?.nombre) {
         context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE).edit()
             .putFloat("total_deuda", totalDeuda.toFloat())
             .putInt("clientes_con_deuda", clientesConDeuda.size)
             .putLong("prefs_timestamp", System.currentTimeMillis())
             .also { if (localId.isNotBlank()) it.putString("local_id", localId) }
+            .also { localData?.nombre?.let { n -> if (n.isNotBlank()) it.putString("nombre_local", n) } }
             .apply()
+        KoskingWidget.actualizarTodos(context)
     }
 
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }

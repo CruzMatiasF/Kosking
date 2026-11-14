@@ -25,7 +25,9 @@ import com.kosking.app.navegacion.KoskingNavHost
 import com.kosking.app.ajustes.PantallaBloqueo
 import com.kosking.app.notificaciones.NotificacionDeudaWorker
 import com.kosking.app.notificaciones.NotificacionAcuerdosWorker
+import com.kosking.app.notificaciones.ResumenDiaWorker
 import com.kosking.app.ui.theme.KoskingTheme
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +42,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         habilitarPersistenciaOffline()
         pedirPermisoNotificacionSiNecesario()
-        programarRecordatorioSemanal()
+        programarNotificaciones()
         setContent {
             val context = this
             var tema by remember { mutableStateOf(PreferenciasRepository.getTema(context)) }
@@ -94,17 +96,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun programarRecordatorioSemanal() {
+    private fun programarNotificaciones() {
         val wm = WorkManager.getInstance(this)
         wm.enqueueUniquePeriodicWork(
-            "recordatorio_deuda_semanal",
+            "recordatorio_deuda",
             ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<NotificacionDeudaWorker>(7, TimeUnit.DAYS).build()
+            PeriodicWorkRequestBuilder<NotificacionDeudaWorker>(2, TimeUnit.DAYS).build()
         )
         wm.enqueueUniquePeriodicWork(
             "chequeo_acuerdos_diario",
             ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<NotificacionAcuerdosWorker>(1, TimeUnit.DAYS).build()
         )
+        wm.enqueueUniquePeriodicWork(
+            "resumen_dia",
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<ResumenDiaWorker>(1, TimeUnit.DAYS)
+                .setInitialDelay(delayHasta21h(), TimeUnit.MILLISECONDS)
+                .build()
+        )
+    }
+
+    private fun delayHasta21h(): Long {
+        val cal = Calendar.getInstance()
+        val ahora = cal.timeInMillis
+        cal.set(Calendar.HOUR_OF_DAY, 21)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        if (cal.timeInMillis <= ahora) cal.add(Calendar.DAY_OF_MONTH, 1)
+        return cal.timeInMillis - ahora
     }
 }

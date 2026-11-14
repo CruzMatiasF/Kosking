@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_background"
+    android:padding="18dp">
+
+    <TextView
+        android:id="@+id/widget_local_nombre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Kosking"
+        android:textColor="#FFFFFFFF"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:layout_marginBottom="6dp" />
+
+    <TextView
+        android:id="@+id/widget_deuda_total"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="$0"
+        android:textColor="#FF4DB6AC"
+        android:textSize="34sp"
+        android:fontFamily="sans-serif-bold"
+        android:includeFontPadding="false" />
+
+    <TextView
+        android:id="@+id/widget_clientes_deuda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0 clientes deben"
+        android:textColor="#99FFFFFF"
+        android:textSize="12sp"
+        android:layout_marginTop="2dp" />
+
+    <TextView
+        android:id="@+id/widget_sin_sesion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Abrí Kosking para ver tu deuda"
+        android:textColor="#99FFFFFF"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+</LinearLayout>

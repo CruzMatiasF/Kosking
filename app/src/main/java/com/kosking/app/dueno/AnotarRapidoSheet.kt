@@ -29,68 +29,6 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Producto
 
-private data class ItemCarrito(val producto: Producto, val cantidad: Int)
-
-@Composable
-private fun FilaProductoAnotar(
-    prod: Producto,
-    cantidad: Int,
-    onAgregar: () -> Unit,
-    onQuitar: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onAgregar() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                prod.nombre,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (cantidad > 0) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (prod.ultimoPrecio > 0) {
-                Text(
-                    "$${"%.0f".format(prod.ultimoPrecio)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (cantidad > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        if (cantidad > 0) {
-            IconButton(onClick = onQuitar, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Remove, null, Modifier.size(16.dp))
-            }
-            Text(
-                cantidad.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.width(20.dp),
-                textAlign = TextAlign.Center
-            )
-        }
-        IconButton(
-            onClick = onAgregar,
-            modifier = Modifier.size(32.dp),
-            colors = IconButtonDefaults.iconButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Icon(Icons.Default.Add, "Agregar", Modifier.size(18.dp))
-        }
-    }
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

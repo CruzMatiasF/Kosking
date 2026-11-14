@@ -100,6 +100,13 @@ fun AnotarRapidoSheet(
         else carrito.removeAt(idx)
     }
 
+    fun setCantidad(prod: Producto, n: Int) {
+        val idx = carrito.indexOfFirst { it.producto.id == prod.id }
+        if (n <= 0) { if (idx >= 0) carrito.removeAt(idx); return }
+        if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = n)
+        else carrito.add(ItemCarrito(prod, n))
+    }
+
     val montoOtroDouble = montoOtroTexto.toDoubleOrNull() ?: 0.0
     val montoUnicoDouble = montoTexto.toDoubleOrNull() ?: 0.0
     val totalCarrito = carrito.sumOf { it.producto.ultimoPrecio * it.cantidad }
@@ -358,7 +365,7 @@ fun AnotarRapidoSheet(
                         } else {
                             items(productosFiltrados, key = { it.id }) { prod ->
                                 val cantidad = carrito.find { it.producto.id == prod.id }?.cantidad ?: 0
-                                FilaProductoAnotar(prod = prod, cantidad = cantidad, onAgregar = { toggleCarrito(prod) }, onQuitar = { quitarUno(prod) })
+                                FilaProductoAnotar(prod = prod, cantidad = cantidad, onAgregar = { toggleCarrito(prod) }, onQuitar = { quitarUno(prod) }, onSetCantidad = { n -> setCantidad(prod, n) })
                             }
                         }
                         item {
@@ -440,15 +447,33 @@ fun AnotarRapidoSheet(
                     }
                 }
 
+                // Aviso productos sin precio en el carrito
+                val productosSinPrecio = carrito.filter { it.producto.ultimoPrecio <= 0 }
+                if (productosSinPrecio.isNotEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        val nombres = productosSinPrecio.joinToString(", ") { it.producto.nombre }
+                        Text(
+                            "⚠ $nombres ${if (productosSinPrecio.size == 1) "no tiene precio" else "no tienen precio"} — no suman al total",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+
                 // Resumen compacto del carrito
                 if (esCargo && totalConOtro > 0) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                         Column(modifier = Modifier.weight(1f)) {
                             carrito.forEach { item ->
                                 Text(
-                                    "${item.producto.nombre}${if (item.cantidad > 1) " ×${item.cantidad}" else ""}  $${"%.0f".format(item.producto.ultimoPrecio * item.cantidad)}",
+                                    "${item.producto.nombre}${if (item.cantidad > 1) " ×${item.cantidad}" else ""}${if (item.producto.ultimoPrecio > 0) "  $${"%.0f".format(item.producto.ultimoPrecio * item.cantidad)}" else "  sin precio"}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (item.producto.ultimoPrecio > 0) MaterialTheme.colorScheme.onSurfaceVariant
+                                            else MaterialTheme.colorScheme.error
                                 )
                             }
                             if (mostrarOtro && montoOtroDouble > 0) {

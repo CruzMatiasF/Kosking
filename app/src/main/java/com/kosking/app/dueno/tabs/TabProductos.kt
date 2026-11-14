@@ -42,6 +42,10 @@ internal fun TabProductos(
 
     val context = LocalContext.current
 
+    LaunchedEffect(Unit) {
+        try { CatalogoRepository.migrarSiVacio(context) } catch (_: Exception) {}
+    }
+
     // Diálogo agregar/editar
     if (mostrarDialog) {
         DialogProducto(
@@ -49,10 +53,6 @@ internal fun TabProductos(
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
             onGuardar = { nombre, precio ->
-                // Contribuye al catálogo global si es un producto nuevo desconocido
-                if (editando == null && !CatalogoRepository.existeEnCache(context, nombre)) {
-                    CatalogoRepository.contribuir(nombre)
-                }
                 onGuardar(nombre, precio, editando?.id) {
                     mostrarDialog = false
                     editando = null
@@ -268,12 +268,9 @@ private fun DialogProducto(
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
 
-    LaunchedEffect(Unit) {
-        try { CatalogoRepository.migrarSiVacio(context) } catch (_: Exception) {}
-    }
-
     LaunchedEffect(busqueda) {
         if (busqueda.length < 2) { sugerencias = emptyList(); return@LaunchedEffect }
+        kotlinx.coroutines.delay(300)
         val delCatalogo = CatalogoRepository.buscar(context, busqueda)
         val nombresYaCubiertos = delCatalogo.map { it.nombre.lowercase() }.toSet()
         val delGlobal = try {

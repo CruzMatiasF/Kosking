@@ -22,7 +22,7 @@ import java.util.Calendar
 import java.util.Locale
 
 @Composable
-internal fun TabInicio(
+internal fun TabPanelDueno(
     clientes: List<Cliente>,
     movimientosLocal: List<Movimiento>,
     totalDeuda: Double,

@@ -92,7 +92,7 @@ fun PanelDuenoEmbedido(
             Column(modifier = Modifier.fillMaxSize()) {
             BannerOffline()
             Box(modifier = Modifier.weight(1f)) {
-            TabInicio(
+            TabPanelDueno(
                 clientes = clientes,
                 movimientosLocal = movimientosLocal,
                 totalDeuda = totalDeuda,

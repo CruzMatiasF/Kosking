@@ -1,6 +1,7 @@
 package com.kosking.app.autenticacion
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -8,6 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -30,6 +34,8 @@ fun PantallaRegistro(
     var password by remember { mutableStateOf("") }
     var tocadoEmail by remember { mutableStateOf(false) }
     var tocadoPassword by remember { mutableStateOf(false) }
+    val emailFocus = remember { FocusRequester() }
+    val passwordFocus = remember { FocusRequester() }
 
     val emailValido = EMAIL_REGEX.matches(email.trim())
     val passwordValida = password.length >= 6
@@ -56,6 +62,9 @@ fun PantallaRegistro(
                 value = nombre,
                 onValueChange = { nombre = it },
                 label = { Text("Tu nombre") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { emailFocus.requestFocus() }),
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -65,12 +74,14 @@ fun PantallaRegistro(
                 value = email,
                 onValueChange = { email = it; tocadoEmail = true },
                 label = { Text("Email") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { passwordFocus.requestFocus() }),
+                singleLine = true,
                 isError = tocadoEmail && !emailValido,
                 supportingText = if (tocadoEmail && !emailValido) {
                     { Text("Ingresá un email válido") }
                 } else null,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().focusRequester(emailFocus)
             )
 
             Spacer(Modifier.height(12.dp))
@@ -80,14 +91,19 @@ fun PantallaRegistro(
                 onValueChange = { password = it; tocadoPassword = true },
                 label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    if (formularioValido && !cargando)
+                        vm.registrar(nombre, email.trim(), password, onRegistroExitoso)
+                }),
+                singleLine = true,
                 isError = tocadoPassword && !passwordValida,
                 supportingText = if (tocadoPassword && !passwordValida) {
                     { Text("Mínimo 6 caracteres") }
                 } else {
                     { Text("Mínimo 6 caracteres", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus)
             )
 
             error?.let {

@@ -126,7 +126,12 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                 startupResuelto = true
             }
 
-            if (!startupResuelto) return@composable
+            if (!startupResuelto) {
+                Box(modifier = androidx.compose.ui.Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                return@composable
+            }
 
             PantallaHome(
                 estaLogueado = estaLogueado,

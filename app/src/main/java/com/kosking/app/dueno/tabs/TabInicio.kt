@@ -689,15 +689,14 @@ private fun VisitaCardFull(visita: VisitaResumen, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.Stretch
+        verticalAlignment = Alignment.CenterVertically
     ) {
         // Franja lateral de color
         Box(
             modifier = Modifier
                 .width(4.dp)
-                .fillMaxHeight()
+                .height(40.dp)
                 .background(stripeColor, RoundedCornerShape(2.dp))
-                .align(Alignment.CenterVertically)
         )
         Spacer(Modifier.width(12.dp))
         Row(

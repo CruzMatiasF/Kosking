@@ -1,35 +1,14 @@
 package com.kosking.app.dueno
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Producto
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,43 +22,33 @@ fun AnotarRapidoSheet(
     onGuardar: (clienteId: String, items: List<Pair<String, Double>>, tipo: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val clientesOrdenados = remember(clientes) {
-        clientes.sortedByDescending { it.deudaTotal }
-    }
-
+    // ── Estado ───────────────────────────────────────────────────────────────
+    val clientesOrdenados = remember(clientes) { clientes.sortedByDescending { it.deudaTotal } }
     var clienteSeleccionado by remember(clienteInicial) {
         mutableStateOf(clienteInicial ?: clientesOrdenados.firstOrNull())
     }
     var esCargo by remember { mutableStateOf(tipoInicial == "cargo") }
     var pedirConfirmCambio by remember { mutableStateOf(false) }
-
     val carrito = remember { mutableStateListOf<ItemCarrito>() }
-
     var busquedaCliente by remember { mutableStateOf("") }
     var mostrarListaClientes by remember { mutableStateOf(false) }
     val clientesFiltrados = remember(clientesOrdenados, busquedaCliente) {
         if (busquedaCliente.isBlank()) clientesOrdenados
         else clientesOrdenados.filter { it.nombre.contains(busquedaCliente, ignoreCase = true) }
     }
-
     var busquedaProducto by remember { mutableStateOf("") }
     val productosFiltrados = remember(productos, busquedaProducto) {
         val base = productos.sortedByDescending { it.vecesUsado }
         if (busquedaProducto.isBlank()) base
         else {
             val q = busquedaProducto.trim().lowercase()
-            base.filter { prod ->
-                prod.nombre.lowercase().split(" ").any { it.startsWith(q) }
-            }
+            base.filter { prod -> prod.nombre.lowercase().split(" ").any { it.startsWith(q) } }
         }
     }
     val clienteFocusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        if (clienteInicial == null) {
-            try { clienteFocusRequester.requestFocus() } catch (_: Exception) {}
-        }
+        if (clienteInicial == null) try { clienteFocusRequester.requestFocus() } catch (_: Exception) {}
     }
-
     var descripcionOtro by remember { mutableStateOf("") }
     var montoOtroTexto by remember { mutableStateOf("") }
     var mostrarOtro by remember { mutableStateOf(productos.isEmpty()) }
@@ -93,27 +62,22 @@ fun AnotarRapidoSheet(
         sugerenciasOtro = try { onBuscarGlobal(descripcionOtro) } catch (_: Exception) { emptyList() }
     }
 
+    // ── Funciones locales ────────────────────────────────────────────────────
     fun limpiarCarrito() {
-        carrito.clear()
-        mostrarOtro = false
-        descripcionOtro = ""
-        montoOtroTexto = ""
-        sugerenciasOtro = emptyList()
+        carrito.clear(); mostrarOtro = false; descripcionOtro = ""
+        montoOtroTexto = ""; sugerenciasOtro = emptyList()
     }
-
     fun toggleCarrito(prod: Producto) {
         val idx = carrito.indexOfFirst { it.producto.id == prod.id }
         if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
         else carrito.add(ItemCarrito(prod, 1))
     }
-
     fun quitarUno(prod: Producto) {
         val idx = carrito.indexOfFirst { it.producto.id == prod.id }
         if (idx < 0) return
         if (carrito[idx].cantidad > 1) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad - 1)
         else carrito.removeAt(idx)
     }
-
     fun setCantidad(prod: Producto, n: Int) {
         val idx = carrito.indexOfFirst { it.producto.id == prod.id }
         if (n <= 0) { if (idx >= 0) carrito.removeAt(idx); return }
@@ -121,9 +85,9 @@ fun AnotarRapidoSheet(
         else carrito.add(ItemCarrito(prod, n))
     }
 
+    // ── Derivados ────────────────────────────────────────────────────────────
     val montoOtroDouble = montoOtroTexto.toDoubleOrNull() ?: 0.0
     val montoUnicoDouble = montoTexto.toDoubleOrNull() ?: 0.0
-
     fun buildItems(): List<Pair<String, Double>> = buildList {
         carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
         if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
@@ -131,7 +95,6 @@ fun AnotarRapidoSheet(
     }
     val totalCarrito = carrito.sumOf { it.producto.ultimoPrecio * it.cantidad }
     val totalConOtro = totalCarrito + (if (mostrarOtro && montoOtroDouble > 0) montoOtroDouble else 0.0)
-
     val deudaActual = clienteSeleccionado?.deudaTotal ?: 0.0
     val limiteCredito = clienteSeleccionado?.limiteCredito ?: 0.0
     val deudaFinal = when {
@@ -139,12 +102,12 @@ fun AnotarRapidoSheet(
         else -> (deudaActual - montoUnicoDouble).coerceAtLeast(0.0)
     }
     val superaLimite = esCargo && limiteCredito > 0 && deudaFinal > limiteCredito
-
     val puedeGuardar = clienteSeleccionado != null && !cargando && !superaLimite && when {
         esCargo -> totalConOtro > 0
         else -> montoUnicoDouble > 0
     }
 
+    // ── Diálogo cambio de tipo ───────────────────────────────────────────────
     if (pedirConfirmCambio) {
         AlertDialog(
             onDismissRequest = { pedirConfirmCambio = false },
@@ -155,18 +118,13 @@ fun AnotarRapidoSheet(
                     Text("Cambiar", color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { pedirConfirmCambio = false }) { Text("Cancelar") }
-            }
+            dismissButton = { TextButton(onClick = { pedirConfirmCambio = false }) { Text("Cancelar") } }
         )
     }
 
+    // ── Sheet ────────────────────────────────────────────────────────────────
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = null
-    ) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -175,420 +133,68 @@ fun AnotarRapidoSheet(
                     if (mostrarListaClientes) { mostrarListaClientes = false; busquedaCliente = "" }
                 }
         ) {
-            // ── ZONA 1: Cliente + nota + toggle ─────────────────────────────
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 20.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Handle manual
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.outlineVariant)
-                        .align(Alignment.CenterHorizontally)
-                )
-
-                Spacer(Modifier.height(4.dp))
-
-                // Selector cliente
-                if (clienteInicial != null) {
-                    // Cliente fijo: mostrar nombre + deuda proyectada
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // Avatar
-                            val avatarColors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary,
-                                MaterialTheme.colorScheme.tertiary
-                            )
-                            val color = avatarColors[kotlin.math.abs(clienteInicial.nombre.hashCode()) % avatarColors.size]
-                            Box(
-                                modifier = Modifier.size(40.dp).clip(CircleShape).background(color),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    clienteInicial.nombre.firstOrNull()?.uppercase() ?: "?",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-                            Column {
-                                Text(clienteInicial.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Text(
-                                    if (deudaActual > 0) "Debe $${"%.0f".format(deudaActual)}" else "Sin deuda",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (deudaActual > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        if (esCargo && totalConOtro > 0) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    "→ $${"%.0f".format(deudaFinal)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Text("quedaría debiendo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                } else {
-                    // Selector con búsqueda
-                    Column {
-                        OutlinedTextField(
-                            value = if (mostrarListaClientes) busquedaCliente else clienteSeleccionado?.nombre ?: "",
-                            onValueChange = { busquedaCliente = it; mostrarListaClientes = true },
-                            label = { Text("Cliente") },
-                            placeholder = { Text("Buscar cliente...") },
-                            singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
-                            trailingIcon = {
-                                Icon(
-                                    if (mostrarListaClientes) Icons.Default.Close else Icons.Default.KeyboardArrowDown,
-                                    null, Modifier.size(18.dp).clickable {
-                                        if (mostrarListaClientes) { mostrarListaClientes = false; busquedaCliente = "" }
-                                        else mostrarListaClientes = true
-                                    }
-                                )
-                            },
-                            modifier = Modifier.fillMaxWidth().clickable { mostrarListaClientes = true }
-                                .focusRequester(clienteFocusRequester),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        if (mostrarListaClientes && clientesFiltrados.isNotEmpty()) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(4.dp),
-                                shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                            ) {
-                                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
-                                    items(clientesFiltrados, key = { it.id }) { cliente ->
-                                        ListItem(
-                                            headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
-                                            trailingContent = if (cliente.deudaTotal > 0) ({
-                                                Text("$${"%.0f".format(cliente.deudaTotal)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                                            }) else null,
-                                            modifier = Modifier.clickable {
-                                                clienteSeleccionado = cliente
-                                                busquedaCliente = ""
-                                                mostrarListaClientes = false
-                                            }
-                                        )
-                                        HorizontalDivider()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Nota interna
-                val nota = clienteSeleccionado?.notaInterna.orEmpty()
-                if (nota.isNotBlank()) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-                            Icon(Icons.Default.Info, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
-                            Text(nota, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                        }
-                    }
-                }
-
-                // Toggle Fiado / Pago
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = esCargo,
-                        onClick = { mostrarListaClientes = false; if (!esCargo) esCargo = true },
-                        label = { Text("Cargo") },
-                        leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(16.dp)) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = !esCargo,
-                        onClick = {
-                            mostrarListaClientes = false
-                            if (esCargo) {
-                                val hayItems = carrito.isNotEmpty() || (mostrarOtro && montoOtroTexto.isNotBlank())
-                                if (hayItems) pedirConfirmCambio = true else { limpiarCarrito(); esCargo = false }
-                            }
-                        },
-                        label = { Text("Pago") },
-                        leadingIcon = { Icon(Icons.Default.Remove, null, Modifier.size(16.dp)) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
+            ZonaCliente(
+                clienteInicial = clienteInicial,
+                clienteSeleccionado = clienteSeleccionado,
+                mostrarListaClientes = mostrarListaClientes,
+                busquedaCliente = busquedaCliente,
+                clientesFiltrados = clientesFiltrados,
+                clienteFocusRequester = clienteFocusRequester,
+                esCargo = esCargo,
+                deudaActual = deudaActual,
+                deudaFinal = deudaFinal,
+                totalConOtro = totalConOtro,
+                hayItemsEnCarrito = carrito.isNotEmpty() || (mostrarOtro && montoOtroTexto.isNotBlank()),
+                montoOtroTexto = montoOtroTexto,
+                onClienteSeleccionado = { clienteSeleccionado = it },
+                onMostrarListaClientes = { mostrarListaClientes = it },
+                onBusquedaClienteChange = { busquedaCliente = it },
+                onEsCargoChange = { esCargo = it },
+                onPedirConfirmCambio = { pedirConfirmCambio = true },
+                limpiarCarrito = ::limpiarCarrito
+            )
             HorizontalDivider()
-
-            // ── ZONA 2: Productos (ocupa todo el espacio disponible) ─────────
-            if (esCargo) {
-                if (productos.isEmpty()) {
-                    // Sin productos — aviso centrado
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Todavía no cargaste productos", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                            Text(
-                                "Andá a la pestaña Productos y cargalos para anotarlos más rápido.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                } else {
-                    // Búsqueda fija
-                    OutlinedTextField(
-                        value = busquedaProducto,
-                        onValueChange = { busquedaProducto = it },
-                        placeholder = { Text("Buscar producto...") },
-                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
-                        trailingIcon = {
-                            if (busquedaProducto.isNotEmpty()) {
-                                IconButton(onClick = { busquedaProducto = "" }) { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
-                    )
-
-                    // Lista scrolleable que llena el espacio
-                    LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        if (productosFiltrados.isEmpty() && busquedaProducto.isNotBlank()) {
-                            item {
-                                Text(
-                                    "Sin resultados para \"$busquedaProducto\"",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        } else {
-                            items(productosFiltrados, key = { it.id }) { prod ->
-                                val cantidad = carrito.find { it.producto.id == prod.id }?.cantidad ?: 0
-                                FilaProductoAnotar(prod = prod, cantidad = cantidad, onAgregar = { toggleCarrito(prod) }, onQuitar = { quitarUno(prod) }, onSetCantidad = { n -> setCantidad(prod, n) })
-                            }
-                        }
-                    }
-
-                    // "No está en la lista" fijo, siempre visible debajo de la lista
-                    HorizontalDivider()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { mostrarOtro = !mostrarOtro }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Add, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            if (mostrarOtro) "Ocultar entrada manual" else "No está en la lista — agregar manual",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            } else {
-                // Modo pago — campo monto centrado
-                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
-                    OutlinedTextField(
-                        value = montoTexto,
-                        onValueChange = { montoTexto = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Monto $") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-            }
-
+            ZonaProductos(
+                esCargo = esCargo,
+                productos = productos,
+                busquedaProducto = busquedaProducto,
+                productosFiltrados = productosFiltrados,
+                carrito = carrito,
+                mostrarOtro = mostrarOtro,
+                montoTexto = montoTexto,
+                onBusquedaChange = { busquedaProducto = it },
+                onToggleMostrarOtro = { mostrarOtro = !mostrarOtro },
+                onToggleCarrito = ::toggleCarrito,
+                onQuitarUno = ::quitarUno,
+                onSetCantidad = ::setCantidad,
+                onMontoTextoChange = { montoTexto = it.filter { c -> c.isDigit() || c == '.' } }
+            )
             HorizontalDivider()
-
-            // ── ZONA 3: Entrada manual + resumen + botón (siempre visible) ───
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 12.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Entrada manual "Otro"
-                if (esCargo && (mostrarOtro || productos.isEmpty())) {
-                    Column {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(
-                                value = descripcionOtro,
-                                onValueChange = { descripcionOtro = it; sugerenciasOtro = emptyList() },
-                                label = { Text("Descripción") },
-                                placeholder = { Text("Ej: pan") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            OutlinedTextField(
-                                value = montoOtroTexto,
-                                onValueChange = { montoOtroTexto = it.filter { c -> c.isDigit() || c == '.' } },
-                                label = { Text("$") },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.width(90.dp),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            if (productos.isNotEmpty()) {
-                                IconButton(onClick = { mostrarOtro = false; descripcionOtro = ""; montoOtroTexto = ""; sugerenciasOtro = emptyList() }) {
-                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
-                                }
-                            }
-                        }
-                        if (sugerenciasOtro.isNotEmpty()) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                elevation = CardDefaults.cardElevation(4.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                sugerenciasOtro.forEach { sugerencia ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { descripcionOtro = sugerencia; sugerenciasOtro = emptyList() }
-                                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(sugerencia, style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    HorizontalDivider()
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Aviso límite de crédito
-                if (superaLimite) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text(
-                            "⚠ Supera el límite de crédito (${"$"}${"%.0f".format(limiteCredito)})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-
-                // Aviso productos sin precio en el carrito
-                val productosSinPrecio = carrito.filter { it.producto.ultimoPrecio <= 0 }
-                if (productosSinPrecio.isNotEmpty()) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        val nombres = productosSinPrecio.joinToString(", ") { it.producto.nombre }
-                        Text(
-                            "⚠ $nombres ${if (productosSinPrecio.size == 1) "no tiene precio" else "no tienen precio"} — no suman al total",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-
-                // Resumen compacto del carrito
-                if (esCargo && totalConOtro > 0) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            carrito.forEach { item ->
-                                Text(
-                                    "${item.producto.nombre}${if (item.cantidad > 1) " ×${item.cantidad}" else ""}${if (item.producto.ultimoPrecio > 0) "  $${"%.0f".format(item.producto.ultimoPrecio * item.cantidad)}" else "  sin precio"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (item.producto.ultimoPrecio > 0) MaterialTheme.colorScheme.onSurfaceVariant
-                                            else MaterialTheme.colorScheme.error
-                                )
-                            }
-                            if (mostrarOtro && montoOtroDouble > 0) {
-                                Text(
-                                    "${descripcionOtro.ifBlank { "Otro" }}  $${"%.0f".format(montoOtroDouble)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Text(
-                            "$${"%.0f".format(totalConOtro)}",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-
-                // Confirmación guardar con productos sin precio
-                if (pedirConfirmSinPrecio) {
-                    val sinPrecio = carrito.filter { it.producto.ultimoPrecio <= 0 }.map { it.producto.nombre }
-                    AlertDialog(
-                        onDismissRequest = { pedirConfirmSinPrecio = false },
-                        title = { Text("Registrar sin precio") },
-                        text = { Text("${sinPrecio.joinToString(", ")} no ${if (sinPrecio.size == 1) "tiene" else "tienen"} precio y no ${if (sinPrecio.size == 1) "suma" else "suman"} al total. ¿Registrar igual?") },
-                        confirmButton = {
-                            Button(onClick = {
-                                pedirConfirmSinPrecio = false
-                                val cliente = clienteSeleccionado ?: return@Button
-                                onGuardar(cliente.id, buildItems(), "cargo")
-                            }) { Text("Registrar igual") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { pedirConfirmSinPrecio = false }) { Text("Cancelar") }
-                        }
-                    )
-                }
-
-                // Botón guardar
-                Button(
-                    onClick = {
-                        val cliente = clienteSeleccionado ?: return@Button
-                        val haySinPrecio = esCargo && carrito.any { it.producto.ultimoPrecio <= 0 }
-                        if (haySinPrecio) { pedirConfirmSinPrecio = true; return@Button }
-                        onGuardar(cliente.id, buildItems(), if (esCargo) "cargo" else "pago")
-                    },
-                    enabled = puedeGuardar,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    if (cargando) {
-                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                    } else {
-                        val monto = if (esCargo) totalConOtro else montoUnicoDouble
-                        val label = if (monto > 0)
-                            "${if (esCargo) "Registrar" else "Registrar pago"} ${"$"}${"%.0f".format(monto)}"
-                        else if (esCargo) "Registrar" else "Registrar pago"
-                        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+            ZonaResumen(
+                esCargo = esCargo,
+                mostrarOtro = mostrarOtro,
+                productos = productos,
+                descripcionOtro = descripcionOtro,
+                montoOtroTexto = montoOtroTexto,
+                sugerenciasOtro = sugerenciasOtro,
+                superaLimite = superaLimite,
+                limiteCredito = limiteCredito,
+                carrito = carrito,
+                montoOtroDouble = montoOtroDouble,
+                totalConOtro = totalConOtro,
+                pedirConfirmSinPrecio = pedirConfirmSinPrecio,
+                cargando = cargando,
+                puedeGuardar = puedeGuardar,
+                montoUnicoDouble = montoUnicoDouble,
+                clienteSeleccionado = clienteSeleccionado,
+                onDescripcionOtroChange = { descripcionOtro = it; sugerenciasOtro = emptyList() },
+                onMontoOtroTextoChange = { montoOtroTexto = it.filter { c -> c.isDigit() || c == '.' } },
+                onSugerenciaSelected = { descripcionOtro = it; sugerenciasOtro = emptyList() },
+                onOcultarOtro = { mostrarOtro = false; descripcionOtro = ""; montoOtroTexto = ""; sugerenciasOtro = emptyList() },
+                onPedirConfirmSinPrecioChange = { pedirConfirmSinPrecio = it },
+                buildItems = ::buildItems,
+                onGuardar = onGuardar
+            )
         }
     }
 }

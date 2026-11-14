@@ -1,5 +1,6 @@
 package com.kosking.app.empleado
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -23,6 +25,7 @@ fun PantallaIngresarCodigo(
     onVolver: () -> Unit,
     vm: EmpleadoViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
     var codigo by remember { mutableStateOf("") }
@@ -120,12 +123,19 @@ fun PantallaIngresarCodigo(
 
             Spacer(Modifier.height(16.dp))
 
-            Text(
-                "Si no tenés un código, pedíselo al dueño del local.",
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            TextButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, "Hola, necesito el código de Kosking para unirme a tu local 🏪")
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Pedir código por"))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("No tengo código — pedirlo al dueño",
+                    style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

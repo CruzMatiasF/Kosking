@@ -106,6 +106,12 @@ fun PantallaHome(
             if (!enSubPantalla) {
                 NavigationBar {
                     NavigationBarItem(
+                        selected = tabNav == 0,
+                        onClick = { tabNav = 0 },
+                        icon = { Icon(Icons.Default.Home, null) },
+                        label = { Text("Inicio") }
+                    )
+                    NavigationBarItem(
                         selected = tabNav == 1,
                         onClick = { tabNav = 1 },
                         icon = { Icon(Icons.Default.Menu, null) },

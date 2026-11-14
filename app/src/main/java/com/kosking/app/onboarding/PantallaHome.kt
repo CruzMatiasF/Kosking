@@ -30,6 +30,20 @@ import com.kosking.app.dueno.PantallaAgregarCliente
 import com.kosking.app.dueno.PantallaAgregarFiado
 import com.kosking.app.dueno.detalle.PantallaDetalleCliente
 import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
+import com.kosking.app.perfil.PantallaPerfil
+import com.kosking.app.perfil.PantallaSeguridad
+import com.kosking.app.perfil.PantallaPrivacidad
+import com.kosking.app.perfil.PantallaPoliticaPrivacidad
+import com.kosking.app.perfil.PantallaConfigurarPerfil
+
+private sealed class VistaExtra {
+    object Ninguna : VistaExtra()
+    object Perfil : VistaExtra()
+    object Seguridad : VistaExtra()
+    object Privacidad : VistaExtra()
+    object PoliticaPrivacidad : VistaExtra()
+    object ConfigurarPerfil : VistaExtra()
+}
 
 @Composable
 fun PantallaHome(
@@ -55,6 +69,7 @@ fun PantallaHome(
     var tabPanelDueno by remember { mutableIntStateOf(tabInicialDueno) }
     // 0 = Panel/Inicio, 1 = Más
     var tabNav by remember { mutableIntStateOf(0) }
+    var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
 
     LaunchedEffect(mostrarPanelDueno) {
         if (mostrarPanelDueno) {
@@ -71,8 +86,16 @@ fun PantallaHome(
         }
     }
 
+    BackHandler(enabled = vistaExtra !is VistaExtra.Ninguna) {
+        vistaExtra = when (vistaExtra) {
+            is VistaExtra.Seguridad, is VistaExtra.Privacidad, is VistaExtra.ConfigurarPerfil -> VistaExtra.Perfil
+            is VistaExtra.PoliticaPrivacidad -> VistaExtra.Privacidad
+            else -> VistaExtra.Ninguna
+        }
+    }
+
     // Si hay una sub-pantalla del panel abierta, ocultar la nav bar
-    val enSubPantalla = vistaDueno !is NavDueno.Panel
+    val enSubPantalla = vistaDueno !is NavDueno.Panel || vistaExtra !is VistaExtra.Ninguna
 
     Scaffold(
         bottomBar = {
@@ -114,8 +137,8 @@ fun PantallaHome(
                             onIniciarSesion = onIniciarSesion,
                             onRegistrarse = onRegistrarse,
                             onCerrarSesion = onCerrarSesionCuenta,
-                            onConfigurarPerfil = onConfigurarPerfil,
-                            onAbrirPerfil = onAbrirPerfil,
+                            onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
+                            onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
                             onConfiguracion = onConfiguracion,
                             onAcercaDe = onAcercaDe,
                         )
@@ -165,11 +188,44 @@ fun PantallaHome(
                     onIniciarSesion = onIniciarSesion,
                     onRegistrarse = onRegistrarse,
                     onCerrarSesion = onCerrarSesionCuenta,
-                    onConfigurarPerfil = onConfigurarPerfil,
-                    onAbrirPerfil = onAbrirPerfil,
+                    onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
+                    onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
                     onConfiguracion = onConfiguracion,
                     onAcercaDe = onAcercaDe,
                 )
+            }
+
+            // Sub-pantallas de perfil (encima de todo)
+            when (vistaExtra) {
+                is VistaExtra.Perfil -> PantallaPerfil(
+                    nombreUsuario = nombreUsuario,
+                    rol = when {
+                        esDueno -> "Dueño de local"
+                        else -> "Cuenta personal"
+                    },
+                    esDueno = esDueno,
+                    onVolver = { vistaExtra = VistaExtra.Ninguna },
+                    onInformacionPersonal = { vistaExtra = VistaExtra.ConfigurarPerfil },
+                    onSeguridad = { vistaExtra = VistaExtra.Seguridad },
+                    onPrivacidad = { vistaExtra = VistaExtra.Privacidad }
+                )
+                is VistaExtra.ConfigurarPerfil -> PantallaConfigurarPerfil(
+                    nombreActual = nombreUsuario,
+                    emailActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "",
+                    onVolver = { vistaExtra = VistaExtra.Perfil }
+                )
+                is VistaExtra.Seguridad -> PantallaSeguridad(
+                    onVolver = { vistaExtra = VistaExtra.Perfil }
+                )
+                is VistaExtra.Privacidad -> PantallaPrivacidad(
+                    onVolver = { vistaExtra = VistaExtra.Perfil },
+                    onPoliticaPrivacidad = { vistaExtra = VistaExtra.PoliticaPrivacidad },
+                    onCuentaEliminada = onCerrarSesionCuenta
+                )
+                is VistaExtra.PoliticaPrivacidad -> PantallaPoliticaPrivacidad(
+                    onVolver = { vistaExtra = VistaExtra.Privacidad }
+                )
+                else -> {}
             }
         }
     }

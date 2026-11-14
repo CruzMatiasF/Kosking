@@ -648,18 +648,17 @@ private fun HistorialSheet(
                     }
 
                     val visitas = agruparVisitas(movs, clienteMap, fmtHora)
-                    val filas = visitas.chunked(2)
-                    items(filas, key = { "fila_${diasAtras}_${it.firstOrNull()?.items?.firstOrNull()?.id}" }) { fila ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            fila.forEach { visita ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    VisitaCard(visita = visita, onClick = { visitaDetalle = visita })
-                                }
-                            }
-                            if (fila.size == 1) Spacer(Modifier.weight(1f))
+                    items(visitas, key = { "v_${diasAtras}_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
+                        VisitaCardFull(visita = visita, onClick = { visitaDetalle = visita })
+                    }
+                    if (diasAtras != agrupado.last().key) {
+                        item(key = "sep_$diasAtras") {
+                            Spacer(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            )
                         }
                     }
                 }
@@ -673,7 +672,7 @@ private fun HistorialSheet(
 }
 
 @Composable
-private fun VisitaCard(visita: VisitaResumen, onClick: () -> Unit) {
+private fun VisitaCardFull(visita: VisitaResumen, onClick: () -> Unit) {
     val esPago = visita.totalPago > 0 && visita.totalCargo == 0.0
     val stripeColor = if (esPago) Verde else MaterialTheme.colorScheme.error
     val monto = if (esPago) visita.totalPago else visita.totalCargo
@@ -685,60 +684,60 @@ private fun VisitaCard(visita: VisitaResumen, onClick: () -> Unit) {
         else -> "${visita.items.size} productos"
     }
 
-    Surface(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 72.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.Stretch
     ) {
-        Box {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(stripeColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-            )
-            Column(
-                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+        // Franja lateral de color
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .fillMaxHeight()
+                .background(stripeColor, RoundedCornerShape(2.dp))
+                .align(Alignment.CenterVertically)
+        )
+        Spacer(Modifier.width(12.dp))
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
                     visita.clienteNombre,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     concepto,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        montoTexto,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = montoColor
-                    )
-                    Text(
-                        visita.hora,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    montoTexto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = montoColor
+                )
+                Text(
+                    visita.hora,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
+    HorizontalDivider(modifier = Modifier.padding(start = 32.dp))
 }

@@ -1,11 +1,14 @@
 package com.kosking.app.dueno.tabs
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,7 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kosking.app.dueno.DetalleVisitaSheet
 import com.kosking.app.dueno.FilaVisitaMP
 import com.kosking.app.dueno.SeccionCard
@@ -378,105 +383,118 @@ internal fun TabInicio(
             }
         }
 
-        // Hoja del día
+        // Grid de últimos movimientos + botón ver historial
         item {
-            val saldoHoy = cobradoHoy - fiadoHoy
-            Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            val ultimos4 = movimientosHoy.take(3)
+            Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Movimientos de hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(fechaHoy, style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (fiadoHoy > 0 || cobradoHoy > 0) {
-                            IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.AutoMirrored.Filled.Send, "Compartir",
-                                    Modifier.size(15.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-                if (fiadoHoy > 0 || cobradoHoy > 0) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (fiadoHoy > 0) {
-                            Text("Anotado $${"%.0f".format(fiadoHoy)}",
+                            Text("$${"%.0f".format(fiadoHoy)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error)
                         }
                         if (cobradoHoy > 0) {
-                            Text("Cobrado $${"%.0f".format(cobradoHoy)}",
+                            Text("+$${"%.0f".format(cobradoHoy)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Verde)
                         }
-                        if (fiadoHoy > 0 && cobradoHoy > 0) {
-                            Text(
-                                "Saldo ${if (saldoHoy >= 0) "+" else ""}$${"%.0f".format(saldoHoy)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (saldoHoy >= 0) Verde else MaterialTheme.colorScheme.error
-                            )
+                        if (fiadoHoy > 0 || cobradoHoy > 0) {
+                            IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.Send, "Compartir",
+                                    Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+
+                if (clientes.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.People, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text("Todavía no hay clientes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Sumá tu primer cliente y empezá a anotar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Button(onClick = { onTabChange(1) }) {
+                            Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Agregar cliente")
+                        }
+                    }
+                } else if (ultimos4.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                            .clickable { mostrarHistorial = true }
+                            .padding(vertical = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Todavía nada hoy", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Columna izquierda
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ultimos4.filterIndexed { i, _ -> i % 2 == 0 }.forEach { mov ->
+                                MovimientoCard(
+                                    movimiento = mov,
+                                    nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "",
+                                    fmtHora = fmtHora
+                                )
+                            }
+                        }
+                        // Columna derecha
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ultimos4.filterIndexed { i, _ -> i % 2 == 1 }.forEach { mov ->
+                                MovimientoCard(
+                                    movimiento = mov,
+                                    nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "",
+                                    fmtHora = fmtHora
+                                )
+                            }
+                            // Card dashed "Ver historial"
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 72.dp)
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                                    .clickable { mostrarHistorial = true }
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.History, null,
+                                        Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Ver historial",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-
-        // Empty state primer uso
-        if (clientes.isEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Default.People, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(4.dp))
-                    Text("Todavía no hay clientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Sumá tu primer cliente y empezá a anotar.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Button(onClick = { onTabChange(1) }) {
-                        Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Agregar cliente")
-                    }
-                }
-                HorizontalDivider()
-            }
-        }
-
-        if (visitasHoy.isEmpty()) {
-            item {
-                Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                    Text("Todavía nada hoy", style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                HorizontalDivider()
-            }
-        } else {
-            val visitasMostradas = visitasHoy.take(8)
-            val visitasRestantes = visitasHoy.size - visitasMostradas.size
-            items(visitasMostradas, key = { "hoy_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
-                FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
-            }
-            if (visitasRestantes > 0) {
-                item {
-                    Text(
-                        "y $visitasRestantes más hoy",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
-                }
-            }
-            item { HorizontalDivider() }
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider()
         }
 
         // Lista de clientes con deuda
@@ -568,17 +586,6 @@ internal fun TabInicio(
         if (empleados.isNotEmpty()) {
         }
 
-        item {
-            TextButton(
-                onClick = { mostrarHistorial = true },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-            ) {
-                Icon(Icons.Default.History, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Ver historial", style = MaterialTheme.typography.labelMedium)
-            }
-        }
-
         item { Spacer(Modifier.height(16.dp)) }
     }
 
@@ -625,7 +632,6 @@ private fun HistorialSheet(
             }
             .entries
             .sortedBy { it.key }
-            .take(14)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -646,7 +652,7 @@ private fun HistorialSheet(
                         "Historial",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
                 agrupado.forEach { (diasAtras, movs) ->
@@ -655,18 +661,132 @@ private fun HistorialSheet(
                         1 -> "Ayer"
                         else -> fmt.format(movs.first().fecha.toDate()).replaceFirstChar { it.uppercase() }
                     }
+                    val anotado = movs.filter { it.tipo == "cargo" }.sumOf { it.monto }
+                    val cobrado = movs.filter { it.tipo == "pago" }.sumOf { it.monto }
+
                     item(key = "header_$diasAtras") {
-                        Text(
-                            encabezado,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                encabezado,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                if (anotado > 0) Text(
+                                    "-$${"%.0f".format(anotado)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                if (cobrado > 0) Text(
+                                    "+$${"%.0f".format(cobrado)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Verde
+                                )
+                            }
+                        }
                     }
-                    val visitas = agruparVisitas(movs, clienteMap, fmtHora)
-                    items(visitas, key = { "v_${diasAtras}_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
-                        FilaVisitaMP(visita, onClick = { /* historial no abre detalle */ })
+
+                    // Grid 2 columnas manual para evitar nested scroll
+                    val filas = movs.chunked(2)
+                    items(filas, key = { "fila_${diasAtras}_${it.firstOrNull()?.id}" }) { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { mov ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    MovimientoCard(
+                                        movimiento = mov,
+                                        nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "",
+                                        fmtHora = fmtHora,
+                                        onClick = { onVerMovimiento(mov.id) }
+                                    )
+                                }
+                            }
+                            if (fila.size == 1) Spacer(Modifier.weight(1f))
+                        }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MovimientoCard(
+    movimiento: Movimiento,
+    nombreCliente: String,
+    fmtHora: SimpleDateFormat,
+    onClick: (() -> Unit)? = null
+) {
+    val esCargo = movimiento.tipo == "cargo"
+    val stripeColor = if (esCargo) MaterialTheme.colorScheme.error else Verde
+    val montoColor = if (esCargo) MaterialTheme.colorScheme.error else Verde
+    val montoTexto = "${if (esCargo) "-" else "+"}$${"%.0f".format(movimiento.monto)}"
+    val concepto = movimiento.producto.ifBlank { if (esCargo) "Cargo" else "Pago" }
+    val hora = fmtHora.format(movimiento.fecha.toDate())
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 72.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = RoundedCornerShape(10.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Box {
+            // Franja superior de color
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(stripeColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+            )
+            Column(
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    nombreCliente.ifBlank { "—" },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    concepto,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        montoTexto,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = montoColor
+                    )
+                    Text(
+                        hora,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
+                    )
                 }
             }
         }

@@ -13,6 +13,8 @@ object Rutas {
     const val CONFIGURACION = "configuracion"
     const val ACERCA_DE = "acerca_de"
     const val PRIVACIDAD = "privacidad"
+    const val POLITICA_PRIVACIDAD = "politica_privacidad"
+    const val SEGURIDAD = "seguridad"
     const val ONBOARDING = "onboarding"
     const val PERFIL = "perfil"
     const val COLABORADORES = "colaboradores"

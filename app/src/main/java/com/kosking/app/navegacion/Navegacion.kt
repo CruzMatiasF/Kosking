@@ -273,7 +273,6 @@ fun KoskingNavHost() {
         }
 
         composable(Rutas.PERFIL) {
-            val localData by duenoVm.localData.collectAsState()
             val esDuenoVal by duenoVm.localId.collectAsState()
             PantallaPerfil(
                 nombreUsuario = nombreUsuario,
@@ -284,8 +283,13 @@ fun KoskingNavHost() {
                 esDueno = esDuenoVal.isNotBlank(),
                 onVolver = { nav.popBackStack() },
                 onInformacionPersonal = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
+                onSeguridad = { nav.navigate(Rutas.SEGURIDAD) },
                 onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) }
             )
+        }
+
+        composable(Rutas.SEGURIDAD) {
+            com.kosking.app.perfil.PantallaSeguridad(onVolver = { nav.popBackStack() })
         }
 
         composable(Rutas.COLABORADORES) {
@@ -353,12 +357,22 @@ fun KoskingNavHost() {
         composable(Rutas.ACERCA_DE) {
             PantallaAcercaDe(
                 onVolver = { nav.popBackStack() },
-                onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) }
+                onPrivacidad = { nav.navigate(Rutas.POLITICA_PRIVACIDAD) }
             )
         }
 
         composable(Rutas.PRIVACIDAD) {
-            com.kosking.app.perfil.PantallaPrivacidad(onVolver = { nav.popBackStack() })
+            com.kosking.app.perfil.PantallaPrivacidad(
+                onVolver = { nav.popBackStack() },
+                onPoliticaPrivacidad = { nav.navigate(Rutas.POLITICA_PRIVACIDAD) },
+                onCuentaEliminada = {
+                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                }
+            )
+        }
+
+        composable(Rutas.POLITICA_PRIVACIDAD) {
+            com.kosking.app.perfil.PantallaPoliticaPrivacidad(onVolver = { nav.popBackStack() })
         }
     }
 }

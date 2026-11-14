@@ -83,7 +83,7 @@ fun PantallaAcercaDe(onVolver: () -> Unit, onPrivacidad: () -> Unit = {}) {
                     Column {
                         ListItem(
                             headlineContent = { Text("Desarrollado por", fontWeight = FontWeight.Medium) },
-                            supportingContent = { Text("Matías Castro Ferreyra") },
+                            supportingContent = { Text("Matías Fernando Cruz") },
                             leadingContent = {
                                 Icon(Icons.Default.Code, null,
                                     tint = MaterialTheme.colorScheme.primary)
@@ -135,7 +135,7 @@ fun PantallaAcercaDe(onVolver: () -> Unit, onPrivacidad: () -> Unit = {}) {
                             onClick = {
                                 val intent = Intent(Intent.ACTION_SENDTO).apply {
                                     data = Uri.parse("mailto:")
-                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("matiascf04@gmail.com"))
+                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("matiasfc.info@gmail.com"))
                                     putExtra(Intent.EXTRA_SUBJECT, "Reporte de problema - Kosking")
                                 }
                                 context.startActivity(intent)

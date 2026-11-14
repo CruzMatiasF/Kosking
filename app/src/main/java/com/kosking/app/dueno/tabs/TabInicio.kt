@@ -254,6 +254,45 @@ internal fun TabInicio(
             HorizontalDivider()
         }
 
+        // Resumen semanal compacto
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Esta semana",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Anotado", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${"%.0f".format(semanaActual.fiado)}",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Cobrado", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${"%.0f".format(semanaActual.cobrado)}",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Verde)
+                        }
+                    }
+                }
+            }
+        }
+
         // Lista compacta de últimos movimientos (Hoy)
         item {
             Row(
@@ -315,13 +354,13 @@ internal fun TabInicio(
                     FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
                 }
             }
-            TextButton(
-                onClick = { mostrarHistorial = true },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-            ) {
-                Icon(Icons.Default.History, null, Modifier.size(15.dp))
-                Spacer(Modifier.width(5.dp))
-                Text("Ver historial completo", style = MaterialTheme.typography.labelMedium)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(
+                    onClick = { mostrarHistorial = true },
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Text("Ver historial completo", style = MaterialTheme.typography.labelSmall)
+                }
             }
             HorizontalDivider()
         }
@@ -408,45 +447,6 @@ internal fun TabInicio(
                     modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-            }
-        }
-
-        // Resumen semanal compacto
-        item {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Esta semana",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Anotado", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${"%.0f".format(semanaActual.fiado)}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Cobrado", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${"%.0f".format(semanaActual.cobrado)}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Verde)
-                        }
-                    }
-                }
             }
         }
 

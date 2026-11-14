@@ -333,13 +333,19 @@ private fun DialogProducto(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(item.nombre, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    if (item.categoria.isNotBlank()) {
-                                        Text(
-                                            item.categoria,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                    val etiqueta = when {
+                                        item.categoria.isNotBlank() -> item.categoria
+                                        else -> "otros locales"
                                     }
+                                    val etiquetaColor = when {
+                                        item.categoria.isNotBlank() -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                    }
+                                    Text(
+                                        etiqueta,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = etiquetaColor
+                                    )
                                 }
                                 HorizontalDivider()
                             }

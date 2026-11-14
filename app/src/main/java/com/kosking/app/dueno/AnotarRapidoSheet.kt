@@ -368,16 +368,24 @@ fun AnotarRapidoSheet(
                                 FilaProductoAnotar(prod = prod, cantidad = cantidad, onAgregar = { toggleCarrito(prod) }, onQuitar = { quitarUno(prod) }, onSetCantidad = { n -> setCantidad(prod, n) })
                             }
                         }
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().clickable { mostrarOtro = !mostrarOtro }.padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Add, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                                Text("No está en la lista — agregar manual", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                            }
-                        }
+                    }
+
+                    // "No está en la lista" fijo, siempre visible debajo de la lista
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { mostrarOtro = !mostrarOtro }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Add, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            if (mostrarOtro) "Ocultar entrada manual" else "No está en la lista — agregar manual",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             } else {

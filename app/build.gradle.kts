@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.work.runtime.ktx)
     implementation(libs.zxing.core)
+    implementation(libs.androidx.biometric)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

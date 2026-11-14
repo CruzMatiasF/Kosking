@@ -19,6 +19,7 @@ object Rutas {
     const val PERFIL = "perfil"
     const val COLABORADORES = "colaboradores"
     const val CONFIGURAR_LOCAL = "configurar_local"
+    const val NOTIFICACIONES = "notificaciones"
 
     fun agregarFiadoEmpleado(clienteId: String) = "agregar_fiado_empleado/$clienteId"
     fun detalleMovimiento(movimientoId: String) = "detalle_movimiento/$movimientoId"

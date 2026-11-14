@@ -85,6 +85,8 @@ data class Usuario(
     val localId: String = "",
     val empleadoLocalId: String = "",
     val empleadoNombreLocal: String = "",
-    val fcmToken: String = ""
+    val fcmToken: String = "",
+    val telefono: String = "",
+    val dni: String = ""
 )
 

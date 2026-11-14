@@ -434,6 +434,21 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    suspend fun buscarProductosGlobales(query: String): List<String> =
+        FiadoRepository.buscarProductosGlobales(query)
+
+    private var syncGlobalHecho = false
+    init {
+        viewModelScope.launch {
+            productos.collect { lista ->
+                if (!syncGlobalHecho && lista.isNotEmpty()) {
+                    syncGlobalHecho = true
+                    launch { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
+                }
+            }
+        }
+    }
+
     private suspend fun resolverLocalId(): String? {
         val existing = _localId.value
         if (existing.isNotBlank()) return existing
@@ -454,6 +469,7 @@ class DuenoViewModel : ViewModel() {
                     FiadoRepository.editarProducto(productoId, nombre, precio)
                 } else {
                     FiadoRepository.upsertProducto(localId, nombre, precio)
+                    FiadoRepository.upsertProductoGlobal(nombre)
                 }
                 onExito()
             } catch (e: Exception) {

@@ -9,6 +9,38 @@ import java.util.Locale
 
 object WhatsAppUtil {
 
+    fun ticketVisita(
+        nombreCliente: String,
+        nombreLocal: String,
+        items: List<Pair<String, Double>>,
+        deudaAnterior: Double,
+        deudaNueva: Double,
+        tipo: String,
+        hora: String
+    ): String {
+        val sb = StringBuilder()
+        if (tipo == "pago") {
+            val montoFmt = "%.0f".format(items.sumOf { it.second })
+            sb.append("✅ Hola $nombreCliente, registramos tu pago de *\$$montoFmt* en *$nombreLocal*.\n")
+            sb.append("\nDeuda anterior: \$${"%.0f".format(deudaAnterior)}")
+            sb.append("\nDeuda nueva:    *\$${"%.0f".format(deudaNueva)}*")
+        } else {
+            sb.append("🧾 *$nombreLocal*\n")
+            sb.append("────────────────────\n")
+            items.forEach { (concepto, monto) ->
+                val nombre = concepto.ifBlank { "Cargo" }.padEnd(16)
+                sb.append("$nombre \$${"%.0f".format(monto)}\n")
+            }
+            sb.append("────────────────────\n")
+            val total = items.sumOf { it.second }
+            sb.append("*Total            \$${"%.0f".format(total)}*\n")
+            sb.append("\nDeuda anterior: \$${"%.0f".format(deudaAnterior)}")
+            sb.append("\n*Deuda nueva:   \$${"%.0f".format(deudaNueva)}*")
+        }
+        sb.append("\n\n🕐 $hora · 📱 Kosking")
+        return sb.toString()
+    }
+
     fun mensajeDeuda(
         nombreCliente: String,
         monto: Double,

@@ -321,6 +321,51 @@ object FiadoRepository {
         db.collection("productos").document(productoId).delete().await()
     }
 
+    // ── Catálogo global de productos ─────────────────────────────────────────
+
+    suspend fun buscarProductosGlobales(query: String): List<String> {
+        if (query.length < 2) return emptyList()
+        val q = normalizarNombreProducto(query)
+        val snap = db.collection("productos_globales")
+            .orderBy("nombre")
+            .startAt(q)
+            .endAt(q + "")
+            .limit(10)
+            .get().await()
+        return snap.documents.mapNotNull { it.getString("nombre") }
+    }
+
+    suspend fun upsertProductoGlobal(nombre: String) {
+        val normalizado = normalizarNombreProducto(nombre)
+        if (normalizado.isBlank()) return
+        val id = normalizado.lowercase().replace(" ", "_").filter { it.isLetterOrDigit() || it == '_' }
+        db.collection("productos_globales").document(id)
+            .set(
+                mapOf("nombre" to normalizado, "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1)),
+                com.google.firebase.firestore.SetOptions.merge()
+            ).await()
+    }
+
+    suspend fun syncProductosGlobales(nombres: List<String>) {
+        if (nombres.isEmpty()) return
+        nombres.filter { it.isNotBlank() }
+            .map { normalizarNombreProducto(it) }
+            .distinct()
+            .chunked(500) { lote ->
+                val batch = db.batch()
+                lote.forEach { normalizado ->
+                    val id = normalizado.lowercase().replace(" ", "_").filter { it.isLetterOrDigit() || it == '_' }
+                    val ref = db.collection("productos_globales").document(id)
+                    batch.set(ref, mapOf("nombre" to normalizado, "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1)), com.google.firebase.firestore.SetOptions.merge())
+                }
+                batch.commit().await()
+            }
+    }
+
+    private fun normalizarNombreProducto(nombre: String): String =
+        nombre.trim().lowercase().split(" ")
+            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercaseChar() } }
+
     suspend fun obtenerEmpleoDeUsuario(uid: String): Pair<String, String>? {
         val doc = db.collection("usuarios").document(uid).get().await()
         val localId = doc.getString("empleadoLocalId") ?: ""

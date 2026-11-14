@@ -21,6 +21,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +67,12 @@ fun AnotarRapidoSheet(
         val base = productos.sortedByDescending { it.vecesUsado }
         if (busquedaProducto.isBlank()) base
         else base.filter { it.nombre.contains(busquedaProducto, ignoreCase = true) }
+    }
+    val clienteFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        if (clienteInicial == null) {
+            try { clienteFocusRequester.requestFocus() } catch (_: Exception) {}
+        }
     }
 
     var descripcionOtro by remember { mutableStateOf("") }
@@ -227,7 +235,8 @@ fun AnotarRapidoSheet(
                                     }
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().clickable { mostrarListaClientes = true },
+                            modifier = Modifier.fillMaxWidth().clickable { mostrarListaClientes = true }
+                                .focusRequester(clienteFocusRequester),
                             shape = RoundedCornerShape(12.dp)
                         )
                         if (mostrarListaClientes && clientesFiltrados.isNotEmpty()) {
@@ -337,22 +346,7 @@ fun AnotarRapidoSheet(
 
                     // Lista scrolleable que llena el espacio
                     LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        if (busquedaProducto.isBlank()) {
-                            // Estado inicial — invitar a escribir
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "Escribí para buscar un producto",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        } else if (productosFiltrados.isEmpty()) {
+                        if (productosFiltrados.isEmpty() && busquedaProducto.isNotBlank()) {
                             item {
                                 Text(
                                     "Sin resultados para \"$busquedaProducto\"",

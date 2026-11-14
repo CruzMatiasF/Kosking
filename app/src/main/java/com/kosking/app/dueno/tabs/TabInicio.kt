@@ -43,17 +43,12 @@ internal fun TabInicio(
     onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
-    onVerMovimiento: (String) -> Unit = {},
     onAbrirProductos: () -> Unit = {}
 ) {
     var mostrarHistorial by remember { mutableStateOf(false) }
     val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val fechaHoy = remember {
-        SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es-AR")).format(java.util.Date()).replaceFirstChar { it.uppercase() }
-    }
-
     val movimientosHoy = remember(movimientosLocal) {
         val hoy = Calendar.getInstance()
         movimientosLocal.filter { mov ->
@@ -124,7 +119,6 @@ internal fun TabInicio(
             .filter { it.fechaCompromiso != null && it.fechaCompromiso.toDate().before(hoy) }
             .sortedBy { it.fechaCompromiso!!.toDate() }
     }
-    val clientesUrgentes = clientesVencidos
 
     // Caja del día por persona (para sección equipo)
     data class StatPersona(val uid: String, val nombre: String, val anoto: Int, val cobro: Double)
@@ -363,7 +357,7 @@ internal fun TabInicio(
 
         // Lista de clientes con deuda (Acuerdos vencidos)
         seccionAcuerdosVencidos(
-            clientesUrgentes = clientesUrgentes,
+            clientesUrgentes = clientesVencidos,
             clientesVencidos = clientesVencidos,
             hoy = hoy,
             fmtCompromiso = fmtCompromiso,
@@ -409,10 +403,6 @@ internal fun TabInicio(
             onAbrirDetalleCliente = onAbrirDetalleCliente
         )
 
-        // Sección compacta de equipo
-        if (empleados.isNotEmpty()) {
-        }
-
         item { Spacer(Modifier.height(16.dp)) }
     }
 
@@ -424,7 +414,7 @@ internal fun TabInicio(
         HistorialSheet(
             movimientos = movimientosLocal,
             clienteMap = clienteMap,
-            onVerMovimiento = onVerMovimiento,
+            onVerMovimiento = onAbrirDetalleMovimiento,
             onDismiss = { mostrarHistorial = false }
         )
     }

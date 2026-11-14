@@ -86,7 +86,7 @@ internal fun TabClientes(
             .toSet()
     }
 
-    val ahora = System.currentTimeMillis()
+    val ahora = remember { System.currentTimeMillis() }
 
     val clientesFiltrados = remember(clientes, filtro, busqueda, orden, ultimaVisita, pagaronEsteMes) {
         clientes

@@ -66,7 +66,12 @@ fun AnotarRapidoSheet(
     val productosFiltrados = remember(productos, busquedaProducto) {
         val base = productos.sortedByDescending { it.vecesUsado }
         if (busquedaProducto.isBlank()) base
-        else base.filter { it.nombre.contains(busquedaProducto, ignoreCase = true) }
+        else {
+            val q = busquedaProducto.trim().lowercase()
+            base.filter { prod ->
+                prod.nombre.lowercase().split(" ").any { it.startsWith(q) }
+            }
+        }
     }
     val clienteFocusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {

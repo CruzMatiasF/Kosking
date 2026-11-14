@@ -1,5 +1,8 @@
 package com.kosking.app.dueno
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
@@ -11,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -31,9 +35,27 @@ internal fun FilaProductoAnotar(
     var editandoCantidad by remember { mutableStateOf(false) }
     var cantidadTexto by remember(cantidad) { mutableStateOf(cantidad.toString()) }
 
+    var highlighted by remember { mutableStateOf(false) }
+    val prevCantidad = remember { mutableIntStateOf(cantidad) }
+    LaunchedEffect(cantidad) {
+        if (cantidad > prevCantidad.intValue) {
+            highlighted = true
+            kotlinx.coroutines.delay(350)
+            highlighted = false
+        }
+        prevCantidad.intValue = cantidad
+    }
+    val highlightColor = MaterialTheme.colorScheme.primaryContainer
+    val bgColor by animateColorAsState(
+        targetValue = if (highlighted) highlightColor else Color.Transparent,
+        animationSpec = tween(durationMillis = 300),
+        label = "highlight"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(bgColor)
             .clickable { onAgregar() }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -323,15 +323,21 @@ object FiadoRepository {
 
     // ── Catálogo global de productos ─────────────────────────────────────────
 
+    private var cacheGlobal: List<String>? = null
+
     suspend fun buscarProductosGlobales(query: String): List<String> {
         if (query.length < 2) return emptyList()
-        val token = query.trim().lowercase()
-        val snap = db.collection("productos_globales")
-            .whereArrayContains("tokens", token)
-            .orderBy("vecesUsado", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .limit(10)
-            .get().await()
-        return snap.documents.mapNotNull { it.getString("nombre") }
+        val catalogo = cacheGlobal ?: run {
+            val snap = db.collection("productos_globales")
+                .orderBy("vecesUsado", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(200)
+                .get().await()
+            snap.documents.mapNotNull { it.getString("nombre") }.also { cacheGlobal = it }
+        }
+        val q = query.trim().lowercase()
+        return catalogo.filter { nombre ->
+            nombre.lowercase().split(" ").any { it.startsWith(q) }
+        }.take(10)
     }
 
     suspend fun upsertProductoGlobal(nombre: String) {
@@ -346,6 +352,7 @@ object FiadoRepository {
                     "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1)
                 ),
                 com.google.firebase.firestore.SetOptions.merge()
+        cacheGlobal = null
             ).await()
     }
 

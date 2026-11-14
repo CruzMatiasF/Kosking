@@ -34,6 +34,10 @@ import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.dueno.PantallaColaboradores
 import com.kosking.app.autenticacion.PantallaOnboarding
 import com.kosking.app.perfil.PantallaPrivacidad
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.datos.PreferenciasRepository
 import kotlinx.coroutines.launch
@@ -127,7 +131,7 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
             }
 
             if (!startupResuelto) {
-                Box(modifier = androidx.compose.ui.Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
                 return@composable

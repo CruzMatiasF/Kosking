@@ -101,12 +101,6 @@ fun AnotarRapidoSheet(
         sugerenciasOtro = emptyList()
     }
 
-    fun buildItems(): List<Pair<String, Double>> = buildList {
-        carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
-        if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
-        if (!esCargo) add(Pair("", montoUnicoDouble))
-    }
-
     fun toggleCarrito(prod: Producto) {
         val idx = carrito.indexOfFirst { it.producto.id == prod.id }
         if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
@@ -129,6 +123,12 @@ fun AnotarRapidoSheet(
 
     val montoOtroDouble = montoOtroTexto.toDoubleOrNull() ?: 0.0
     val montoUnicoDouble = montoTexto.toDoubleOrNull() ?: 0.0
+
+    fun buildItems(): List<Pair<String, Double>> = buildList {
+        carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
+        if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
+        if (!esCargo) add(Pair("", montoUnicoDouble))
+    }
     val totalCarrito = carrito.sumOf { it.producto.ultimoPrecio * it.cantidad }
     val totalConOtro = totalCarrito + (if (mostrarOtro && montoOtroDouble > 0) montoOtroDouble else 0.0)
 

@@ -160,14 +160,47 @@ internal fun TabInicio(
         // Cabecera: deuda total + botón anotar
         item {
             if (localData != null && localData.nombre.isNotBlank()) {
+                val diaKey = remember {
+                    val dias = listOf("domingo","lunes","martes","miercoles","jueves","viernes","sabado")
+                    dias[Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1]
+                }
+                val horarioHoy = localData.horarios[diaKey]
+
                 Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) {
-                    Text(
-                        localData.nombre,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            localData.nombre,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (horarioHoy != null) {
+                            val (badgeBg, badgeText, badgeLabel) = if (horarioHoy.abierto)
+                                Triple(Verde.copy(alpha = 0.12f), Verde, "Abierto")
+                            else
+                                Triple(
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                    "Cerrado"
+                                )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = badgeBg
+                            ) {
+                                Text(
+                                    badgeLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = badgeText,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                     if (localData.direccion.isNotBlank()) {
                         Text(
                             localData.direccion,
@@ -175,6 +208,13 @@ internal fun TabInicio(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                    if (horarioHoy != null && horarioHoy.abierto) {
+                        Text(
+                            "${horarioHoy.horaApertura} – ${horarioHoy.horaCierre}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

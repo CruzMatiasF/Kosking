@@ -99,6 +99,13 @@ fun AnotarRapidoSheet(
         mostrarOtro = false
         descripcionOtro = ""
         montoOtroTexto = ""
+        sugerenciasOtro = emptyList()
+    }
+
+    fun buildItems(): List<Pair<String, Double>> = buildList {
+        carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
+        if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
+        if (!esCargo) add(Pair("", montoUnicoDouble))
     }
 
     fun toggleCarrito(prod: Producto) {
@@ -550,11 +557,7 @@ fun AnotarRapidoSheet(
                             Button(onClick = {
                                 pedirConfirmSinPrecio = false
                                 val cliente = clienteSeleccionado ?: return@Button
-                                val items = buildList {
-                                    carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
-                                    if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
-                                }
-                                onGuardar(cliente.id, items, "cargo")
+                                onGuardar(cliente.id, buildItems(), "cargo")
                             }) { Text("Registrar igual") }
                         },
                         dismissButton = {
@@ -567,14 +570,9 @@ fun AnotarRapidoSheet(
                 Button(
                     onClick = {
                         val cliente = clienteSeleccionado ?: return@Button
-                        val items = buildList {
-                            carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
-                            if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
-                            if (!esCargo) add(Pair("", montoUnicoDouble))
-                        }
                         val haySinPrecio = esCargo && carrito.any { it.producto.ultimoPrecio <= 0 }
                         if (haySinPrecio) { pedirConfirmSinPrecio = true; return@Button }
-                        onGuardar(cliente.id, items, if (esCargo) "cargo" else "pago")
+                        onGuardar(cliente.id, buildItems(), if (esCargo) "cargo" else "pago")
                     },
                     enabled = puedeGuardar,
                     modifier = Modifier.fillMaxWidth(),

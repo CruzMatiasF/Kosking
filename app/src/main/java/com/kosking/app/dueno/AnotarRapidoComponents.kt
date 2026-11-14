@@ -6,7 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -89,10 +91,16 @@ internal fun FilaProductoAnotar(
                 Icon(Icons.Default.Remove, null, Modifier.size(16.dp))
             }
             if (editandoCantidad && onSetCantidad != null) {
+                fun confirmar() {
+                    val n = cantidadTexto.toIntOrNull() ?: 0
+                    onSetCantidad(if (n > 0) n else cantidad)
+                    editandoCantidad = false
+                }
                 BasicTextField(
                     value = cantidadTexto,
                     onValueChange = { cantidadTexto = it.filter { c -> c.isDigit() } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { confirmar() }),
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
@@ -104,12 +112,6 @@ internal fun FilaProductoAnotar(
                         androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { inner() }
                     }
                 )
-                LaunchedEffect(editandoCantidad) {
-                    kotlinx.coroutines.delay(2000)
-                    val n = cantidadTexto.toIntOrNull() ?: 0
-                    if (n > 0) onSetCantidad(n) else onSetCantidad(cantidad)
-                    editandoCantidad = false
-                }
             } else {
                 Text(
                     cantidad.toString(),

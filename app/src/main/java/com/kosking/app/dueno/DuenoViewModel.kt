@@ -434,27 +434,22 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private suspend fun resolverLocalId(): String? {
+        val existing = _localId.value
+        if (existing.isNotBlank()) return existing
+        val uid = auth.currentUser?.uid ?: run { _error.value = "Sesión no válida. Cerrá y volvé a abrir la app."; return null }
+        val usuario = FiadoRepository.obtenerUsuario(uid) ?: run { _error.value = "No se encontró el usuario. Cerrá y volvé a abrir la app."; return null }
+        if (usuario.localId.isBlank()) { _error.value = "No tenés un local configurado."; return null }
+        _localId.value = usuario.localId
+        return usuario.localId
+    }
+
     fun guardarProducto(nombre: String, precio: Double, productoId: String?, onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
             try {
-                val localId = _localId.value.ifBlank {
-                    val uid = auth.currentUser?.uid ?: run {
-                        _error.value = "Sesión no válida. Cerrá y volvé a abrir la app."
-                        return@launch
-                    }
-                    val usuario = FiadoRepository.obtenerUsuario(uid) ?: run {
-                        _error.value = "No se encontró el usuario. Cerrá y volvé a abrir la app."
-                        return@launch
-                    }
-                    if (usuario.localId.isBlank()) {
-                        _error.value = "No tenés un local configurado."
-                        return@launch
-                    }
-                    _localId.value = usuario.localId
-                    usuario.localId
-                }
+                val localId = resolverLocalId() ?: return@launch
                 if (productoId != null) {
                     FiadoRepository.editarProducto(productoId, nombre, precio)
                 } else {
@@ -503,24 +498,10 @@ class DuenoViewModel : ViewModel() {
             _cargando.value = true
             _error.value = null
             try {
-                // Si _localId está vacío, intentar recargarlo
-                val localId = _localId.value.ifBlank {
-                    val uid = auth.currentUser?.uid ?: run {
-                        _error.value = "Sesión no válida"
-                        return@launch
-                    }
-                    val usuario = FiadoRepository.obtenerUsuario(uid) ?: run {
-                        _error.value = "No se encontró el usuario"
-                        return@launch
-                    }
-                    if (usuario.localId.isBlank()) {
-                        _error.value = "No tenés un local creado"
-                        return@launch
-                    }
-                    _localId.value = usuario.localId
-                    val local = FiadoRepository.obtenerLocal(usuario.localId)
+                val localId = resolverLocalId() ?: return@launch
+                if (_nombreLocal.value.isBlank()) {
+                    val local = FiadoRepository.obtenerLocal(localId)
                     _nombreLocal.value = local?.nombre ?: ""
-                    usuario.localId
                 }
                 val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
                 val codigo = (1..6).map { chars.random() }.joinToString("")

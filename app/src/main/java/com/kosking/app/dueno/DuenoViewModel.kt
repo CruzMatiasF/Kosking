@@ -184,7 +184,7 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    companion object { const val LIMITE_CLIENTES_GRATIS = 50 }
+    companion object { const val LIMITE_CLIENTES_GRATIS = 150 }
 
     fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: () -> Unit) {
         viewModelScope.launch {

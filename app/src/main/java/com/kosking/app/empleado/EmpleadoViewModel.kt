@@ -226,7 +226,7 @@ class EmpleadoViewModel : ViewModel() {
     fun agregarCliente(nombre: String, telefono: String, onExito: () -> Unit) {
         viewModelScope.launch {
             if (clientesHabilitados.value.size >= 50) {
-                _error.value = "Límite de 50 clientes alcanzado."
+                _error.value = "Límite de ${com.kosking.app.dueno.DuenoViewModel.LIMITE_CLIENTES_GRATIS} clientes alcanzado."
                 return@launch
             }
             _cargando.value = true

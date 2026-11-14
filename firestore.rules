@@ -117,5 +117,25 @@ service cloud.firestore {
       allow update: if tieneAcceso(resource.data.localId);
       allow delete: if isDueno(resource.data.localId);
     }
+
+    // ── productos_globales ────────────────────────────────────────────────────
+    // Cualquier usuario autenticado puede leer y contribuir al catálogo global.
+
+    match /productos_globales/{productoId} {
+      allow read:  if isAuth();
+      allow write: if isAuth();
+    }
+
+    // ── catalogo_base ─────────────────────────────────────────────────────────
+    // Catálogo base de productos (reemplaza catalogo.json del APK).
+    // Cualquier usuario autenticado puede leer.
+    // Solo se escribe desde la consola de Firebase (admin).
+
+    match /catalogo_base/{productoId} {
+      allow read:   if isAuth();
+      allow create: if isAuth();
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }

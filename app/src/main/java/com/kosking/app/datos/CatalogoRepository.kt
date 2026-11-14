@@ -2,35 +2,59 @@ package com.kosking.app.datos
 
 import android.content.Context
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 
 data class ItemCatalogo(val nombre: String, val categoria: String)
 
 object CatalogoRepository {
 
+    private val db = FirebaseFirestore.getInstance()
     private var cache: List<ItemCatalogo>? = null
 
-    fun buscar(context: Context, query: String): List<ItemCatalogo> {
-        val catalogo = cache ?: cargar(context).also { cache = it }
+    suspend fun buscar(context: Context, query: String): List<ItemCatalogo> {
         if (query.isBlank()) return emptyList()
+        val catalogo = cache ?: cargarDeFirestore(context).also { cache = it }
         val q = query.trim().lowercase()
-        return catalogo.filter { it.nombre.lowercase().contains(q) }
+        return catalogo.filter { item ->
+            item.nombre.lowercase().split(" ").any { it.startsWith(q) }
+        }.take(8)
     }
 
-    fun existeEnCache(context: Context, nombre: String): Boolean {
-        val catalogo = cache ?: cargar(context).also { cache = it }
-        return catalogo.any { it.nombre.equals(nombre.trim(), ignoreCase = true) }
+    suspend fun migrarSiVacio(context: Context) {
+        val snap = db.collection("catalogo_base").limit(1).get().await()
+        if (!snap.isEmpty) return
+        val items = cargarDelJson(context)
+        if (items.isEmpty()) return
+        items.chunked(500).forEach { lote ->
+            val batch = db.batch()
+            lote.forEach { item ->
+                val id = item.nombre.trim().lowercase()
+                    .replace(" ", "_").filter { it.isLetterOrDigit() || it == '_' }
+                val ref = db.collection("catalogo_base").document(id)
+                batch.set(ref, mapOf("nombre" to item.nombre, "categoria" to item.categoria))
+            }
+            batch.commit().await()
+        }
     }
 
-    // Contribuye un producto nuevo al catálogo global en Firestore
-    fun contribuir(nombre: String, categoria: String = "Otros") {
-        val db = FirebaseFirestore.getInstance()
-        val id = nombre.trim().lowercase().replace(" ", "_")
-        db.collection("catalogo").document(id)
-            .set(mapOf("nombre" to nombre.trim(), "categoria" to categoria, "contribuido" to true))
+    private suspend fun cargarDeFirestore(context: Context): List<ItemCatalogo> {
+        return try {
+            val snap = db.collection("catalogo_base")
+                .orderBy("categoria")
+                .get().await()
+            snap.documents.map {
+                ItemCatalogo(
+                    nombre = it.getString("nombre") ?: "",
+                    categoria = it.getString("categoria") ?: ""
+                )
+            }.filter { it.nombre.isNotBlank() }
+        } catch (e: Exception) {
+            cargarDelJson(context)
+        }
     }
 
-    private fun cargar(context: Context): List<ItemCatalogo> {
+    private fun cargarDelJson(context: Context): List<ItemCatalogo> {
         return try {
             val json = context.assets.open("catalogo.json").bufferedReader().readText()
             val arr = JSONArray(json)

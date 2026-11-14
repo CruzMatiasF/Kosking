@@ -268,6 +268,10 @@ private fun DialogProducto(
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
 
+    LaunchedEffect(Unit) {
+        try { CatalogoRepository.migrarSiVacio(context) } catch (_: Exception) {}
+    }
+
     LaunchedEffect(busqueda) {
         if (busqueda.length < 2) { sugerencias = emptyList(); return@LaunchedEffect }
         val delCatalogo = CatalogoRepository.buscar(context, busqueda)

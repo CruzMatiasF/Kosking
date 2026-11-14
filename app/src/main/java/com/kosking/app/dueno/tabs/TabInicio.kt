@@ -254,6 +254,162 @@ internal fun TabInicio(
             HorizontalDivider()
         }
 
+        // Lista compacta de últimos movimientos (Hoy)
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (fiadoHoy > 0) {
+                        Text("-$${"%.0f".format(fiadoHoy)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                    if (cobradoHoy > 0) {
+                        Text("+$${"%.0f".format(cobradoHoy)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Verde)
+                    }
+                    if (fiadoHoy > 0 || cobradoHoy > 0) {
+                        IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.Send, "Compartir",
+                                Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            if (clientes.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.People, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text("Todavía no hay clientes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Sumá tu primer cliente y empezá a anotar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Button(onClick = { onTabChange(1) }) {
+                        Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Agregar cliente")
+                    }
+                }
+            } else if (movimientosHoy.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
+                    Text("Todavía nada hoy", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                val visitasHoyPanel = agruparVisitas(movimientosHoy, clienteMap, fmtHora).take(5)
+                visitasHoyPanel.forEach { visita ->
+                    FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
+                }
+            }
+            TextButton(
+                onClick = { mostrarHistorial = true },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            ) {
+                Icon(Icons.Default.History, null, Modifier.size(15.dp))
+                Spacer(Modifier.width(5.dp))
+                Text("Ver historial completo", style = MaterialTheme.typography.labelMedium)
+            }
+            HorizontalDivider()
+        }
+
+        // Lista de clientes con deuda (Acuerdos vencidos)
+        if (clientesUrgentes.isNotEmpty()) {
+            item {
+                val clientesConFono = remember(clientesVencidos) {
+                    clientesVencidos.filter { it.telefono.isNotBlank() }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Acuerdos vencidos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    if (clientesConFono.isNotEmpty()) {
+                        TextButton(
+                            onClick = onRecordarTodos,
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Text("Recordar a todos", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+            items(clientesUrgentes, key = { "deuda_${it.id}" }) { cliente ->
+                val esVencido = cliente.fechaCompromiso != null && cliente.fechaCompromiso.toDate().before(hoy)
+                val diasVencido = if (esVencido) {
+                    val diff = hoy.time - cliente.fechaCompromiso!!.toDate().time
+                    (diff / 86_400_000L).toInt().coerceAtLeast(1)
+                } else 0
+                ListItem(
+                    headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
+                    supportingContent = {
+                        if (esVencido) {
+                            Text(
+                                "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · vencido hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            Text(
+                                "Deuda: $${"%.0f".format(cliente.deudaTotal)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    trailingContent = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (esVencido) {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "$${"%.0f".format(cliente.deudaTotal)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            FilledTonalButton(
+                                onClick = { onRegistrarPago(cliente) },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text("Cobrar", style = MaterialTheme.typography.labelSmall)
+                            }
+                            if (cliente.telefono.isNotBlank()) {
+                                IconButton(
+                                    onClick = { onWhatsAppCliente(cliente) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Send, "Avisar por WhatsApp",
+                                        Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+            }
+        }
 
         // Resumen semanal compacto
         item {
@@ -410,163 +566,6 @@ internal fun TabInicio(
                         }
                     }
                 }
-            }
-        }
-
-        // Lista compacta de últimos movimientos
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (fiadoHoy > 0) {
-                        Text("-$${"%.0f".format(fiadoHoy)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error)
-                    }
-                    if (cobradoHoy > 0) {
-                        Text("+$${"%.0f".format(cobradoHoy)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Verde)
-                    }
-                    if (fiadoHoy > 0 || cobradoHoy > 0) {
-                        IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.Send, "Compartir",
-                                Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-
-            if (clientes.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Default.People, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text("Todavía no hay clientes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Sumá tu primer cliente y empezá a anotar.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Button(onClick = { onTabChange(1) }) {
-                        Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Agregar cliente")
-                    }
-                }
-            } else if (movimientosHoy.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
-                    Text("Todavía nada hoy", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                val visitasHoyPanel = agruparVisitas(movimientosHoy, clienteMap, fmtHora).take(5)
-                visitasHoyPanel.forEach { visita ->
-                    FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
-                }
-            }
-            TextButton(
-                onClick = { mostrarHistorial = true },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-            ) {
-                Icon(Icons.Default.History, null, Modifier.size(15.dp))
-                Spacer(Modifier.width(5.dp))
-                Text("Ver historial completo", style = MaterialTheme.typography.labelMedium)
-            }
-            HorizontalDivider()
-        }
-
-        // Lista de clientes con deuda
-        if (clientesUrgentes.isNotEmpty()) {
-            item {
-                val clientesConFono = remember(clientesVencidos) {
-                    clientesVencidos.filter { it.telefono.isNotBlank() }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Acuerdos vencidos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    if (clientesConFono.isNotEmpty()) {
-                        TextButton(
-                            onClick = onRecordarTodos,
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Text("Recordar a todos", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            items(clientesUrgentes, key = { "deuda_${it.id}" }) { cliente ->
-                val esVencido = cliente.fechaCompromiso != null && cliente.fechaCompromiso.toDate().before(hoy)
-                val diasVencido = if (esVencido) {
-                    val diff = hoy.time - cliente.fechaCompromiso!!.toDate().time
-                    (diff / 86_400_000L).toInt().coerceAtLeast(1)
-                } else 0
-                ListItem(
-                    headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
-                    supportingContent = {
-                        if (esVencido) {
-                            Text(
-                                "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · vencido hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        } else {
-                            Text(
-                                "Deuda: $${"%.0f".format(cliente.deudaTotal)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    trailingContent = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (esVencido) {
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        "$${"%.0f".format(cliente.deudaTotal)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                            FilledTonalButton(
-                                onClick = { onRegistrarPago(cliente) },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                modifier = Modifier.height(32.dp)
-                            ) {
-                                Text("Cobrar", style = MaterialTheme.typography.labelSmall)
-                            }
-                            if (cliente.telefono.isNotBlank()) {
-                                IconButton(
-                                    onClick = { onWhatsAppCliente(cliente) },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Send, "Avisar por WhatsApp",
-                                        Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
-                )
-                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
             }
         }
 

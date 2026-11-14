@@ -77,7 +77,7 @@ fun PanelDuenoEmbedido(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double)
+    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double, val deudaAnterior: Double = 0.0, val items: List<Pair<String, Double>> = emptyList())
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
     val vmError by vm.error.collectAsState()
@@ -198,6 +198,7 @@ fun PanelDuenoEmbedido(
                         TabProductos(
                             productos = productos,
                             cargando = cargando,
+                            onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
                             onGuardar = { nombre, precio, productoId, onExito -> vm.guardarProducto(nombre, precio, productoId, onExito) },
                             onEliminar = { vm.eliminarProducto(it) }
                         )
@@ -228,9 +229,10 @@ fun PanelDuenoEmbedido(
                         if (cliente != null && cliente.telefono.isNotBlank()) {
                             val montoTotal = items.sumOf { it.second }
                             val descripcionItems = items.filter { it.first.isNotBlank() }.joinToString(", ") { it.first }
+                            val deudaAnterior = cliente.deudaTotal
                             val deudaNueva = if (tipo == "cargo") cliente.deudaTotal + montoTotal
                                             else (cliente.deudaTotal - montoTotal).coerceAtLeast(0.0)
-                            ultimoAnotado = UltimoAnotado(cliente, montoTotal, descripcionItems, tipo, deudaNueva)
+                            ultimoAnotado = UltimoAnotado(cliente, montoTotal, descripcionItems, tipo, deudaNueva, deudaAnterior, items)
                             val accion = if (tipo == "cargo") "anotado" else "pago"
                             val montoFmt = "%.0f".format(montoTotal)
                             scope.launch {
@@ -241,17 +243,18 @@ fun PanelDuenoEmbedido(
                                 )
                                 if (resultado == SnackbarResult.ActionPerformed) {
                                     ultimoAnotado?.let { ua ->
-                                        val desc = if (ua.descripcion.isBlank()) accion else ua.descripcion
+                                        val hora = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
                                         WhatsAppUtil.abrirWhatsApp(
                                             context = context,
                                             telefono = ua.cliente.telefono,
-                                            mensaje = WhatsAppUtil.mensajeDeuda(
+                                            mensaje = WhatsAppUtil.ticketVisita(
                                                 nombreCliente = ua.cliente.nombre,
-                                                monto = ua.monto,
-                                                descripcion = desc,
                                                 nombreLocal = localData?.nombre ?: "el local",
-                                                deudaTotal = ua.deudaNueva,
-                                                tipo = ua.tipo
+                                                items = ua.items,
+                                                deudaAnterior = ua.deudaAnterior,
+                                                deudaNueva = ua.deudaNueva,
+                                                tipo = ua.tipo,
+                                                hora = hora
                                             )
                                         )
                                     }

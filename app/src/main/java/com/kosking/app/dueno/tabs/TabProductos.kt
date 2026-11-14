@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kosking.app.datos.CatalogoRepository
+import com.kosking.app.datos.ItemCatalogo
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +27,7 @@ import com.kosking.app.modelo.Producto
 internal fun TabProductos(
     productos: List<Producto>,
     cargando: Boolean,
+    onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardar: (nombre: String, precio: Double, productoId: String?, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit
 ) {
@@ -45,6 +47,7 @@ internal fun TabProductos(
         DialogProducto(
             producto = editando,
             cargando = cargando,
+            onBuscarGlobal = onBuscarGlobal,
             onGuardar = { nombre, precio ->
                 // Contribuye al catálogo global si es un producto nuevo desconocido
                 if (editando == null && !CatalogoRepository.existeEnCache(context, nombre)) {
@@ -250,6 +253,7 @@ internal fun TabProductos(
 private fun DialogProducto(
     producto: Producto?,
     cargando: Boolean,
+    onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardar: (nombre: String, precio: Double) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -262,10 +266,18 @@ private fun DialogProducto(
     ) }
     var busqueda by remember { mutableStateOf(producto?.nombre ?: "") }
     var mostrarSugerencias by remember { mutableStateOf(false) }
+    var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
 
-    val sugerencias = remember(busqueda) {
-        if (busqueda.length >= 2) CatalogoRepository.buscar(context, busqueda).take(6)
-        else emptyList()
+    LaunchedEffect(busqueda) {
+        if (busqueda.length < 2) { sugerencias = emptyList(); return@LaunchedEffect }
+        val delCatalogo = CatalogoRepository.buscar(context, busqueda)
+        val nombresYaCubiertos = delCatalogo.map { it.nombre.lowercase() }.toSet()
+        val delGlobal = try {
+            onBuscarGlobal(busqueda)
+                .filter { it.lowercase() !in nombresYaCubiertos }
+                .map { ItemCatalogo(it, "") }
+        } catch (e: Exception) { emptyList() }
+        sugerencias = (delCatalogo + delGlobal).take(8)
     }
 
     val precioDouble = precioTexto.toDoubleOrNull() ?: 0.0

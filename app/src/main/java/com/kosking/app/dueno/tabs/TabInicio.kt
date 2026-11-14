@@ -1,5 +1,6 @@
 package com.kosking.app.dueno.tabs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -647,8 +648,19 @@ private fun HistorialSheet(
                     }
 
                     val visitas = agruparVisitas(movs, clienteMap, fmtHora)
-                    items(visitas, key = { "v_${diasAtras}_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
-                        FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
+                    val filas = visitas.chunked(2)
+                    items(filas, key = { "fila_${diasAtras}_${it.firstOrNull()?.items?.firstOrNull()?.id}" }) { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { visita ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    VisitaCard(visita = visita, onClick = { visitaDetalle = visita })
+                                }
+                            }
+                            if (fila.size == 1) Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -660,3 +672,73 @@ private fun HistorialSheet(
     }
 }
 
+@Composable
+private fun VisitaCard(visita: VisitaResumen, onClick: () -> Unit) {
+    val esPago = visita.totalPago > 0 && visita.totalCargo == 0.0
+    val stripeColor = if (esPago) Verde else MaterialTheme.colorScheme.error
+    val monto = if (esPago) visita.totalPago else visita.totalCargo
+    val montoColor = if (esPago) Verde else MaterialTheme.colorScheme.error
+    val montoTexto = "${if (esPago) "+" else "-"}$${"%.0f".format(monto)}"
+    val concepto = when {
+        esPago -> "Pago"
+        visita.items.size == 1 -> visita.items.first().producto.ifBlank { "Cargo" }
+        else -> "${visita.items.size} productos"
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 72.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(stripeColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+            )
+            Column(
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    visita.clienteNombre,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    concepto,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        montoTexto,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = montoColor
+                    )
+                    Text(
+                        visita.hora,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}

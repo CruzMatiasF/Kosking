@@ -1,27 +1,20 @@
 package com.kosking.app.dueno.tabs
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kosking.app.dueno.DetalleVisitaSheet
 import com.kosking.app.dueno.FilaVisitaMP
-import com.kosking.app.dueno.SeccionCard
 import com.kosking.app.dueno.VisitaResumen
 import com.kosking.app.dueno.agruparVisitas
 import com.google.firebase.auth.FirebaseAuth
@@ -30,7 +23,6 @@ import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
-import com.kosking.app.ui.theme.VerdeClaro
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -435,63 +427,9 @@ internal fun TabInicio(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
-                movimientosHoy.take(5).forEach { mov ->
-                    val esCargo = mov.tipo == "cargo"
-                    val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: ""
-                    val concepto = mov.producto.ifBlank { if (esCargo) "Cargo" else "Pago" }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { mostrarHistorial = true }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(
-                                        if (esCargo) MaterialTheme.colorScheme.error else Verde,
-                                        RoundedCornerShape(3.dp)
-                                    )
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    nombreCliente.ifBlank { "—" },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    concepto,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                "${if (esCargo) "-" else "+"}$${"%.0f".format(mov.monto)}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = if (esCargo) MaterialTheme.colorScheme.error else Verde
-                            )
-                            Text(
-                                fmtHora.format(mov.fecha.toDate()),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(start = 32.dp))
+                val visitasHoyPanel = agruparVisitas(movimientosHoy, clienteMap, fmtHora).take(5)
+                visitasHoyPanel.forEach { visita ->
+                    FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
                 }
             }
             TextButton(
@@ -621,6 +559,7 @@ private fun HistorialSheet(
 ) {
     val fmt = remember { SimpleDateFormat("EEEE d MMM", Locale.forLanguageTag("es-AR")) }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    var visitaDetalle by remember { mutableStateOf<VisitaResumen?>(null) }
 
     val agrupado = remember(movimientos) {
         val hoyNorm = Calendar.getInstance().apply {
@@ -642,7 +581,12 @@ private fun HistorialSheet(
             .sortedBy { it.key }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
         if (agrupado.isEmpty()) {
             Box(
                 Modifier.fillMaxWidth().padding(48.dp),
@@ -676,7 +620,7 @@ private fun HistorialSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 16.dp, bottom = 6.dp),
+                                .padding(top = 16.dp, bottom = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -701,102 +645,17 @@ private fun HistorialSheet(
                         }
                     }
 
-                    // Grid 2 columnas manual para evitar nested scroll
-                    val filas = movs.chunked(2)
-                    items(filas, key = { "fila_${diasAtras}_${it.firstOrNull()?.id}" }) { fila ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            fila.forEach { mov ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    MovimientoCard(
-                                        movimiento = mov,
-                                        nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "",
-                                        fmtHora = fmtHora,
-                                        onClick = { onVerMovimiento(mov.id) }
-                                    )
-                                }
-                            }
-                            if (fila.size == 1) Spacer(Modifier.weight(1f))
-                        }
+                    val visitas = agruparVisitas(movs, clienteMap, fmtHora)
+                    items(visitas, key = { "v_${diasAtras}_${it.items.firstOrNull()?.id ?: it.hora}" }) { visita ->
+                        FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
                     }
                 }
             }
         }
     }
-}
 
-@Composable
-private fun MovimientoCard(
-    movimiento: Movimiento,
-    nombreCliente: String,
-    fmtHora: SimpleDateFormat,
-    onClick: (() -> Unit)? = null
-) {
-    val esCargo = movimiento.tipo == "cargo"
-    val stripeColor = if (esCargo) MaterialTheme.colorScheme.error else Verde
-    val montoColor = if (esCargo) MaterialTheme.colorScheme.error else Verde
-    val montoTexto = "${if (esCargo) "-" else "+"}$${"%.0f".format(movimiento.monto)}"
-    val concepto = movimiento.producto.ifBlank { if (esCargo) "Cargo" else "Pago" }
-    val hora = fmtHora.format(movimiento.fecha.toDate())
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = 72.dp)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = RoundedCornerShape(10.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    ) {
-        Box {
-            // Franja superior de color
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(stripeColor, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-            )
-            Column(
-                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    nombreCliente.ifBlank { "—" },
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    concepto,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        montoTexto,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = montoColor
-                    )
-                    Text(
-                        hora,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 10.sp
-                    )
-                }
-            }
-        }
+    visitaDetalle?.let { visita ->
+        DetalleVisitaSheet(visita = visita, onDismiss = { visitaDetalle = null })
     }
 }
+

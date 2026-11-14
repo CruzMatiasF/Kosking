@@ -1,30 +1,24 @@
 ﻿package com.kosking.app.dueno.tabs
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.ui.theme.Verde
 import java.util.Calendar
 
 @Composable
@@ -124,179 +118,29 @@ internal fun TabClientes(
             )
         }
 
-        // Resumen del mes
-        if (resumenMes.fiado > 0 || resumenMes.cobrado > 0) {
-            val saldoMes = resumenMes.cobrado - resumenMes.fiado
-            val pctFiado = if (resumenMesAnterior.fiado > 0)
-                ((resumenMes.fiado - resumenMesAnterior.fiado) / resumenMesAnterior.fiado * 100).toInt()
-            else null
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
-                    .padding(bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(1f)) {
-                    if (resumenMes.fiado > 0) {
-                        Column {
-                            Text("Anotado este mes", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${"%.0f".format(resumenMes.fiado)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                    if (resumenMes.cobrado > 0) {
-                        Column {
-                            Text("Cobrado", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${"%.0f".format(resumenMes.cobrado)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Verde)
-                        }
-                    }
-                    if (resumenMes.fiado > 0 && resumenMes.cobrado > 0) {
-                        Column {
-                            Text("Saldo", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(
-                                "${if (saldoMes >= 0) "+" else ""}$${"%.0f".format(saldoMes)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (saldoMes >= 0) Verde else MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-                if (pctFiado != null) {
-                    Text(
-                        "${if (pctFiado >= 0) "↑" else "↓"} ${kotlin.math.abs(pctFiado)}% vs mes pasado",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (pctFiado > 0) MaterialTheme.colorScheme.error else Verde
-                    )
-                }
-            }
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
-        }
+        ResumenMesClientes(
+            fiadoMes = resumenMes.fiado,
+            cobradoMes = resumenMes.cobrado,
+            fiadoMesAnterior = resumenMesAnterior.fiado
+        )
 
-        // Búsqueda + orden + agregar
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                BasicTextField(
-                    value = busqueda,
-                    onValueChange = { busqueda = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                    decorationBox = { inner ->
-                        Box {
-                            if (busqueda.isEmpty()) {
-                                Text("Buscar cliente", style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            inner()
-                        }
-                    }
-                )
-                if (busqueda.isNotEmpty()) {
-                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { busqueda = "" },
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            IconButton(
-                onClick = { vistaLista = !vistaLista },
-                modifier = Modifier.size(40.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) { Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Cambiar vista", Modifier.size(20.dp)) }
-            Box {
-                IconButton(
-                    onClick = { mostrarOrden = true },
-                    modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) { Icon(Icons.Default.SwapVert, "Ordenar", Modifier.size(20.dp)) }
-                DropdownMenu(expanded = mostrarOrden, onDismissRequest = { mostrarOrden = false }) {
-                    DropdownMenuItem(text = { Text("Por deuda") }, onClick = { orden = "deuda"; mostrarOrden = false },
-                        leadingIcon = { if (orden == "deuda") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
-                    DropdownMenuItem(text = { Text("Por nombre") }, onClick = { orden = "nombre"; mostrarOrden = false },
-                        leadingIcon = { if (orden == "nombre") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
-                    DropdownMenuItem(text = { Text("Última visita") }, onClick = { orden = "visita"; mostrarOrden = false },
-                        leadingIcon = { if (orden == "visita") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
-                }
-            }
-            IconButton(
-                onClick = onAgregarCliente,
-                modifier = Modifier.size(40.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) { Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
-        }
-
-        // Segmented control
         val bloqueados = clientes.count { !it.habilitado }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 8.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            data class Seg(val key: String, val num: Int, val label: String)
-            val segs = listOf(
-                Seg("deuda", conDeuda, "Deben"),
-                Seg("aldia", alDia, "Al día"),
-                Seg("pagaron", pagaronEsteMes.size, "Pagaron"),
-                Seg("todos", clientes.size, "Todos"),
-                Seg("bloqueado", bloqueados, "Bloq.")
-            )
-            segs.forEach { seg ->
-                val selected = filtro == seg.key
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .then(
-                            if (selected) Modifier.background(MaterialTheme.colorScheme.surface)
-                                .then(Modifier.padding(1.dp))
-                            else Modifier
-                        )
-                        .clickable { filtro = seg.key; busqueda = "" }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            seg.num.toString(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            seg.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
+        BarraFiltrosClientes(
+            busqueda = busqueda,
+            orden = orden,
+            vistaLista = vistaLista,
+            filtro = filtro,
+            conDeuda = conDeuda,
+            alDia = alDia,
+            pagaronEsteMes = pagaronEsteMes.size,
+            totalClientes = clientes.size,
+            bloqueados = bloqueados,
+            onBusquedaChange = { busqueda = it },
+            onOrdenChange = { orden = it },
+            onVistaChange = { vistaLista = it },
+            onFiltroChange = { filtro = it },
+            onAgregarCliente = onAgregarCliente
+        )
 
         if (clientesFiltrados.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

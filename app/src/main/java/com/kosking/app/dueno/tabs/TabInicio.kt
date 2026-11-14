@@ -1,13 +1,9 @@
 package com.kosking.app.dueno.tabs
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -147,213 +143,21 @@ internal fun TabInicio(
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-        // Cabecera: deuda total + botón anotar
-        item {
-            if (localData != null && localData.nombre.isNotBlank()) {
-                val diaKey = remember {
-                    val dias = listOf("domingo","lunes","martes","miercoles","jueves","viernes","sabado")
-                    dias[Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1]
-                }
-                val horarioHoy = localData.horarios[diaKey]
+        seccionCabecera(localData = localData, totalDeuda = totalDeuda, clientesConDeuda = clientesConDeuda, onAnotar = onAnotar)
 
-                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            localData.nombre,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        if (horarioHoy != null) {
-                            val (badgeBg, badgeText, badgeLabel) = if (horarioHoy.abierto)
-                                Triple(Verde.copy(alpha = 0.12f), Verde, "Abierto")
-                            else
-                                Triple(
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                                    "Cerrado"
-                                )
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = badgeBg
-                            ) {
-                                Text(
-                                    badgeLabel,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = badgeText,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                    if (localData.direccion.isNotBlank()) {
-                        Text(
-                            localData.direccion,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                    }
-                    if (horarioHoy != null && horarioHoy.abierto) {
-                        Text(
-                            "${horarioHoy.horaApertura} – ${horarioHoy.horaCierre}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Deuda total", style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "$${"%.0f".format(totalDeuda)}",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurface
-                    )
-                    if (clientesConDeuda.isNotEmpty()) {
-                        Text(
-                            "${clientesConDeuda.size} cliente${if (clientesConDeuda.size != 1) "s" else ""} deben",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Button(
-                    onClick = onAnotar,
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
-                ) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Anotar", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-            HorizontalDivider()
-        }
+        seccionResumenSemanal(fiadoSemana = semanaActual.fiado, cobradoSemana = semanaActual.cobrado)
 
-        // Resumen semanal compacto
-        item {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Esta semana",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Anotado", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${"%.0f".format(semanaActual.fiado)}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Cobrado", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${"%.0f".format(semanaActual.cobrado)}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Verde)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Lista compacta de últimos movimientos (Hoy)
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (fiadoHoy > 0) {
-                        Text("-$${"%.0f".format(fiadoHoy)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error)
-                    }
-                    if (cobradoHoy > 0) {
-                        Text("+$${"%.0f".format(cobradoHoy)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Verde)
-                    }
-                    if (fiadoHoy > 0 || cobradoHoy > 0) {
-                        IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.Send, "Compartir",
-                                Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-
-            if (clientes.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Default.People, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text("Todavía no hay clientes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Sumá tu primer cliente y empezá a anotar.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Button(onClick = { onTabChange(1) }) {
-                        Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Agregar cliente")
-                    }
-                }
-            } else if (movimientosHoy.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
-                    Text("Todavía nada hoy", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                val visitasHoyPanel = agruparVisitas(movimientosHoy, clienteMap, fmtHora).take(5)
-                visitasHoyPanel.forEach { visita ->
-                    FilaVisitaMP(visita, onClick = { visitaDetalle = visita })
-                }
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(
-                    onClick = { mostrarHistorial = true },
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    Text("Ver historial completo", style = MaterialTheme.typography.labelSmall)
-                }
-            }
-            HorizontalDivider()
-        }
+        seccionHoy(
+            clientes = clientes,
+            movimientosHoy = movimientosHoy,
+            fiadoHoy = fiadoHoy,
+            cobradoHoy = cobradoHoy,
+            visitasHoy = visitasHoy,
+            onCompartirResumen = onCompartirResumen,
+            onTabChange = onTabChange,
+            onAbrirVisita = { visitaDetalle = it },
+            onVerHistorial = { mostrarHistorial = true }
+        )
 
         // Lista de clientes con deuda (Acuerdos vencidos)
         seccionAcuerdosVencidos(

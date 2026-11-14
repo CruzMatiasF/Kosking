@@ -6,8 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,148 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.ui.theme.Verde
+
+@Composable
+internal fun ResumenMesClientes(
+    fiadoMes: Double,
+    cobradoMes: Double,
+    fiadoMesAnterior: Double
+) {
+    if (fiadoMes <= 0 && cobradoMes <= 0) return
+    val saldo = cobradoMes - fiadoMes
+    val pctFiado = if (fiadoMesAnterior > 0)
+        ((fiadoMes - fiadoMesAnterior) / fiadoMesAnterior * 100).toInt()
+    else null
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(1f)) {
+            if (fiadoMes > 0) {
+                Column {
+                    Text("Anotado este mes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$${"%.0f".format(fiadoMes)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (cobradoMes > 0) {
+                Column {
+                    Text("Cobrado", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$${"%.0f".format(cobradoMes)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Verde)
+                }
+            }
+            if (fiadoMes > 0 && cobradoMes > 0) {
+                Column {
+                    Text("Saldo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${if (saldo >= 0) "+" else ""}$${"%.0f".format(saldo)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (saldo >= 0) Verde else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+        if (pctFiado != null) {
+            Text(
+                "${if (pctFiado >= 0) "↑" else "↓"} ${kotlin.math.abs(pctFiado)}% vs mes pasado",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (pctFiado > 0) MaterialTheme.colorScheme.error else Verde
+            )
+        }
+    }
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+}
+
+@Composable
+internal fun BarraFiltrosClientes(
+    busqueda: String,
+    orden: String,
+    vistaLista: Boolean,
+    filtro: String,
+    conDeuda: Int,
+    alDia: Int,
+    pagaronEsteMes: Int,
+    totalClientes: Int,
+    bloqueados: Int,
+    onBusquedaChange: (String) -> Unit,
+    onOrdenChange: (String) -> Unit,
+    onVistaChange: (Boolean) -> Unit,
+    onFiltroChange: (String) -> Unit,
+    onAgregarCliente: () -> Unit
+) {
+    var mostrarOrden by remember { mutableStateOf(false) }
+
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            BasicTextField(
+                value = busqueda,
+                onValueChange = onBusquedaChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                decorationBox = { inner ->
+                    Box {
+                        if (busqueda.isEmpty()) Text("Buscar cliente", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        inner()
+                    }
+                }
+            )
+            if (busqueda.isNotEmpty()) {
+                Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { onBusquedaChange("") }, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        IconButton(onClick = { onVistaChange(!vistaLista) }, modifier = Modifier.size(40.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Vista", Modifier.size(20.dp))
+        }
+        Box {
+            IconButton(onClick = { mostrarOrden = true }, modifier = Modifier.size(40.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Icon(Icons.Default.SwapVert, "Ordenar", Modifier.size(20.dp))
+            }
+            DropdownMenu(expanded = mostrarOrden, onDismissRequest = { mostrarOrden = false }) {
+                DropdownMenuItem(text = { Text("Por deuda") }, onClick = { onOrdenChange("deuda"); mostrarOrden = false }, leadingIcon = { if (orden == "deuda") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
+                DropdownMenuItem(text = { Text("Por nombre") }, onClick = { onOrdenChange("nombre"); mostrarOrden = false }, leadingIcon = { if (orden == "nombre") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
+                DropdownMenuItem(text = { Text("Última visita") }, onClick = { onOrdenChange("visita"); mostrarOrden = false }, leadingIcon = { if (orden == "visita") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
+            }
+        }
+        IconButton(onClick = onAgregarCliente, modifier = Modifier.size(40.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+            Icon(Icons.Default.PersonAdd, "Agregar", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+    }
+
+    // Segmented control
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        data class Seg(val key: String, val num: Int, val label: String)
+        val segs = listOf(Seg("deuda", conDeuda, "Deben"), Seg("aldia", alDia, "Al día"), Seg("pagaron", pagaronEsteMes, "Pagaron"), Seg("todos", totalClientes, "Todos"), Seg("bloqueado", bloqueados, "Bloq."))
+        segs.forEach { seg ->
+            val selected = filtro == seg.key
+            Box(
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                    .then(if (selected) Modifier.background(MaterialTheme.colorScheme.surface).then(Modifier.padding(1.dp)) else Modifier)
+                    .clickable { onFiltroChange(seg.key); onBusquedaChange("") }.padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(seg.num.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(seg.label, style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
 
 @Composable
 internal fun StatMiniCard(

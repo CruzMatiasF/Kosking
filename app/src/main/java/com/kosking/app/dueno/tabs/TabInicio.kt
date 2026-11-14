@@ -15,10 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kosking.app.dueno.DetalleVisitaSheet
-import com.kosking.app.dueno.FilaVisitaMP
-import com.kosking.app.dueno.VisitaResumen
-import com.kosking.app.dueno.agruparVisitas
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado

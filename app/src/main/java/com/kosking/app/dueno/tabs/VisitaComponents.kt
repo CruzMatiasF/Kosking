@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+package com.kosking.app.dueno.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -244,4 +244,3 @@ fun DetalleVisitaSheet(visita: VisitaResumen, onDismiss: () -> Unit) {
         }
     }
 }
-

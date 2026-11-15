@@ -63,6 +63,7 @@ fun PantallaHome(
     onConfigurarPerfil: () -> Unit,
     onAbrirPerfil: () -> Unit = {},
     onConfiguracion: () -> Unit = {},
+    onMiLocal: () -> Unit = {},
     onAcercaDe: () -> Unit = {},
     onTemaChanged: (String) -> Unit = {},
 ) {
@@ -243,7 +244,7 @@ fun PantallaHome(
                     esDueno = esDuenoState,
                     esEmpleado = esEmpleadoState,
                     onVolver = { vistaExtra = VistaExtra.Ninguna },
-                    onMiLocal = onConfiguracion,
+                    onMiLocal = onMiLocal,
                     onCerrarSesion = onCerrarSesionCuenta
                 )
                 is VistaExtra.Notificaciones -> PantallaNotificaciones(

@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.ui.theme.Verde
-import kotlin.math.abs
 
 @Composable
 internal fun CardsResumenDueno(
@@ -195,10 +194,7 @@ private fun CardResumenPeriodo(
     val fiadoAnterior = if (esSemana) fiadoSemanaAnterior else fiadoMesAnterior
     val cobradoAnterior = if (esSemana) cobradoSemanaAnterior else cobradoMesAnterior
 
-    val saldo = cobrado - fiado
-    val saldoAnterior = cobradoAnterior - fiadoAnterior
-    val pctSaldo = if (saldoAnterior != 0.0) ((saldo - saldoAnterior) / abs(saldoAnterior) * 100).toInt() else null
-    val maxVal = maxOf(fiado, cobrado).takeIf { it > 0 } ?: 1.0
+    val recuperoPct = if (fiado > 0) ((cobrado / fiado) * 100).toInt().coerceAtMost(100) else null
 
     Card(
         modifier = Modifier.width(cardWidth).height(220.dp),
@@ -208,35 +204,42 @@ private fun CardResumenPeriodo(
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StatSemana("Anotado", fiado, MaterialTheme.colorScheme.error)
                 StatSemana("Cobrado", cobrado, Verde)
-                Column(horizontalAlignment = Alignment.Start) {
-                    Text("Saldo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "$${"%.0f".format(saldo)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (saldo >= 0) Verde else MaterialTheme.colorScheme.error
-                    )
-                    if (pctSaldo != null) {
-                        val mejoro = pctSaldo > 0
-                        Text(
-                            if (mejoro) "mejor que antes" else "peor que antes",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (mejoro) Verde else MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
             }
 
             HorizontalDivider()
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BarraSemana("Anotado", fiado, maxVal, MaterialTheme.colorScheme.error)
-                BarraSemana("Cobrado", cobrado, maxVal, Verde)
+            if (recuperoPct != null) {
+                val color = when {
+                    recuperoPct >= 80 -> Verde
+                    recuperoPct >= 50 -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.error
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "Recuperaste el $recuperoPct% de lo que anotaste",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = color,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    LinearProgressIndicator(
+                        progress = { recuperoPct / 100f },
+                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                        color = color,
+                        trackColor = MaterialTheme.colorScheme.outlineVariant,
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
+            } else {
+                Text(
+                    "Sin movimientos en este período",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             HorizontalDivider()
@@ -269,26 +272,6 @@ private fun StatSemana(
     }
 }
 
-@Composable
-private fun BarraSemana(
-    label: String,
-    valor: Double,
-    maxVal: Double,
-    color: androidx.compose.ui.graphics.Color
-) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(48.dp))
-        LinearProgressIndicator(
-            progress = { (valor / maxVal).coerceIn(0.0, 1.0).toFloat() },
-            modifier = Modifier.weight(1f).height(6.dp),
-            color = color,
-            trackColor = MaterialTheme.colorScheme.outlineVariant,
-            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-        )
-    }
-}
 
 @Composable
 private fun AtajoBtn(

@@ -84,6 +84,13 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
     val esDueno by duenoVm.localId.collectAsState()
     val esEmpleado by empleadoVm.tieneSession.collectAsState()
 
+    // Si el timeout de startup disparó antes de que Firebase cargara, corregir aquí
+    LaunchedEffect(esDueno) {
+        if (esDueno.isNotBlank() && !mostrarPanelDueno) {
+            mostrarPanelDueno = true
+        }
+    }
+
     val context = LocalContext.current
 
     val onboardingVisto = remember { PreferenciasRepository.isOnboardingVisto(context) }

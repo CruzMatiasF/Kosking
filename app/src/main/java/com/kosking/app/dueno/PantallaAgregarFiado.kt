@@ -57,7 +57,7 @@ fun PantallaAgregarFiado(
 @Composable
 fun PantallaAgregarFiadoConLambda(
     onVolver: () -> Unit,
-    onConfirmar: (items: List<Pair<String, Double>>, tipo: String, visitante: String) -> Unit,
+    onConfirmar: (items: List<Triple<String, Double, Int>>, tipo: String, visitante: String) -> Unit,
     cargando: Boolean = false,
     error: String? = null,
     deudaActual: Double = 0.0,
@@ -94,7 +94,7 @@ private fun PantallaAgregarFiadoUI(
     notaInterna: String = "",
     mostrarVisitante: Boolean = false,
     productos: List<Producto> = emptyList(),
-    onConfirmar: (items: List<Pair<String, Double>>, tipo: String, visitante: String) -> Unit
+    onConfirmar: (items: List<Triple<String, Double, Int>>, tipo: String, visitante: String) -> Unit
 ) {
     val tipo = tipoInicial
     var monto by remember { mutableStateOf("") }
@@ -165,12 +165,12 @@ private fun PantallaAgregarFiadoUI(
                         onClick = {
                             val items = buildList {
                                 carrito.forEach { (prod, qty) ->
-                                    add(Pair(prod.nombre, prod.ultimoPrecio * qty))
+                                    add(Triple(prod.nombre, prod.ultimoPrecio * qty, qty))
                                 }
                                 if (tipo == "cargo" && (modoOtro || !tieneProductos) && montoDouble > 0)
-                                    add(Pair(descripcion.trim(), montoDouble))
+                                    add(Triple(descripcion.trim(), montoDouble, 1))
                                 if (tipo == "pago" && montoDouble > 0)
-                                    add(Pair("", montoDouble))
+                                    add(Triple("", montoDouble, 1))
                             }
                             onConfirmar(items, tipo, visitante.trim())
                         },

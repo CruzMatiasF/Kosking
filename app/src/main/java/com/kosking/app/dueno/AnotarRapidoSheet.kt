@@ -31,7 +31,7 @@ fun AnotarRapidoSheet(
     tipoInicial: String = "cargo",
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardarProducto: (nombre: String, precio: Double, onExito: () -> Unit) -> Unit = { _, _, cb -> cb() },
-    onGuardar: (clienteId: String, items: List<Pair<String, Double>>, tipo: String) -> Unit,
+    onGuardar: (clienteId: String, items: List<Triple<String, Double, Int>>, tipo: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     // ── Estado ───────────────────────────────────────────────────────────────
@@ -120,10 +120,10 @@ fun AnotarRapidoSheet(
     // ── Derivados ────────────────────────────────────────────────────────────
     val montoOtroDouble = montoOtroTexto.toDoubleOrNull() ?: 0.0
     val montoUnicoDouble = montoUnicoTexto.toDoubleOrNull() ?: 0.0
-    fun armarItems(): List<Pair<String, Double>> = buildList {
-        carrito.forEach { item -> add(Pair(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad)) }
-        if (mostrarOtro && montoOtroDouble > 0) add(Pair(descripcionOtro.trim(), montoOtroDouble))
-        if (!esCargo) add(Pair("", montoUnicoDouble))
+    fun armarItems(): List<Triple<String, Double, Int>> = buildList {
+        carrito.forEach { item -> add(Triple(item.producto.nombre, item.producto.ultimoPrecio * item.cantidad, item.cantidad)) }
+        if (mostrarOtro && montoOtroDouble > 0) add(Triple(descripcionOtro.trim(), montoOtroDouble, 1))
+        if (!esCargo) add(Triple("", montoUnicoDouble, 1))
     }
     val totalCarrito = carrito.sumOf { it.producto.ultimoPrecio * it.cantidad }
     val totalConOtro = totalCarrito + (if (mostrarOtro && montoOtroDouble > 0) montoOtroDouble else 0.0)

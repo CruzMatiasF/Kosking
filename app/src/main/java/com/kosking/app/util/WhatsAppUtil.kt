@@ -12,7 +12,7 @@ object WhatsAppUtil {
     fun ticketVisita(
         nombreCliente: String,
         nombreLocal: String,
-        items: List<Pair<String, Double>>,
+        items: List<Triple<String, Double, Int>>,
         deudaAnterior: Double,
         deudaNueva: Double,
         tipo: String,
@@ -27,16 +27,14 @@ object WhatsAppUtil {
         } else {
             sb.append("🧾 *$nombreLocal*\n")
             sb.append("────────────────────\n")
-            items.forEach { (concepto, monto) ->
-                val nombre = concepto.ifBlank { "Cargo" }.padEnd(16)
-                sb.append("$nombre \$${"%.0f".format(monto)}\n")
+            items.filter { it.first.isNotBlank() }.forEach { (concepto, _, cantidad) ->
+                val linea = if (cantidad > 1) "${cantidad}× $concepto" else concepto
+                sb.append("$linea\n")
             }
             sb.append("────────────────────\n")
-            val total = items.sumOf { it.second }
-            sb.append("*Total            \$${"%.0f".format(total)}*\n")
             sb.append("\nDeuda anterior: \$${"%.0f".format(deudaAnterior)}")
             sb.append("\n*Deuda nueva:   \$${"%.0f".format(deudaNueva)}*")
-            sb.append("\n\n📋 Este ticket es para que puedas verificar lo que se anotó. Los precios pueden variar — para saber cuánto debés exactamente, consultá con el local.")
+            sb.append("\n\n📋 Este ticket es para que puedas verificar lo que se anotó.")
         }
         sb.append("\n\n🕐 $hora · 📱 Kosking")
         return sb.toString()

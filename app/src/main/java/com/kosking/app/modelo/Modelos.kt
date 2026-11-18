@@ -52,7 +52,8 @@ data class Movimiento(
     val motivoAnulacion: String = "",
     val disputado: Boolean = false,
     val grupoId: String = "",
-    val visitante: String = ""
+    val visitante: String = "",
+    val cantidad: Int = 1
 )
 
 @Immutable

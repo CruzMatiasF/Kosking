@@ -82,7 +82,7 @@ fun PanelDuenoEmbedido(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double, val deudaAnterior: Double = 0.0, val items: List<Pair<String, Double>> = emptyList())
+    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double, val deudaAnterior: Double = 0.0, val items: List<Triple<String, Double, Int>> = emptyList())
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
     val vmError by vm.error.collectAsState()

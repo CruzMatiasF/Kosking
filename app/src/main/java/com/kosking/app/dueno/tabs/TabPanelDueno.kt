@@ -2,7 +2,6 @@ package com.kosking.app.dueno.tabs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.ui.theme.Verde
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -104,6 +102,26 @@ internal fun TabPanelDueno(
         Pair(actual, anterior)
     }
 
+    data class ResumenMes(val fiado: Double, val cobrado: Double)
+    fun movimientosDeMes(anio: Int, mes: Int): ResumenMes {
+        var fiado = 0.0; var cobrado = 0.0
+        movimientosLocal.filter { !it.anulado }.forEach { mov ->
+            val cal = Calendar.getInstance().also { c -> c.time = mov.fecha.toDate() }
+            if (cal.get(Calendar.YEAR) == anio && cal.get(Calendar.MONTH) == mes) {
+                if (mov.tipo == "cargo") fiado += mov.monto else cobrado += mov.monto
+            }
+        }
+        return ResumenMes(fiado, cobrado)
+    }
+    val resumenMesActual = remember(movimientosLocal) {
+        val cal = Calendar.getInstance()
+        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
+    val resumenMesAnterior = remember(movimientosLocal) {
+        val cal = Calendar.getInstance().also { it.add(Calendar.MONTH, -1) }
+        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
+
     val hoy = remember { java.util.Date() }
     val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
     val clientesVencidos = remember(clientesConDeuda) {
@@ -123,6 +141,9 @@ internal fun TabPanelDueno(
                 cobradoSemana = semanaActual.cobrado,
                 fiadoSemanaAnterior = semanaAnterior.fiado,
                 cobradoSemanaAnterior = semanaAnterior.cobrado,
+                fiadoMes = resumenMesActual.fiado,
+                cobradoMes = resumenMesActual.cobrado,
+                fiadoMesAnterior = resumenMesAnterior.fiado,
                 onAnotar = onAnotar,
                 onVerClientes = onVerClientes,
                 onAbrirProductos = onAbrirProductos

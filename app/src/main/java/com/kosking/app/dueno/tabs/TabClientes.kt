@@ -40,26 +40,6 @@ internal fun TabClientes(
     val alDia = remember(clientes) { clientes.count { it.deudaTotal <= 0 && it.habilitado } }
     val deudaTotal = remember(clientes) { clientes.sumOf { it.deudaTotal } }
 
-    data class ResumenMes(val fiado: Double, val cobrado: Double)
-    fun movimientosDeMes(anio: Int, mes: Int): ResumenMes {
-        var fiado = 0.0; var cobrado = 0.0
-        movimientos.filter { !it.anulado }.forEach { mov ->
-            val cal = Calendar.getInstance().also { c -> c.time = mov.fecha.toDate() }
-            if (cal.get(Calendar.YEAR) == anio && cal.get(Calendar.MONTH) == mes) {
-                if (mov.tipo == "cargo") fiado += mov.monto else cobrado += mov.monto
-            }
-        }
-        return ResumenMes(fiado, cobrado)
-    }
-    val resumenMes = remember(movimientos) {
-        val cal = Calendar.getInstance()
-        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    }
-    val resumenMesAnterior = remember(movimientos) {
-        val cal = Calendar.getInstance().also { it.add(Calendar.MONTH, -1) }
-        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    }
-
     val ultimaVisita = remember(movimientos) {
         movimientos.filter { !it.anulado }
             .groupBy { it.clienteId }
@@ -103,12 +83,6 @@ internal fun TabClientes(
     }
 
     Column(modifier.fillMaxSize()) {
-        ResumenMesClientes(
-            fiadoMes = resumenMes.fiado,
-            cobradoMes = resumenMes.cobrado,
-            fiadoMesAnterior = resumenMesAnterior.fiado
-        )
-
         val limite = DuenoViewModel.LIMITE_CLIENTES_GRATIS
         if (clientes.size >= (limite * 0.8).toInt()) {
             Surface(

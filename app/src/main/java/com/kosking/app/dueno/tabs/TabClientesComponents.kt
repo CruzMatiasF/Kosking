@@ -20,58 +20,6 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.ui.theme.Verde
 
 @Composable
-internal fun ResumenMesClientes(
-    fiadoMes: Double,
-    cobradoMes: Double,
-    fiadoMesAnterior: Double
-) {
-    if (fiadoMes <= 0 && cobradoMes <= 0) return
-    val saldo = cobradoMes - fiadoMes
-    val pctFiado = if (fiadoMesAnterior > 0)
-        ((fiadoMes - fiadoMesAnterior) / fiadoMesAnterior * 100).toInt()
-    else null
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.weight(1f)) {
-            if (fiadoMes > 0) {
-                Column {
-                    Text("Anotado este mes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$${"%.0f".format(fiadoMes)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error)
-                }
-            }
-            if (cobradoMes > 0) {
-                Column {
-                    Text("Cobrado", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("$${"%.0f".format(cobradoMes)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Verde)
-                }
-            }
-            if (fiadoMes > 0 && cobradoMes > 0) {
-                Column {
-                    Text("Saldo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "${if (saldo >= 0) "+" else ""}$${"%.0f".format(saldo)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (saldo >= 0) Verde else MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        }
-        if (pctFiado != null) {
-            Text(
-                "${if (pctFiado >= 0) "↑" else "↓"} ${kotlin.math.abs(pctFiado)}% vs mes pasado",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (pctFiado > 0) MaterialTheme.colorScheme.error else Verde
-            )
-        }
-    }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
-}
-
-@Composable
 internal fun BarraFiltrosClientes(
     busqueda: String,
     orden: String,

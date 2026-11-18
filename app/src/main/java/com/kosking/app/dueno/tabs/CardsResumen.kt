@@ -11,7 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,7 +67,7 @@ internal fun CardsResumenDueno(
             val hPad = 16.dp
             val peekEnd = 32.dp
             val cardWidth = maxWidth - hPad - peekEnd
-            val pagerState = rememberPagerState(pageCount = { 3 })
+            val pagerState = rememberPagerState(pageCount = { 2 })
             Column {
                 HorizontalPager(
                     state = pagerState,
@@ -81,15 +84,12 @@ internal fun CardsResumenDueno(
                             onVerClientes = onVerClientes,
                             onAbrirProductos = onAbrirProductos
                         )
-                        1 -> CardResumenSemana(
+                        else -> CardResumenPeriodo(
                             cardWidth = cardWidth,
                             fiadoSemana = fiadoSemana,
                             cobradoSemana = cobradoSemana,
                             fiadoSemanaAnterior = fiadoSemanaAnterior,
-                            cobradoSemanaAnterior = cobradoSemanaAnterior
-                        )
-                        else -> CardResumenMes(
-                            cardWidth = cardWidth,
+                            cobradoSemanaAnterior = cobradoSemanaAnterior,
                             fiadoMes = fiadoMes,
                             cobradoMes = cobradoMes,
                             fiadoMesAnterior = fiadoMesAnterior
@@ -101,7 +101,7 @@ internal fun CardsResumenDueno(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    repeat(3) { i ->
+                    repeat(2) { i ->
                         val selected = pagerState.currentPage == i
                         Box(
                             Modifier
@@ -175,20 +175,27 @@ private fun CardDeudaTotal(
 }
 
 @Composable
-private fun CardResumenSemana(
+private fun CardResumenPeriodo(
     cardWidth: Dp,
     fiadoSemana: Double,
     cobradoSemana: Double,
     fiadoSemanaAnterior: Double,
-    cobradoSemanaAnterior: Double
+    cobradoSemanaAnterior: Double,
+    fiadoMes: Double,
+    cobradoMes: Double,
+    fiadoMesAnterior: Double
 ) {
-    val saldo = cobradoSemana - fiadoSemana
-    val pctFiado = if (fiadoSemanaAnterior > 0)
-        ((fiadoSemana - fiadoSemanaAnterior) / fiadoSemanaAnterior * 100).toInt() else null
-    val pctCobrado = if (cobradoSemanaAnterior > 0)
-        ((cobradoSemana - cobradoSemanaAnterior) / cobradoSemanaAnterior * 100).toInt() else null
+    var esSemana by remember { mutableStateOf(true) }
 
-    val maxVal = maxOf(fiadoSemana, cobradoSemana).takeIf { it > 0 } ?: 1.0
+    val fiado = if (esSemana) fiadoSemana else fiadoMes
+    val cobrado = if (esSemana) cobradoSemana else cobradoMes
+    val fiadoAnterior = if (esSemana) fiadoSemanaAnterior else fiadoMesAnterior
+    val cobradoAnterior = if (esSemana) cobradoSemanaAnterior else 0.0
+
+    val saldo = cobrado - fiado
+    val pctFiado = if (fiadoAnterior > 0) ((fiado - fiadoAnterior) / fiadoAnterior * 100).toInt() else null
+    val pctCobrado = if (cobradoAnterior > 0) ((cobrado - cobradoAnterior) / cobradoAnterior * 100).toInt() else null
+    val maxVal = maxOf(fiado, cobrado).takeIf { it > 0 } ?: 1.0
 
     Card(
         modifier = Modifier.width(cardWidth).height(200.dp),
@@ -197,27 +204,30 @@ private fun CardResumenSemana(
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                "Esta semana",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 10.dp)
-            )
-
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatSemana("Anotado", fiadoSemana, MaterialTheme.colorScheme.error, pctFiado, esAumento = true)
-                StatSemana("Cobrado", cobradoSemana, Verde, pctCobrado, esAumento = false)
+                StatSemana("Anotado", fiado, MaterialTheme.colorScheme.error, pctFiado, esAumento = true)
+                StatSemana("Cobrado", cobrado, Verde, pctCobrado, esAumento = false)
                 StatSemana("Saldo", saldo, if (saldo >= 0) Verde else MaterialTheme.colorScheme.error, null, esAumento = false)
             }
 
             HorizontalDivider()
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BarraSemana("Anotado", fiadoSemana, maxVal, MaterialTheme.colorScheme.error)
-                BarraSemana("Cobrado", cobradoSemana, maxVal, Verde)
+                BarraSemana("Anotado", fiado, maxVal, MaterialTheme.colorScheme.error)
+                BarraSemana("Cobrado", cobrado, maxVal, Verde)
+            }
+
+            HorizontalDivider()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                AtajoBtn(Icons.Default.DateRange, "Semana", { esSemana = true }, primary = esSemana)
+                AtajoBtn(Icons.Default.CalendarMonth, "Mes", { esSemana = false }, primary = !esSemana)
             }
         }
     }
@@ -274,51 +284,6 @@ private fun BarraSemana(
             trackColor = MaterialTheme.colorScheme.outlineVariant,
             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
         )
-    }
-}
-
-@Composable
-private fun CardResumenMes(
-    cardWidth: Dp,
-    fiadoMes: Double,
-    cobradoMes: Double,
-    fiadoMesAnterior: Double
-) {
-    val saldo = cobradoMes - fiadoMes
-    val pctFiado = if (fiadoMesAnterior > 0)
-        ((fiadoMes - fiadoMesAnterior) / fiadoMesAnterior * 100).toInt() else null
-    val maxVal = maxOf(fiadoMes, cobradoMes).takeIf { it > 0 } ?: 1.0
-
-    Card(
-        modifier = Modifier.width(cardWidth).height(200.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                "Este mes",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 10.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatSemana("Anotado", fiadoMes, MaterialTheme.colorScheme.error, pctFiado, esAumento = true)
-                StatSemana("Cobrado", cobradoMes, Verde, null, esAumento = false)
-                StatSemana("Saldo", saldo, if (saldo >= 0) Verde else MaterialTheme.colorScheme.error, null, esAumento = false)
-            }
-
-            HorizontalDivider()
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BarraSemana("Anotado", fiadoMes, maxVal, MaterialTheme.colorScheme.error)
-                BarraSemana("Cobrado", cobradoMes, maxVal, Verde)
-            }
-        }
     }
 }
 

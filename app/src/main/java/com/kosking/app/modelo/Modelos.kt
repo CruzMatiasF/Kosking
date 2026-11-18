@@ -18,9 +18,6 @@ data class Local(
     val telefono: String = "",
     val tipo: String = "Kiosco",
     val direccion: String = "",
-    val latitud: Double = 0.0,
-    val longitud: Double = 0.0,
-    val abierto: Boolean = false,
     val horarios: Map<String, HorarioDia> = emptyMap()
 )
 

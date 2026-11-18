@@ -32,14 +32,18 @@ fun PantallaRegistro(
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordConfirm by remember { mutableStateOf("") }
     var tocadoEmail by remember { mutableStateOf(false) }
     var tocadoPassword by remember { mutableStateOf(false) }
+    var tocadoConfirm by remember { mutableStateOf(false) }
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
+    val confirmFocus = remember { FocusRequester() }
 
     val emailValido = EMAIL_REGEX.matches(email.trim())
     val passwordValida = password.length >= 6
-    val formularioValido = nombre.isNotBlank() && emailValido && passwordValida
+    val passwordsCoinciden = password == passwordConfirm
+    val formularioValido = nombre.isNotBlank() && emailValido && passwordValida && passwordsCoinciden
 
     Scaffold(
         topBar = {
@@ -91,11 +95,8 @@ fun PantallaRegistro(
                 onValueChange = { password = it; tocadoPassword = true },
                 label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (formularioValido && !cargando)
-                        vm.registrar(nombre, email.trim(), password, onRegistroExitoso)
-                }),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { confirmFocus.requestFocus() }),
                 singleLine = true,
                 isError = tocadoPassword && !passwordValida,
                 supportingText = if (tocadoPassword && !passwordValida) {
@@ -104,6 +105,26 @@ fun PantallaRegistro(
                     { Text("Mínimo 6 caracteres", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 },
                 modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus)
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = passwordConfirm,
+                onValueChange = { passwordConfirm = it; tocadoConfirm = true },
+                label = { Text("Repetir contraseña") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    if (formularioValido && !cargando)
+                        vm.registrar(nombre, email.trim(), password, onRegistroExitoso)
+                }),
+                singleLine = true,
+                isError = tocadoConfirm && !passwordsCoinciden,
+                supportingText = if (tocadoConfirm && !passwordsCoinciden) {
+                    { Text("Las contraseñas no coinciden") }
+                } else null,
+                modifier = Modifier.fillMaxWidth().focusRequester(confirmFocus)
             )
 
             error?.let {

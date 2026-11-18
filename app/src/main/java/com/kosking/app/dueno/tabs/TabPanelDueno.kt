@@ -11,9 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Cliente
-import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
@@ -28,10 +26,9 @@ internal fun TabPanelDueno(
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     localData: Local?,
-    empleados: List<Empleado> = emptyList(),
     disputados: List<Movimiento> = emptyList(),
     sobreLimite: List<Cliente> = emptyList(),
-    onTabChange: (Int) -> Unit,
+    onVerClientes: () -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirDetalleMovimiento: (String) -> Unit = {},
     onAnotar: () -> Unit,
@@ -42,7 +39,6 @@ internal fun TabPanelDueno(
     onAbrirProductos: () -> Unit = {}
 ) {
     var mostrarHistorial by remember { mutableStateOf(false) }
-    val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val movimientosHoy = remember(movimientosLocal) {
@@ -116,36 +112,22 @@ internal fun TabPanelDueno(
             .sortedBy { it.fechaCompromiso!!.toDate() }
     }
 
-    // Caja del día por persona (para sección equipo)
-    data class StatPersona(val uid: String, val nombre: String, val anoto: Int, val cobro: Double)
-    val inicioDiaEquipo = remember {
-        Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-    val statsHoyEquipo = remember(movimientosLocal, duenoUid, inicioDiaEquipo) {
-        if (empleados.isEmpty()) return@remember emptyList()
-        val movsHoyEq = movimientosLocal.filter { !it.anulado && it.fecha.toDate().time >= inicioDiaEquipo }
-        val map = mutableMapOf<String, StatPersona>()
-        movsHoyEq.forEach { mov ->
-            val uid = mov.anotadoPorUid.ifBlank { duenoUid }
-            val nombre = if (uid == duenoUid) "Vos"
-                         else mov.anotadoPorNombre.ifBlank { "Empleado" }
-            val actual = map[uid] ?: StatPersona(uid, nombre, 0, 0.0)
-            map[uid] = actual.copy(
-                anoto = actual.anoto + 1,
-                cobro = actual.cobro + if (mov.tipo == "pago") mov.monto else 0.0
-            )
-        }
-        map.values.sortedByDescending { if (it.uid == duenoUid) Int.MAX_VALUE else it.anoto }
-    }
-
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-        seccionCabecera(localData = localData, totalDeuda = totalDeuda, clientesConDeuda = clientesConDeuda, onAnotar = onAnotar)
-
-        seccionResumenSemanal(fiadoSemana = semanaActual.fiado, cobradoSemana = semanaActual.cobrado)
+        item {
+            CardsResumenDueno(
+                localData = localData,
+                totalDeuda = totalDeuda,
+                clientesConDeuda = clientesConDeuda,
+                fiadoSemana = semanaActual.fiado,
+                cobradoSemana = semanaActual.cobrado,
+                fiadoSemanaAnterior = semanaAnterior.fiado,
+                cobradoSemanaAnterior = semanaAnterior.cobrado,
+                onAnotar = onAnotar,
+                onVerClientes = onVerClientes,
+                onAbrirProductos = onAbrirProductos
+            )
+        }
 
         seccionHoy(
             clientes = clientes,
@@ -154,7 +136,7 @@ internal fun TabPanelDueno(
             cobradoHoy = cobradoHoy,
             visitasHoy = visitasHoy,
             onCompartirResumen = onCompartirResumen,
-            onTabChange = onTabChange,
+            onVerClientes = onVerClientes,
             onAbrirVisita = { visitaDetalle = it },
             onVerHistorial = { mostrarHistorial = true }
         )
@@ -170,33 +152,6 @@ internal fun TabPanelDueno(
             onWhatsAppCliente = onWhatsAppCliente,
             onAbrirDetalleCliente = onAbrirDetalleCliente
         )
-
-        // Accesos rápidos: Clientes y Productos
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { onTabChange(1) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.People, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Clientes", style = MaterialTheme.typography.labelLarge)
-                }
-                OutlinedButton(
-                    onClick = onAbrirProductos,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Storefront, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Productos", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
 
         // Alertas: disputas y clientes sobre límite
         alertasCards(

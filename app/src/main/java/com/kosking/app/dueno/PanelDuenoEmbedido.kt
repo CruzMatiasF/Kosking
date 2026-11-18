@@ -16,6 +16,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.kosking.app.ui.components.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
 import com.kosking.app.widget.KoskingWidget
@@ -28,7 +33,7 @@ import androidx.compose.material3.TabRow
 fun PanelDuenoEmbedido(
     vm: DuenoViewModel,
     tabSeleccionado: Int = 0,
-    onTabChange: (Int) -> Unit = {},
+    onVerClientes: () -> Unit = {},
     onAbrirAgregarCliente: () -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirAgregarFiado: (clienteId: String, tipo: String) -> Unit,
@@ -88,6 +93,7 @@ fun PanelDuenoEmbedido(
     }
 
     Scaffold { scaffoldPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
             Column(modifier = Modifier.fillMaxSize()) {
             BannerOffline()
@@ -98,10 +104,9 @@ fun PanelDuenoEmbedido(
                 totalDeuda = totalDeuda,
                 clientesConDeuda = clientesConDeuda,
                 localData = localData,
-                empleados = empleados,
                 disputados = disputados,
                 sobreLimite = sobreLimite,
-                onTabChange = { mostrarClientes = true },
+                onVerClientes = { mostrarClientes = true },
                 onAbrirDetalleCliente = onAbrirDetalleCliente,
                 onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
                 onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
@@ -145,30 +150,35 @@ fun PanelDuenoEmbedido(
             )
             } // Box weight(1f)
             } // Column
+        } // Box scaffoldPadding
 
-            // Clientes como overlay
+            // Clientes como pantalla completa
             if (mostrarClientes) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                Dialog(
+                    onDismissRequest = { mostrarClientes = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        @OptIn(ExperimentalMaterial3Api::class)
-                        TopAppBar(
-                            title = { Text("Clientes") },
-                            navigationIcon = {
-                                IconButton(onClick = { mostrarClientes = false }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    Scaffold(
+                        topBar = {
+                            @OptIn(ExperimentalMaterial3Api::class)
+                            TopAppBar(
+                                title = { Text("Clientes") },
+                                navigationIcon = {
+                                    IconButton(onClick = { mostrarClientes = false }) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
+                    ) { padding ->
                         TabClientes(
+                            modifier = Modifier.padding(padding),
                             clientes = clientes,
                             movimientos = movimientosLocal,
-                            onVerCliente = onAbrirDetalleCliente,
-                            onAgregarCliente = onAbrirAgregarCliente,
+                            onVerCliente = { mostrarClientes = false; onAbrirDetalleCliente(it) },
+                            onAgregarCliente = { mostrarClientes = false; onAbrirAgregarCliente() },
                             onAnotarRapido = { cliente, tipo ->
+                                mostrarClientes = false
                                 clientePreseleccionado = cliente
                                 tipoAnotar = tipo
                                 mostrarAnotar = true
@@ -178,46 +188,60 @@ fun PanelDuenoEmbedido(
                 }
             }
 
-            // Pantalla productos como overlay dentro del panel (sin tab)
+            // Productos como pantalla completa
             if (mostrarProductos) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                Dialog(
+                    onDismissRequest = { mostrarProductos = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        @OptIn(ExperimentalMaterial3Api::class)
-                        TopAppBar(
-                            title = { Text("Productos") },
-                            navigationIcon = {
-                                IconButton(onClick = { mostrarProductos = false }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                    var mostrarAgregarProducto by remember { mutableStateOf(false) }
+                    Scaffold(
+                        topBar = {
+                            @OptIn(ExperimentalMaterial3Api::class)
+                            TopAppBar(
+                                title = { Text("Productos") },
+                                navigationIcon = {
+                                    IconButton(onClick = { mostrarProductos = false }) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                                    }
+                                },
+                                actions = {
+                                    IconButton(onClick = { mostrarAgregarProducto = true }) {
+                                        Icon(Icons.Default.Add, "Agregar producto")
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
+                    ) { padding ->
                         TabProductos(
+                            modifier = Modifier.padding(padding),
                             productos = productos,
                             cargando = cargando,
+                            mostrarHeader = false,
                             onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
-                            onGuardar = { nombre, precio, productoId, onExito -> vm.guardarProducto(nombre, precio, productoId, onExito) },
-                            onEliminar = { vm.eliminarProducto(it) }
+                            onGuardar = { nombre, precio, categoria, productoId, imagenUri, onExito -> vm.guardarProducto(nombre, precio, productoId, categoria, imagenUri, onExito) },
+                            onEliminar = { vm.eliminarProducto(it) },
+                            mostrarDialogExterno = mostrarAgregarProducto,
+                            onDismissDialogExterno = { mostrarAgregarProducto = false }
                         )
                     }
                 }
             }
 
-        }
+        } // Box outer
     }
 
     // Sheet anotar rápido
     if (mostrarAnotar) {
         AnotarRapidoSheet(
             clientes = clientes,
+            movimientos = movimientosLocal,
             cargando = cargando,
             clienteInicial = clientePreseleccionado,
             productos = productos,
             tipoInicial = tipoAnotar,
             onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
+            onGuardarProducto = { nombre, precio, onExito -> vm.guardarProducto(nombre, precio, null, "", null, onExito) },
             onGuardar = { clienteId, items, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,

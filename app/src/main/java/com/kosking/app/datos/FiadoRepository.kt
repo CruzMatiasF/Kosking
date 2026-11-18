@@ -1,8 +1,10 @@
 ﻿package com.kosking.app.datos
 
+import android.net.Uri
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Local
@@ -294,7 +296,16 @@ object FiadoRepository {
         awaitClose { sub.remove() }
     }
 
-    suspend fun upsertProducto(localId: String, nombre: String, precio: Double) {
+    fun nuevoProductoId(): String = db.collection("productos").document().id
+
+    suspend fun subirImagenProducto(localId: String, productoId: String, uri: Uri): String {
+        val ref = FirebaseStorage.getInstance()
+            .reference.child("locales/$localId/productos/$productoId.jpg")
+        ref.putFile(uri).await()
+        return ref.downloadUrl.await().toString()
+    }
+
+    suspend fun upsertProducto(localId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", productoId: String? = null) {
         if (nombre.isBlank()) return
         val snap = db.collection("productos")
             .whereEqualTo("localId", localId)
@@ -302,19 +313,24 @@ object FiadoRepository {
             .limit(1)
             .get().await()
         if (snap.isEmpty) {
-            val ref = db.collection("productos").document()
-            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1)).await()
+            val ref = if (productoId != null) db.collection("productos").document(productoId)
+                      else db.collection("productos").document()
+            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1, categoria = categoria, imagenUrl = imagenUrl)).await()
         } else {
-            snap.documents.first().reference.update(
-                "ultimoPrecio", precio,
-                "vecesUsado", com.google.firebase.firestore.FieldValue.increment(1)
-            ).await()
+            val updates = mutableMapOf<String, Any>(
+                "ultimoPrecio" to precio,
+                "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1)
+            )
+            if (categoria.isNotBlank()) updates["categoria"] = categoria
+            if (imagenUrl.isNotBlank()) updates["imagenUrl"] = imagenUrl
+            snap.documents.first().reference.update(updates).await()
         }
     }
 
-    suspend fun editarProducto(productoId: String, nombre: String, precio: Double) {
-        db.collection("productos").document(productoId)
-            .update("nombre", nombre, "ultimoPrecio", precio).await()
+    suspend fun editarProducto(productoId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "") {
+        val updates = mutableMapOf<String, Any>("nombre" to nombre, "ultimoPrecio" to precio, "categoria" to categoria)
+        if (imagenUrl.isNotBlank()) updates["imagenUrl"] = imagenUrl
+        db.collection("productos").document(productoId).update(updates).await()
     }
 
     suspend fun eliminarProducto(productoId: String) {

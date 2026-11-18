@@ -1,5 +1,6 @@
 ﻿package com.kosking.app.dueno
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -78,36 +79,6 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    fun actualizarLocal(
-        nombre: String,
-        tipo: String,
-        direccion: String,
-        telefono: String,
-        onExito: () -> Unit
-    ) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                val local = localData.value ?: return@launch
-                val actualizado = local.copy(
-                    nombre = nombre,
-                    tipo = tipo,
-                    direccion = direccion,
-                    telefono = telefono
-                )
-                FiadoRepository.actualizarLocal(actualizado)
-                _nombreLocal.value = nombre
-                onExito()
-            } catch (e: Exception) {
-                CrashLogger.log(e, "actualizarLocal")
-                _error.value = "No se pudo guardar"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
     fun crearLocal(
         nombre: String,
         tipo: String = "Kiosco",
@@ -132,19 +103,6 @@ class DuenoViewModel : ViewModel() {
                 _error.value = "No se pudo crear el local"
             } finally {
                 _cargando.value = false
-            }
-        }
-    }
-
-    fun actualizarLocal(nombre: String, direccion: String, telefono: String) {
-        viewModelScope.launch {
-            val id = _localId.value.takeIf { it.isNotBlank() } ?: return@launch
-            val local = localData.value?.copy(nombre = nombre, direccion = direccion, telefono = telefono) ?: return@launch
-            try {
-                FiadoRepository.actualizarLocal(local)
-                _nombreLocal.value = nombre
-            } catch (e: Exception) {
-                CrashLogger.log(e, "actualizarLocal")
             }
         }
     }
@@ -462,16 +420,21 @@ class DuenoViewModel : ViewModel() {
         return usuario.localId
     }
 
-    fun guardarProducto(nombre: String, precio: Double, productoId: String?, onExito: () -> Unit = {}) {
+    fun guardarProducto(nombre: String, precio: Double, productoId: String?, categoria: String = "", imagenUri: Uri? = null, onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
             try {
                 val localId = resolverLocalId() ?: return@launch
+                val targetId = productoId ?: FiadoRepository.nuevoProductoId()
+                val imagenUrl = if (imagenUri != null) {
+                    try { FiadoRepository.subirImagenProducto(localId, targetId, imagenUri) }
+                    catch (e: Exception) { CrashLogger.log(e, "subirImagenProducto"); "" }
+                } else ""
                 if (productoId != null) {
-                    FiadoRepository.editarProducto(productoId, nombre, precio)
+                    FiadoRepository.editarProducto(productoId, nombre, precio, categoria, imagenUrl)
                 } else {
-                    FiadoRepository.upsertProducto(localId, nombre, precio)
+                    FiadoRepository.upsertProducto(localId, nombre, precio, categoria, imagenUrl, targetId)
                     try { FiadoRepository.upsertProductoGlobal(nombre) }
                     catch (e: Exception) { CrashLogger.log(e, "upsertProductoGlobal") }
                 }

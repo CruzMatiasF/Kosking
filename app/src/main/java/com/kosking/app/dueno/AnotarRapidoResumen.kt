@@ -8,12 +8,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -24,92 +27,92 @@ import com.kosking.app.modelo.Producto
 
 @Composable
 internal fun ZonaProductos(
-    esCargo: Boolean,
     productos: List<Producto>,
     busquedaProducto: String,
     productosFiltrados: List<Producto>,
     carrito: List<ItemCarrito>,
     mostrarOtro: Boolean,
-    montoTexto: String,
+    productosGlobales: List<String> = emptyList(),
     onBusquedaChange: (String) -> Unit,
     onToggleMostrarOtro: () -> Unit,
     onToggleCarrito: (Producto) -> Unit,
     onQuitarUno: (Producto) -> Unit,
     onSetCantidad: (Producto, Int) -> Unit,
-    onMontoTextoChange: (String) -> Unit
+    onUsarProductoGlobal: (Producto) -> Unit = {}
 ) {
-    if (esCargo) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = busquedaProducto,
-                onValueChange = onBusquedaChange,
-                placeholder = { Text("Buscar producto…") },
-                leadingIcon = { Icon(Icons.Default.Add, null) },
-                trailingIcon = {
-                    if (busquedaProducto.isNotEmpty()) {
-                        IconButton(onClick = { onBusquedaChange("") }) {
-                            Icon(Icons.Default.Close, null)
-                        }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = busquedaProducto,
+            onValueChange = onBusquedaChange,
+            placeholder = { Text("Buscar producto…") },
+            leadingIcon = { Icon(Icons.Default.Add, null) },
+            trailingIcon = {
+                if (busquedaProducto.isNotEmpty()) {
+                    IconButton(onClick = { onBusquedaChange("") }) {
+                        Icon(Icons.Default.Close, null)
                     }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction = ImeAction.Search
-                )
+                }
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Search
             )
+        )
 
-            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp)) {
-                items(productosFiltrados) { prod ->
-                    val cantidad = carrito.find { it.producto.id == prod.id }?.cantidad ?: 0
-                    FilaProductoAnotar(
-                        prod = prod,
-                        cantidad = cantidad,
-                        onAgregar = { onToggleCarrito(prod) },
-                        onQuitar = { onQuitarUno(prod) },
-                        onSetCantidad = { n -> onSetCantidad(prod, n) }
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp)) {
+            items(productosFiltrados) { prod ->
+                val cantidad = carrito.find { it.producto.id == prod.id }?.cantidad ?: 0
+                FilaProductoAnotar(
+                    prod = prod,
+                    cantidad = cantidad,
+                    onAgregar = { onToggleCarrito(prod) },
+                    onQuitar = { onQuitarUno(prod) },
+                    onSetCantidad = { n -> onSetCantidad(prod, n) }
+                )
+            }
+
+            if (productosGlobales.isNotEmpty()) {
+                item {
+                    Text(
+                        "TAMBIÉN EN OTROS LOCALES",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
                     )
                 }
-                item {
-                    TextButton(
-                        onClick = onToggleMostrarOtro,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(if (mostrarOtro) "Ocultar campo manual" else "No está en la lista — cargar manualmente")
-                    }
+                items(productosGlobales) { nombre ->
+                    val prodTemp = Producto(id = "global_$nombre", nombre = nombre)
+                    val cantidad = carrito.find { it.producto.id == prodTemp.id }?.cantidad ?: 0
+                    FilaProductoAnotar(
+                        prod = prodTemp,
+                        cantidad = cantidad,
+                        esGlobal = true,
+                        onAgregar = { onUsarProductoGlobal(prodTemp) },
+                        onQuitar = { onQuitarUno(prodTemp) },
+                        onSetCantidad = { n -> onSetCantidad(prodTemp, n) }
+                    )
                 }
             }
-        }
-    } else {
-        // Pago — campo de monto único
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("Monto recibido", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedTextField(
-                value = montoTexto,
-                onValueChange = onMontoTextoChange,
-                placeholder = { Text("0") },
-                prefix = { Text("$") },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth()
-            )
+
+            item {
+                TextButton(
+                    onClick = onToggleMostrarOtro,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(if (mostrarOtro) "Ocultar campo manual" else "No está en la lista — cargar manualmente")
+                }
+            }
         }
     }
 }
 
 @Composable
 internal fun ZonaResumen(
-    esCargo: Boolean,
     mostrarOtro: Boolean,
-    productos: List<Producto>,
     descripcionOtro: String,
     montoOtroTexto: String,
     sugerenciasOtro: List<String>,
@@ -121,7 +124,6 @@ internal fun ZonaResumen(
     pedirConfirmSinPrecio: Boolean,
     cargando: Boolean,
     puedeGuardar: Boolean,
-    montoUnicoDouble: Double,
     clienteSeleccionado: Cliente?,
     onDescripcionOtroChange: (String) -> Unit,
     onMontoOtroTextoChange: (String) -> Unit,
@@ -136,7 +138,7 @@ internal fun ZonaResumen(
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
 
         // Campo manual "Otro"
-        if (mostrarOtro && esCargo) {
+        if (mostrarOtro) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -160,7 +162,6 @@ internal fun ZonaResumen(
                         Icon(Icons.Default.Close, "Quitar")
                     }
                 }
-                // Sugerencias
                 if (sugerenciasOtro.isNotEmpty()) {
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -202,7 +203,7 @@ internal fun ZonaResumen(
         }
 
         // Warning: productos sin precio
-        if (hayProductosSinPrecio && esCargo) {
+        if (hayProductosSinPrecio) {
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 shape = RoundedCornerShape(8.dp),
@@ -220,7 +221,7 @@ internal fun ZonaResumen(
         }
 
         // Resumen del carrito
-        if (carrito.isNotEmpty() && esCargo) {
+        if (carrito.isNotEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 carrito.forEach { item ->
                     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
@@ -256,7 +257,7 @@ internal fun ZonaResumen(
                 confirmButton = {
                     TextButton(onClick = {
                         onPedirConfirmSinPrecioChange(false)
-                        clienteSeleccionado?.let { onGuardar(it.id, buildItems(), if (esCargo) "cargo" else "pago") }
+                        clienteSeleccionado?.let { onGuardar(it.id, buildItems(), "cargo") }
                     }) { Text("Guardar igual") }
                 },
                 dismissButton = {
@@ -266,26 +267,39 @@ internal fun ZonaResumen(
         }
 
         // Botón guardar
+        val haptic = LocalHapticFeedback.current
+        var exito by remember { mutableStateOf(false) }
+        val prevCargando = remember { mutableStateOf(false) }
+        LaunchedEffect(cargando) {
+            if (prevCargando.value && !cargando) {
+                exito = true
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                kotlinx.coroutines.delay(600)
+                exito = false
+            }
+            prevCargando.value = cargando
+        }
         Button(
             onClick = {
-                if (hayProductosSinPrecio && esCargo) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (hayProductosSinPrecio) {
                     onPedirConfirmSinPrecioChange(true)
                 } else {
-                    clienteSeleccionado?.let { onGuardar(it.id, buildItems(), if (esCargo) "cargo" else "pago") }
+                    clienteSeleccionado?.let { onGuardar(it.id, buildItems(), "cargo") }
                 }
             },
             enabled = puedeGuardar,
+            colors = if (exito) ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32))
+                     else ButtonDefaults.buttonColors(),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).height(52.dp)
         ) {
-            if (cargando) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                val label = when {
-                    !esCargo -> "Registrar pago"
-                    totalConOtro > 0 -> "Guardar cargo $${"%.0f".format(totalConOtro)}"
-                    else -> "Guardar"
-                }
-                Text(label, style = MaterialTheme.typography.labelLarge)
+            when {
+                exito -> Icon(Icons.Default.Check, null, Modifier.size(22.dp))
+                cargando -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                else -> Text(
+                    if (totalConOtro > 0) "Guardar cargo $${"%.0f".format(totalConOtro)}" else "Guardar",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }

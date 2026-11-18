@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -70,7 +71,7 @@ fun PantallaHome(
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
     var tabPanelDueno by remember { mutableIntStateOf(tabInicialDueno) }
     // 0 = Panel/Inicio, 1 = Más
-    var tabNav by remember { mutableIntStateOf(0) }
+    var tabNav by rememberSaveable { mutableIntStateOf(0) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
 
     LaunchedEffect(mostrarPanelDueno) {
@@ -123,7 +124,7 @@ fun PantallaHome(
                         PanelDuenoEmbedido(
                             vm = duenoVm,
                             tabSeleccionado = tabPanelDueno,
-                            onTabChange = { tabPanelDueno = it },
+                            onVerClientes = {},
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirAgregarFiado = { clienteId, tipo ->
@@ -144,7 +145,7 @@ fun PantallaHome(
                             onCerrarSesion = onCerrarSesionCuenta,
                             onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
                             onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
-                            onConfiguracion = { vistaExtra = VistaExtra.Configuracion },
+                            onConfiguracion = { if (esDueno) onMiLocal() else vistaExtra = VistaExtra.Configuracion },
                             onNotificaciones = { vistaExtra = VistaExtra.Notificaciones },
                             onApariencia = { vistaExtra = VistaExtra.Apariencia },
                             onExportar = { vistaExtra = VistaExtra.Exportar },
@@ -200,7 +201,7 @@ fun PantallaHome(
                     onCerrarSesion = onCerrarSesionCuenta,
                     onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
                     onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
-                    onConfiguracion = { vistaExtra = VistaExtra.Configuracion },
+                    onConfiguracion = { if (esDueno) onMiLocal() else vistaExtra = VistaExtra.Configuracion },
                     onNotificaciones = { vistaExtra = VistaExtra.Notificaciones },
                     onApariencia = { vistaExtra = VistaExtra.Apariencia },
                     onExportar = { vistaExtra = VistaExtra.Exportar },

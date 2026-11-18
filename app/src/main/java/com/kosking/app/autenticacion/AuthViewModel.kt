@@ -1,8 +1,13 @@
 package com.kosking.app.autenticacion
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.messaging.FirebaseMessaging
 import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
@@ -12,9 +17,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class AuthViewModel : ViewModel() {
+class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
     private val auth = FirebaseAuth.getInstance()
+    private val prefs = app.getSharedPreferences("kosking_auth", android.content.Context.MODE_PRIVATE)
+
+    val ultimoEmail: String get() = prefs.getString("ultimo_email", "") ?: ""
+
+    private fun guardarEmail(email: String) {
+        prefs.edit().putString("ultimo_email", email).apply()
+    }
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
@@ -31,10 +43,15 @@ class AuthViewModel : ViewModel() {
                 val result = auth.signInWithEmailAndPassword(email, password).await()
                 val uid = result.user?.uid
                 if (uid != null) guardarTokenFcm(uid)
+                guardarEmail(email.trim())
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "login")
-                _error.value = "Email o contraseña incorrectos"
+                _error.value = when (e) {
+                    is FirebaseAuthInvalidCredentialsException -> "Contraseña incorrecta"
+                    is FirebaseAuthInvalidUserException -> "No encontramos una cuenta con ese email"
+                    else -> "No se pudo conectar. Revisá tu internet e intentá de nuevo"
+                }
             } finally {
                 _cargando.value = false
             }
@@ -54,23 +71,12 @@ class AuthViewModel : ViewModel() {
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "registrar")
-                _error.value = "No se pudo crear la cuenta"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
-    fun loginAnonimo(onExito: () -> Unit) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                auth.signInAnonymously().await()
-                onExito()
-            } catch (e: Exception) {
-                CrashLogger.log(e, "loginAnonimo")
-                _error.value = "No se pudo conectar. Revisá tu conexión"
+                _error.value = when (e) {
+                    is FirebaseAuthUserCollisionException -> "Ya existe una cuenta con ese email. ¿Querés iniciar sesión?"
+                    is FirebaseAuthWeakPasswordException -> "La contraseña es muy débil. Usá al menos 6 caracteres"
+                    is FirebaseAuthInvalidCredentialsException -> "El email no es válido"
+                    else -> "No se pudo crear la cuenta. Revisá tu internet e intentá de nuevo"
+                }
             } finally {
                 _cargando.value = false
             }

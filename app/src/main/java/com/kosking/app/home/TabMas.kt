@@ -215,7 +215,7 @@ internal fun TabMas(
                 shape = RoundedCornerShape(12.dp)) {
                 Icon(Icons.Default.Store, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Configurar mi local")
+                Text("Crear mi local")
             }
         }
 
@@ -226,8 +226,8 @@ internal fun TabMas(
                 Spacer(Modifier.height(4.dp))
                 SeccionHeader("MI LOCAL")
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    MasItem(Icons.Default.Settings, "Configuración",
-                        "Local, límite de crédito, empleados", onConfiguracion)
+                    MasItem(Icons.Default.Settings, "Ajustes del local",
+                        "Nombre, horarios, límite de crédito, empleados", onConfiguracion)
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     MasItem(Icons.Default.BarChart, "Estadísticas",
                         "Deuda total, cobros del mes, actividad", onEstadisticas)
@@ -318,9 +318,9 @@ private fun MasItem(
     onClick: () -> Unit
 ) {
     ListItem(
-        headlineContent = { Text(titulo) },
+        headlineContent = { Text(titulo, style = MaterialTheme.typography.bodyMedium) },
         supportingContent = {
-            Text(subtitulo, style = MaterialTheme.typography.bodySmall,
+            Text(subtitulo, style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         leadingContent = {

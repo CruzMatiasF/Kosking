@@ -250,4 +250,18 @@ class EmpleadoViewModel : ViewModel() {
             }
         }
     }
+
+    suspend fun buscarProductosGlobales(query: String): List<String> =
+        FiadoRepository.buscarProductosGlobales(query)
+
+    fun guardarProducto(nombre: String, precio: Double, onExito: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                FiadoRepository.upsertProducto(_localId.value, nombre, precio)
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "guardarProducto empleado")
+            }
+        }
+    }
 }

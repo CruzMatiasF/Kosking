@@ -36,24 +36,10 @@ object WhatsAppUtil {
             sb.append("*Total            \$${"%.0f".format(total)}*\n")
             sb.append("\nDeuda anterior: \$${"%.0f".format(deudaAnterior)}")
             sb.append("\n*Deuda nueva:   \$${"%.0f".format(deudaNueva)}*")
+            sb.append("\n\n📋 Este ticket es para que puedas verificar lo que se anotó. Los precios pueden variar — para saber cuánto debés exactamente, consultá con el local.")
         }
         sb.append("\n\n🕐 $hora · 📱 Kosking")
         return sb.toString()
-    }
-
-    fun mensajeDeuda(
-        nombreCliente: String,
-        monto: Double,
-        descripcion: String,
-        nombreLocal: String,
-        deudaTotal: Double,
-        tipo: String
-    ): String {
-        val accion = if (tipo == "pago") "registramos tu pago de" else "te anotamos"
-        val montoFmt = "%.0f".format(monto)
-        val totalFmt = "%.0f".format(deudaTotal)
-        return "Hola $nombreCliente, $accion \$$montoFmt de $descripcion en $nombreLocal. " +
-               "Tu deuda total es \$$totalFmt. 📱 Gestionado con Kosking"
     }
 
     fun mensajeResumen(

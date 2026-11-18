@@ -1,25 +1,38 @@
 package com.kosking.app.dueno.tabs
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
-import com.kosking.app.datos.ItemCatalogo
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,17 +40,41 @@ import com.kosking.app.modelo.Producto
 internal fun TabProductos(
     productos: List<Producto>,
     cargando: Boolean,
+    modifier: Modifier = Modifier,
+    mostrarHeader: Boolean = true,
+    mostrarDialogExterno: Boolean = false,
+    onDismissDialogExterno: () -> Unit = {},
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, productoId: String?, onExito: () -> Unit) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: android.net.Uri?, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit
 ) {
     var mostrarDialog by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Producto?>(null) }
+
+    LaunchedEffect(mostrarDialogExterno) {
+        if (mostrarDialogExterno) { editando = null; mostrarDialog = true }
+    }
+    LaunchedEffect(mostrarDialog) {
+        if (!mostrarDialog && mostrarDialogExterno) onDismissDialogExterno()
+    }
     var mostrarConfirmarEliminar by remember { mutableStateOf<Producto?>(null) }
     var busqueda by remember { mutableStateOf("") }
     val productosFiltrados = remember(productos, busqueda) {
         if (busqueda.isBlank()) productos
         else productos.filter { it.nombre.contains(busqueda, ignoreCase = true) }
+    }
+
+    // Agrupar por categoría: productos sin categoría van a "Otros" al final
+    val secciones: List<Pair<String, List<Producto>>> = remember(productos) {
+        val conCategoria = productos
+            .filter { it.categoria.isNotBlank() }
+            .groupBy { it.categoria }
+            .entries
+            .sortedBy { it.key }
+            .map { it.key to it.value }
+        val sinCategoria = productos.filter { it.categoria.isBlank() }
+        if (sinCategoria.isEmpty()) conCategoria
+        else conCategoria + ("Otros" to sinCategoria)
     }
 
     val context = LocalContext.current
@@ -46,14 +83,16 @@ internal fun TabProductos(
         try { CatalogoRepository.migrarSiVacio(context) } catch (_: Exception) {}
     }
 
-    // Diálogo agregar/editar
     if (mostrarDialog) {
         DialogProducto(
             producto = editando,
+            categoriasExistentes = remember(productos) {
+                productos.map { it.categoria }.filter { it.isNotBlank() }.distinct().sorted()
+            },
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
-            onGuardar = { nombre, precio ->
-                onGuardar(nombre, precio, editando?.id) {
+            onGuardar = { nombre, precio, categoria, imagenUri ->
+                onGuardar(nombre, precio, categoria, editando?.id, imagenUri) {
                     mostrarDialog = false
                     editando = null
                 }
@@ -62,7 +101,6 @@ internal fun TabProductos(
         )
     }
 
-    // Diálogo confirmar eliminar
     mostrarConfirmarEliminar?.let { prod ->
         AlertDialog(
             onDismissRequest = { mostrarConfirmarEliminar = null },
@@ -79,9 +117,9 @@ internal fun TabProductos(
         )
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         // Header con botón agregar
-        Row(
+        if (mostrarHeader) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
@@ -117,7 +155,7 @@ internal fun TabProductos(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .height(40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -146,244 +184,250 @@ internal fun TabProductos(
 
         HorizontalDivider()
 
-        if (productos.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(32.dp)
+        when {
+            productos.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.Storefront,
-                        null,
-                        Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "Cargá los productos de tu local",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        "Al anotar vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Button(onClick = { editando = null; mostrarDialog = true }) {
-                        Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Agregar primer producto")
-                    }
-                }
-            }
-        } else if (productosFiltrados.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(32.dp)
-                ) {
-                    Icon(Icons.Default.SearchOff, null, Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                    Text("No encontramos \"$busqueda\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
-                }
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(productosFiltrados, key = { it.id }) { prod ->
-                    ListItem(
-                        headlineContent = {
-                            Text(prod.nombre, fontWeight = FontWeight.Medium)
-                        },
-                        supportingContent = {
-                            Text(
-                                "Usado ${prod.vecesUsado} ${if (prod.vecesUsado == 1) "vez" else "veces"}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        trailingContent = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    if (prod.ultimoPrecio > 0) "$${"%.0f".format(prod.ultimoPrecio)}" else "Sin precio",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (prod.ultimoPrecio > 0) MaterialTheme.colorScheme.onSurface
-                                            else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                IconButton(
-                                    onClick = { editando = prod; mostrarDialog = true },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Edit, "Editar", Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                IconButton(
-                                    onClick = { mostrarConfirmarEliminar = prod },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Delete, "Eliminar", Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
-                                }
-                            }
-                        },
-                        modifier = Modifier.clickable { editando = prod; mostrarDialog = true }
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-                }
-                item { Spacer(Modifier.height(16.dp)) }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DialogProducto(
-    producto: Producto?,
-    cargando: Boolean,
-    onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val context = LocalContext.current
-    val esEdicion = producto != null
-
-    var nombre by remember(producto) { mutableStateOf(producto?.nombre ?: "") }
-    var precioTexto by remember(producto) { mutableStateOf(
-        if (producto != null && producto.ultimoPrecio > 0) "%.0f".format(producto.ultimoPrecio) else ""
-    ) }
-    var busqueda by remember { mutableStateOf(producto?.nombre ?: "") }
-    var mostrarSugerencias by remember { mutableStateOf(false) }
-    var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
-
-    LaunchedEffect(busqueda) {
-        if (busqueda.length < 2) { sugerencias = emptyList(); return@LaunchedEffect }
-        kotlinx.coroutines.delay(300)
-        val delCatalogo = CatalogoRepository.buscar(context, busqueda)
-        val nombresYaCubiertos = delCatalogo.map { it.nombre.lowercase() }.toSet()
-        val delGlobal = try {
-            onBuscarGlobal(busqueda)
-                .filter { it.lowercase() !in nombresYaCubiertos }
-                .map { ItemCatalogo(it, "") }
-        } catch (e: Exception) { emptyList() }
-        sugerencias = (delCatalogo + delGlobal).take(8)
-    }
-
-    val precioDouble = precioTexto.toDoubleOrNull() ?: 0.0
-    val puedeGuardar = nombre.isNotBlank() && !cargando
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (esEdicion) "Editar producto" else "Agregar producto") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Campo nombre con sugerencias del catálogo
-                Column {
-                    OutlinedTextField(
-                        value = if (mostrarSugerencias) busqueda else nombre,
-                        onValueChange = { v ->
-                            busqueda = v
-                            nombre = v
-                            mostrarSugerencias = v.isNotBlank()
-                        },
-                        label = { Text("Nombre del producto") },
-                        placeholder = { Text("Buscá o escribí el nombre") },
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
-                        trailingIcon = {
-                            if (nombre.isNotBlank()) {
-                                IconButton(onClick = { nombre = ""; busqueda = ""; mostrarSugerencias = false }) {
-                                    Icon(Icons.Default.Close, null, Modifier.size(16.dp))
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Sugerencias del catálogo
-                    if (mostrarSugerencias && sugerencias.isNotEmpty()) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
-                        ) {
-                            sugerencias.forEach { item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            nombre = item.nombre
-                                            busqueda = item.nombre
-                                            mostrarSugerencias = false
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(item.nombre, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    val etiqueta = when {
-                                        item.categoria.isNotBlank() -> item.categoria
-                                        else -> "otros locales"
-                                    }
-                                    val etiquetaColor = when {
-                                        item.categoria.isNotBlank() -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                    }
-                                    Text(
-                                        etiqueta,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = etiquetaColor
-                                    )
-                                }
-                                HorizontalDivider()
-                            }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Storefront,
+                            null,
+                            Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Cargá los productos de tu local",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Al anotar vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Button(onClick = { editando = null; mostrarDialog = true }) {
+                            Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Agregar primer producto")
                         }
                     }
                 }
+            }
 
-                OutlinedTextField(
-                    value = precioTexto,
-                    onValueChange = { precioTexto = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Precio $") },
-                    placeholder = { Text("Ej: 500") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
+            busqueda.isNotBlank() && productosFiltrados.isEmpty() -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Icon(Icons.Default.SearchOff, null, Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                        Text("No encontramos \"$busqueda\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
+                    }
+                }
+            }
+
+            // Búsqueda activa: lista plana vertical
+            busqueda.isNotBlank() -> {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(productosFiltrados, key = { it.id }) { prod ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 2 }
+                        ) {
+                            ProductoListItem(
+                                prod = prod,
+                                onEditar = { editando = prod; mostrarDialog = true },
+                                onEliminar = { mostrarConfirmarEliminar = prod }
+                            )
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                    }
+                    item { Spacer(Modifier.height(16.dp)) }
+                }
+            }
+
+            // Sin búsqueda: secciones por categoría con scroll horizontal
+            else -> {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    secciones.forEach { (categoria, prods) ->
+                        item(key = "header_$categoria") {
+                            Text(
+                                categoria.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp)
+                            )
+                        }
+                        item(key = "row_$categoria") {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(prods, key = { it.id }) { prod ->
+                                    ProductoCard(
+                                        prod = prod,
+                                        onEditar = { editando = prod; mostrarDialog = true },
+                                        onEliminar = { mostrarConfirmarEliminar = prod }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    item { Spacer(Modifier.height(24.dp)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductoCard(
+    prod: Producto,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
+    val context = LocalContext.current
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.95f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "scale"
+    )
+    Card(
+        modifier = Modifier.width(140.dp).scale(scale),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { pressed = true; tryAwaitRelease(); pressed = false },
+                    onTap = { onEditar() }
                 )
-
-                if (!esEdicion) {
-                    Text(
-                        "El precio se puede dejar en blanco y completarlo después.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            }
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(90.dp)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (prod.imagenUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context).data(prod.imagenUrl).crossfade(true).build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.AddAPhoto,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onGuardar(nombre.trim(), precioDouble) },
-                enabled = puedeGuardar
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (cargando) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary)
-                else Text("Guardar")
+                Text(
+                    prod.nombre,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Text(
+                    if (prod.ultimoPrecio > 0) "$${"%.0f".format(prod.ultimoPrecio)}" else "Sin precio",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (prod.ultimoPrecio > 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                    IconButton(onClick = onEditar, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Edit, "Editar", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = onEliminar, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Delete, "Eliminar", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductoListItem(
+    prod: Producto,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
+    val context = LocalContext.current
+    ListItem(
+        headlineContent = { Text(prod.nombre, fontWeight = FontWeight.Medium) },
+        supportingContent = {
+            Text(
+                "Usado ${prod.vecesUsado} ${if (prod.vecesUsado == 1) "vez" else "veces"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingContent = if (prod.imagenUrl.isNotBlank()) ({
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(prod.imagenUrl).crossfade(true).build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+            )
+        }) else ({
+            Box(
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    prod.nombre.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }),
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    if (prod.ultimoPrecio > 0) "$${"%.0f".format(prod.ultimoPrecio)}" else "Sin precio",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (prod.ultimoPrecio > 0) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(onClick = onEditar, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Edit, "Editar", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Delete, "Eliminar", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                }
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-        }
+        modifier = Modifier.clickable(onClick = onEditar)
     )
 }
+
+

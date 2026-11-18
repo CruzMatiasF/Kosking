@@ -1,12 +1,6 @@
 package com.kosking.app.ui.theme
 
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-
-// Gradiente azul marino compartido — header de todas las pantallas secundarias
-val HeaderGradient = Brush.verticalGradient(
-    listOf(Color(0xFF0D1B3E), Color(0xFF122560), Color(0xFF1A3A8A))
-)
 
 // Primarios
 val Rojo = Color(0xFFE63946)
@@ -21,16 +15,10 @@ val NaranjaClaro = Color(0xFFFFF3E0)
 val Verde = Color(0xFF10B981)
 val VerdeClaro = Color(0xFFD1FAE5)
 
-// Azul — panel del dueño (basado en mockup: #0D47A1 principal, #082D6B oscuro)
+// Azul — panel del dueño
 val Azul = Color(0xFF0D47A1)
 val AzulOscuro = Color(0xFF082D6B)
-val AzulNavy = Color(0xFF0D1B3E)   // reemplaza el negro, para textos
 val AzulClaro = Color(0xFFE3F2FD)
-val AzulFondo = Color(0xFFF0F4FF)  // fondo sutil con tinte azul
-
-// Advertencia / stock bajo
-val Amarillo = Color(0xFFF59E0B)
-val AmarilloClaro = Color(0xFFFEF3C7)
 
 // Neutros
 val Gris900 = Color(0xFF1A1A1A)

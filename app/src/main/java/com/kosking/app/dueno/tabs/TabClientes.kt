@@ -25,6 +25,7 @@ import java.util.Calendar
 internal fun TabClientes(
     clientes: List<Cliente>,
     movimientos: List<Movimiento> = emptyList(),
+    modifier: Modifier = Modifier,
     onVerCliente: (String) -> Unit,
     onAgregarCliente: () -> Unit,
     onAnotarRapido: ((Cliente, String) -> Unit)? = null
@@ -101,28 +102,31 @@ internal fun TabClientes(
             })
     }
 
-    Column(Modifier.fillMaxSize()) {
-        // Stats
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatMiniCard("Deuda total", "$${"%.0f".format(deudaTotal)}", isError = deudaTotal > 0, modifier = Modifier.weight(1f))
-            StatMiniCard("Deben", "$conDeuda", isError = conDeuda > 0, modifier = Modifier.weight(1f))
-            StatMiniCard("Al día", "$alDia", isSuccess = true, modifier = Modifier.weight(1f))
-            StatMiniCard(
-                "Clientes",
-                "${clientes.size}/${DuenoViewModel.LIMITE_CLIENTES_GRATIS}",
-                isError = clientes.size >= DuenoViewModel.LIMITE_CLIENTES_GRATIS,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
+    Column(modifier.fillMaxSize()) {
         ResumenMesClientes(
             fiadoMes = resumenMes.fiado,
             cobradoMes = resumenMes.cobrado,
             fiadoMesAnterior = resumenMesAnterior.fiado
         )
+
+        val limite = DuenoViewModel.LIMITE_CLIENTES_GRATIS
+        if (clientes.size >= (limite * 0.8).toInt()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                shape = MaterialTheme.shapes.small,
+                color = if (clientes.size >= limite) MaterialTheme.colorScheme.errorContainer
+                        else MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Text(
+                    if (clientes.size >= limite) "Límite alcanzado: ${clientes.size}/$limite clientes"
+                    else "${clientes.size}/$limite clientes — te quedan ${limite - clientes.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (clientes.size >= limite) MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
+        }
 
         val bloqueados = clientes.count { !it.habilitado }
         BarraFiltrosClientes(

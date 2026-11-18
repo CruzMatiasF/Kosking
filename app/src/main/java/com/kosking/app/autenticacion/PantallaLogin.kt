@@ -28,7 +28,7 @@ fun PantallaLogin(
     val error by vm.error.collectAsState()
     val cargando by vm.cargando.collectAsState()
 
-    var email by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(vm.ultimoEmail) }
     var password by remember { mutableStateOf("") }
     var mostrarRecuperar by remember { mutableStateOf(false) }
     val passwordFocus = remember { FocusRequester() }

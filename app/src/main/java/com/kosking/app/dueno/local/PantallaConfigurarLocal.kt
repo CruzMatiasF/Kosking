@@ -12,9 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.kosking.app.datos.PreferenciasRepository
 import com.kosking.app.modelo.HorarioDia
 import com.kosking.app.modelo.Local
 
@@ -37,9 +39,11 @@ fun PantallaConfigurarLocal(
     onColaboradores: () -> Unit = {},
     onVolver: () -> Unit
 ) {
+    val context = LocalContext.current
     var nombre by remember(localData) { mutableStateOf(localData.nombre) }
     var direccion by remember(localData) { mutableStateOf(localData.direccion) }
     var telefono by remember(localData) { mutableStateOf(localData.telefono) }
+    var empleadosVerDeuda by remember { mutableStateOf(PreferenciasRepository.getEmpleadosVerDeuda(context)) }
 
     val horariosMutable = remember(localData) {
         mutableStateMapOf<String, HorarioDia>().also { map ->
@@ -52,7 +56,7 @@ fun PantallaConfigurarLocal(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mi local") },
+                title = { Text("Ajustes del local") },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
@@ -131,6 +135,32 @@ fun PantallaConfigurarLocal(
                     label = label,
                     horario = horario,
                     onCambiar = { horariosMutable[key] = it }
+                )
+            }
+
+            HorizontalDivider()
+
+            // Configuración del negocio
+            Text(
+                "NEGOCIO",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text("Empleados ven deuda total", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text("Permitir que tus empleados vean el monto total adeudado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = empleadosVerDeuda,
+                    onCheckedChange = { empleadosVerDeuda = it; PreferenciasRepository.setEmpleadosVerDeuda(context, it) }
                 )
             }
 

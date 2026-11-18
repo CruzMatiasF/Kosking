@@ -219,6 +219,8 @@ fun PantallaPanelEmpleado(
             cargando = cargando,
             clienteInicial = c,
             productos = productos,
+            onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
+            onGuardarProducto = { nombre, precio, onExito -> vm.guardarProducto(nombre, precio, onExito) },
             onGuardar = { clienteId, items, tipo ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,

@@ -1,9 +1,9 @@
 package com.kosking.app.dueno.tabs
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -90,18 +90,19 @@ internal fun BarraFiltrosClientes(
 ) {
     var mostrarOrden by remember { mutableStateOf(false) }
 
+    // Fila: buscador + agregar
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 10.dp),
+            modifier = Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(Icons.Default.Search, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.Search, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             BasicTextField(
                 value = busqueda,
                 onValueChange = onBusquedaChange,
@@ -110,7 +111,7 @@ internal fun BarraFiltrosClientes(
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                 decorationBox = { inner ->
                     Box {
-                        if (busqueda.isEmpty()) Text("Buscar cliente", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (busqueda.isEmpty()) Text("Buscar cliente…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         inner()
                     }
                 }
@@ -119,11 +120,9 @@ internal fun BarraFiltrosClientes(
                 Icon(Icons.Default.Close, "Limpiar", Modifier.size(16.dp).clickable { onBusquedaChange("") }, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        IconButton(onClick = { onVistaChange(!vistaLista) }, modifier = Modifier.size(40.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-            Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Vista", Modifier.size(20.dp))
-        }
+        // Ordenar
         Box {
-            IconButton(onClick = { mostrarOrden = true }, modifier = Modifier.size(40.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            IconButton(onClick = { mostrarOrden = true }, modifier = Modifier.size(44.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Icon(Icons.Default.SwapVert, "Ordenar", Modifier.size(20.dp))
             }
             DropdownMenu(expanded = mostrarOrden, onDismissRequest = { mostrarOrden = false }) {
@@ -132,60 +131,37 @@ internal fun BarraFiltrosClientes(
                 DropdownMenuItem(text = { Text("Última visita") }, onClick = { onOrdenChange("visita"); mostrarOrden = false }, leadingIcon = { if (orden == "visita") Icon(Icons.Default.Check, null, Modifier.size(16.dp)) })
             }
         }
-        IconButton(onClick = onAgregarCliente, modifier = Modifier.size(40.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-            Icon(Icons.Default.PersonAdd, "Agregar", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        // Vista
+        IconButton(onClick = { onVistaChange(!vistaLista) }, modifier = Modifier.size(44.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Vista", Modifier.size(20.dp))
+        }
+        // Agregar
+        FilledIconButton(onClick = onAgregarCliente, modifier = Modifier.size(44.dp)) {
+            Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp))
         }
     }
 
-    // Segmented control
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp)
-            .clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        data class Seg(val key: String, val num: Int, val label: String)
-        val segs = listOf(Seg("deuda", conDeuda, "Deben"), Seg("aldia", alDia, "Al día"), Seg("pagaron", pagaronEsteMes, "Pagaron"), Seg("todos", totalClientes, "Todos"), Seg("bloqueado", bloqueados, "Bloq."))
-        segs.forEach { seg ->
-            val selected = filtro == seg.key
-            Box(
-                modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                    .then(if (selected) Modifier.background(MaterialTheme.colorScheme.surface).then(Modifier.padding(1.dp)) else Modifier)
-                    .clickable { onFiltroChange(seg.key); onBusquedaChange("") }.padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(seg.num.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(seg.label, style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
+    // Chips de filtro scrollables
+    data class FiltroChip(val key: String, val num: Int, val label: String)
+    val chips = buildList {
+        add(FiltroChip("deuda", conDeuda, "Deben"))
+        add(FiltroChip("aldia", alDia, "Al día"))
+        if (pagaronEsteMes > 0) add(FiltroChip("pagaron", pagaronEsteMes, "Pagaron"))
+        add(FiltroChip("todos", totalClientes, "Todos"))
+        if (bloqueados > 0) add(FiltroChip("bloqueado", bloqueados, "Bloqueados"))
     }
-}
-
-@Composable
-internal fun StatMiniCard(
-    label: String,
-    valor: String,
-    isError: Boolean = false,
-    isSuccess: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                valor,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = when {
-                    isError -> MaterialTheme.colorScheme.error
-                    isSuccess -> Verde
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
+        items(chips.size) { i ->
+            val chip = chips[i]
+            val selected = filtro == chip.key
+            FilterChip(
+                selected = selected,
+                onClick = { onFiltroChange(chip.key); onBusquedaChange("") },
+                label = { Text("${chip.label} ${chip.num}") }
             )
         }
     }

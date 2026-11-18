@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.dueno.DuenoViewModel
 import java.text.NumberFormat
 import java.util.*
@@ -51,6 +52,30 @@ fun PantallaEstadisticas(
     val movsMes = remember(movimientos) { movimientos.filter { !it.anulado && it.fecha.toDate().time >= inicioMes } }
     val fiadoMes = remember(movsMes) { movsMes.filter { it.tipo == "cargo" }.sumOf { it.monto } }
     val cobradoMes = remember(movsMes) { movsMes.filter { it.tipo == "pago" }.sumOf { it.monto } }
+
+    val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+    val inicioDia = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+    data class StatPersona(val nombre: String, val movimientos: Int, val cobrado: Double)
+    val equipoHoy = remember(movimientos, duenoUid, inicioDia) {
+        val movsHoy = movimientos.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
+        val map = mutableMapOf<String, StatPersona>()
+        movsHoy.forEach { mov ->
+            val uid = mov.anotadoPorUid.ifBlank { duenoUid }
+            val nombre = if (uid == duenoUid) "Vos"
+                         else mov.anotadoPorNombre.ifBlank { "Empleado" }
+            val actual = map[uid] ?: StatPersona(nombre, 0, 0.0)
+            map[uid] = actual.copy(
+                movimientos = actual.movimientos + 1,
+                cobrado = actual.cobrado + if (mov.tipo == "pago") mov.monto else 0.0
+            )
+        }
+        map.values.sortedByDescending { if (it.nombre == "Vos") Int.MAX_VALUE else it.movimientos }
+    }
 
     val movsPorDia: Map<String, Int> = remember(movimientos) {
         buildMap {
@@ -108,6 +133,34 @@ fun PantallaEstadisticas(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            // ── Equipo hoy ──────────────────────────────────────────────────
+            if (equipoHoy.size > 1) {
+                Text("EQUIPO HOY", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp))
+
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        equipoHoy.forEachIndexed { i, persona ->
+                            ListItem(
+                                headlineContent = {
+                                    Text(persona.nombre, fontWeight = FontWeight.Medium)
+                                },
+                                supportingContent = {
+                                    Text("${persona.movimientos} anotaciones · cobró ${ars.format(persona.cobrado)}",
+                                        style = MaterialTheme.typography.bodySmall)
+                                },
+                                leadingContent = {
+                                    Icon(Icons.Default.Person, null, Modifier.size(22.dp),
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            )
+                            if (i < equipoHoy.lastIndex) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        }
+                    }
+                }
             }
 
             // ── Mes actual ──────────────────────────────────────────────────

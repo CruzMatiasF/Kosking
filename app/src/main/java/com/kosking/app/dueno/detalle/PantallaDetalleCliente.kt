@@ -139,19 +139,7 @@ fun PantallaDetalleCliente(
                                             context.startActivity(android.content.Intent.createChooser(intent, "Compartir PDF"))
                                         }
                                     )
-                                    DropdownMenuItem(
-                                        text = { Text("Compartir historial") },
-                                        onClick = {
-                                            mostrarMenu = false
-                                            val texto = WhatsAppUtil.historialCliente(
-                                                nombreCliente = cliente.nombre,
-                                                nombreLocal = localData?.nombre ?: "el local",
-                                                deudaTotal = cliente.deudaTotal,
-                                                movimientos = movimientos
-                                            )
-                                            WhatsAppUtil.compartir(context, texto)
-                                        }
-                                    )
+
                                 }
                                 DropdownMenuItem(
                                     text = { Text("Recalcular deuda") },
@@ -207,18 +195,13 @@ fun PantallaDetalleCliente(
                         if (it.telefono.isNotBlank() && it.deudaTotal > 0) {
                             OutlinedButton(
                                 onClick = {
-                                    val ultimos = movimientos
-                                        .filter { m -> !m.anulado }
-                                        .sortedByDescending { m -> m.fecha.toDate().time }
-                                        .take(5)
                                     WhatsAppUtil.abrirWhatsApp(
                                         context = context,
                                         telefono = it.telefono,
-                                        mensaje = WhatsAppUtil.mensajeResumenDetallado(
+                                        mensaje = WhatsAppUtil.mensajeResumen(
                                             nombreCliente = it.nombre,
                                             nombreLocal = localData?.nombre ?: "el local",
-                                            deudaTotal = it.deudaTotal,
-                                            ultimosMovimientos = ultimos
+                                            deudaTotal = it.deudaTotal
                                         )
                                     )
                                 },

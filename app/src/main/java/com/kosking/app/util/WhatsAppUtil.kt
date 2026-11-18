@@ -3,9 +3,6 @@ package com.kosking.app.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.kosking.app.modelo.Movimiento
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 object WhatsAppUtil {
 
@@ -13,17 +10,13 @@ object WhatsAppUtil {
         nombreCliente: String,
         nombreLocal: String,
         items: List<Triple<String, Double, Int>>,
-        deudaAnterior: Double,
-        deudaNueva: Double,
         tipo: String,
         hora: String
     ): String {
         val sb = StringBuilder()
         if (tipo == "pago") {
             val montoFmt = "%.0f".format(items.sumOf { it.second })
-            sb.append("✅ Hola $nombreCliente, registramos tu pago de *\$$montoFmt* en *$nombreLocal*.\n")
-            sb.append("\nDeuda anterior: \$${"%.0f".format(deudaAnterior)}")
-            sb.append("\nDeuda nueva:    *\$${"%.0f".format(deudaNueva)}*")
+            sb.append("✅ Hola $nombreCliente, registramos tu pago de *\$$montoFmt* en *$nombreLocal*.")
         } else {
             sb.append("🧾 *$nombreLocal*\n")
             sb.append("────────────────────\n")
@@ -32,9 +25,7 @@ object WhatsAppUtil {
                 sb.append("$linea\n")
             }
             sb.append("────────────────────\n")
-            sb.append("\nDeuda anterior: \$${"%.0f".format(deudaAnterior)}")
-            sb.append("\n*Deuda nueva:   \$${"%.0f".format(deudaNueva)}*")
-            sb.append("\n\n📋 Este ticket es para que puedas verificar lo que se anotó.")
+            sb.append("📋 Confirmá que esto es lo que te llevaste.")
         }
         sb.append("\n\n🕐 $hora · 📱 Kosking")
         return sb.toString()
@@ -50,28 +41,6 @@ object WhatsAppUtil {
                "Cualquier consulta avisanos. 📱 Kosking"
     }
 
-    fun mensajeResumenDetallado(
-        nombreCliente: String,
-        nombreLocal: String,
-        deudaTotal: Double,
-        ultimosMovimientos: List<Movimiento>
-    ): String {
-        val totalFmt = "%.0f".format(deudaTotal)
-        val sb = StringBuilder()
-        sb.append("Hola $nombreCliente 👋\n")
-        sb.append("Tu deuda en $nombreLocal es *\$$totalFmt*.\n")
-        if (ultimosMovimientos.isNotEmpty()) {
-            sb.append("\nÚltimos movimientos:\n")
-            ultimosMovimientos.take(5).forEach { mov ->
-                val signo = if (mov.tipo == "pago") "✅ −" else "🔴 +"
-                val montoFmt = "%.0f".format(mov.monto)
-                val concepto = mov.producto.ifBlank { if (mov.tipo == "pago") "Pago" else "Cargo" }
-                sb.append("$signo\$$montoFmt $concepto\n")
-            }
-        }
-        sb.append("\nCualquier consulta avisanos. 📱 Kosking")
-        return sb.toString()
-    }
 
     fun mensajeResumenDia(
         nombreLocal: String,
@@ -114,33 +83,6 @@ object WhatsAppUtil {
         return sb.toString()
     }
 
-    fun historialCliente(
-        nombreCliente: String,
-        nombreLocal: String,
-        deudaTotal: Double,
-        movimientos: List<Movimiento>
-    ): String {
-        val fmtFecha = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
-        val activos = movimientos.filter { !it.anulado }.sortedByDescending { it.fecha.toDate().time }
-        val sb = StringBuilder()
-        sb.append("📋 *Historial de $nombreCliente*\n")
-        sb.append("Local: $nombreLocal\n")
-        sb.append("─────────────────\n")
-        activos.forEach { mov ->
-            val fecha = fmtFecha.format(mov.fecha.toDate())
-            val montoFmt = "%.0f".format(mov.monto)
-            if (mov.tipo == "pago") {
-                sb.append("✅ $fecha — Abonó \$$montoFmt a cuenta\n")
-            } else {
-                val concepto = mov.producto.ifBlank { "Cargo" }
-                sb.append("🔴 $fecha — \$$montoFmt ($concepto)\n")
-            }
-        }
-        sb.append("─────────────────\n")
-        sb.append("*Deuda actual: \$${"%.0f".format(deudaTotal)}*\n")
-        sb.append("📱 Kosking")
-        return sb.toString()
-    }
 
     fun compartir(context: Context, texto: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {

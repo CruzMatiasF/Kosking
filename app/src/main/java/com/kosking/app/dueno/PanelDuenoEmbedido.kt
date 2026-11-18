@@ -82,7 +82,7 @@ fun PanelDuenoEmbedido(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val deudaNueva: Double, val deudaAnterior: Double = 0.0, val items: List<Triple<String, Double, Int>> = emptyList())
+    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val items: List<Triple<String, Double, Int>> = emptyList())
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
     val vmError by vm.error.collectAsState()
@@ -254,10 +254,7 @@ fun PanelDuenoEmbedido(
                         if (cliente != null && cliente.telefono.isNotBlank()) {
                             val montoTotal = items.sumOf { it.second }
                             val descripcionItems = items.filter { it.first.isNotBlank() }.joinToString(", ") { it.first }
-                            val deudaAnterior = cliente.deudaTotal
-                            val deudaNueva = if (tipo == "cargo") cliente.deudaTotal + montoTotal
-                                            else (cliente.deudaTotal - montoTotal).coerceAtLeast(0.0)
-                            ultimoAnotado = UltimoAnotado(cliente, montoTotal, descripcionItems, tipo, deudaNueva, deudaAnterior, items)
+                            ultimoAnotado = UltimoAnotado(cliente, montoTotal, descripcionItems, tipo, items)
                             val accion = if (tipo == "cargo") "anotado" else "pago"
                             val montoFmt = "%.0f".format(montoTotal)
                             scope.launch {
@@ -276,8 +273,6 @@ fun PanelDuenoEmbedido(
                                                 nombreCliente = ua.cliente.nombre,
                                                 nombreLocal = localData?.nombre ?: "el local",
                                                 items = ua.items,
-                                                deudaAnterior = ua.deudaAnterior,
-                                                deudaNueva = ua.deudaNueva,
                                                 tipo = ua.tipo,
                                                 hora = hora
                                             )

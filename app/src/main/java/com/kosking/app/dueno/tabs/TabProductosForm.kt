@@ -3,6 +3,7 @@ package com.kosking.app.dueno.tabs
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -115,6 +116,34 @@ internal fun PantallaProducto(
     val precioDouble = precioTexto.toDoubleOrNull() ?: 0.0
     val puedeGuardar = nombre.isNotBlank() && !cargando
 
+    val precioOriginal = if (producto != null && producto.ultimoPrecio > 0) "%.0f".format(producto.ultimoPrecio) else ""
+    val hayCambios = nombre != (producto?.nombre ?: "") ||
+        precioTexto != precioOriginal ||
+        categoria != (producto?.categoria ?: "") ||
+        imagenUri != null
+
+    var mostrarDialogDescartar by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = hayCambios) { mostrarDialogDescartar = true }
+
+    if (mostrarDialogDescartar) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogDescartar = false },
+            title = { Text("¿Descartar cambios?") },
+            text = { Text("Tenés cambios sin guardar.") },
+            confirmButton = {
+                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri) }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogDescartar = false; onDismiss() }) {
+                    Text("Descartar", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        )
+    }
+
     if (mostrarOpcionesImagen) {
         AlertDialog(
             onDismissRequest = { mostrarOpcionesImagen = false },
@@ -151,23 +180,26 @@ internal fun PantallaProducto(
             TopAppBar(
                 title = { Text(if (esEdicion) "Editar producto" else "Nuevo producto") },
                 navigationIcon = {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = { if (hayCambios) mostrarDialogDescartar = true else onDismiss() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cancelar")
-                    }
-                },
-                actions = {
-                    if (cargando) {
-                        CircularProgressIndicator(Modifier.size(20.dp).padding(end = 16.dp), strokeWidth = 2.dp)
-                    } else {
-                        TextButton(
-                            onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri) },
-                            enabled = puedeGuardar
-                        ) {
-                            Text("Guardar", style = MaterialTheme.typography.titleSmall)
-                        }
                     }
                 }
             )
+        },
+        bottomBar = {
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Button(
+                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri) },
+                    enabled = puedeGuardar,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (cargando) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text("Guardar")
+                    }
+                }
+            }
         }
     ) { padding ->
         Column(

@@ -137,7 +137,7 @@ private fun CardDeudaTotal(
     val alDia = remember(totalClientes) { clientesConDeuda.count { it.deudaTotal <= 0 } }
 
     Card(
-        modifier = Modifier.width(cardWidth).height(200.dp),
+        modifier = Modifier.width(cardWidth).height(220.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)

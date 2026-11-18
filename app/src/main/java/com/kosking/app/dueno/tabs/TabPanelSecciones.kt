@@ -4,11 +4,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -86,7 +90,6 @@ internal fun LazyListScope.seccionHoy(
 }
 
 internal fun LazyListScope.seccionAcuerdosVencidos(
-    clientesUrgentes: List<Cliente>,
     clientesVencidos: List<Cliente>,
     hoy: Date,
     fmtCompromiso: SimpleDateFormat,
@@ -95,89 +98,119 @@ internal fun LazyListScope.seccionAcuerdosVencidos(
     onWhatsAppCliente: (Cliente) -> Unit,
     onAbrirDetalleCliente: (String) -> Unit
 ) {
-    if (clientesUrgentes.isEmpty()) return
+    if (clientesVencidos.isEmpty()) return
 
     item {
         val clientesConFono = remember(clientesVencidos) {
             clientesVencidos.filter { it.telefono.isNotBlank() }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Acuerdos vencidos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            if (clientesConFono.isNotEmpty()) {
-                TextButton(
-                    onClick = onRecordarTodos,
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    Text("Recordar a todos", style = MaterialTheme.typography.labelSmall)
+        var expandido by remember { mutableStateOf(false) }
+        val MAX = 3
+        val visibles = if (expandido) clientesVencidos else clientesVencidos.take(MAX)
+        val restantes = clientesVencidos.size - MAX
+
+        Column(modifier = Modifier.padding(horizontal = 16.dp).padding(top = 16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Acuerdos vencidos · ${clientesVencidos.size}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (clientesConFono.isNotEmpty()) {
+                    TextButton(
+                        onClick = onRecordarTodos,
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) {
+                        Text("Recordar a todos", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                visibles.forEach { cliente ->
+                    val diasVencido = run {
+                        val diff = hoy.time - cliente.fechaCompromiso!!.toDate().time
+                        (diff / 86_400_000L).toInt().coerceAtLeast(1)
+                    }
+                    Surface(
+                        onClick = { onAbrirDetalleCliente(cliente.id) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        cliente.nombre,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                Text(
+                                    "$${"%.0f".format(cliente.deudaTotal)}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { onRegistrarPago(cliente) },
+                                    modifier = Modifier.weight(1f).height(34.dp),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("Cobrar", style = MaterialTheme.typography.labelMedium)
+                                }
+                                if (cliente.telefono.isNotBlank()) {
+                                    OutlinedButton(
+                                        onClick = { onWhatsAppCliente(cliente) },
+                                        modifier = Modifier.weight(1f).height(34.dp),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.Send, null, Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Avisar", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!expandido && restantes > 0) {
+                    TextButton(
+                        onClick = { expandido = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Ver $restantes más", style = MaterialTheme.typography.labelMedium)
+                    }
+                } else if (expandido && clientesVencidos.size > MAX) {
+                    TextButton(
+                        onClick = { expandido = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Ver menos", style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
         }
-    }
-
-    items(clientesUrgentes, key = { "deuda_${it.id}" }) { cliente ->
-        val esVencido = cliente.fechaCompromiso != null && cliente.fechaCompromiso.toDate().before(hoy)
-        val diasVencido = if (esVencido) {
-            val diff = hoy.time - cliente.fechaCompromiso!!.toDate().time
-            (diff / 86_400_000L).toInt().coerceAtLeast(1)
-        } else 0
-        ListItem(
-            headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
-            supportingContent = {
-                if (esVencido) {
-                    Text(
-                        "Prometió el ${fmtCompromiso.format(cliente.fechaCompromiso!!.toDate())} · vencido hace $diasVencido ${if (diasVencido == 1) "día" else "días"}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else {
-                    Text(
-                        "Deuda: $${"%.0f".format(cliente.deudaTotal)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            trailingContent = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (esVencido) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                "$${"%.0f".format(cliente.deudaTotal)}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                    FilledTonalButton(
-                        onClick = { onRegistrarPago(cliente) },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Cobrar", style = MaterialTheme.typography.labelSmall)
-                    }
-                    if (cliente.telefono.isNotBlank()) {
-                        IconButton(
-                            onClick = { onWhatsAppCliente(cliente) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, "Avisar por WhatsApp",
-                                Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-            },
-            modifier = Modifier.clickable { onAbrirDetalleCliente(cliente.id) }
-        )
-        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
     }
 }
 

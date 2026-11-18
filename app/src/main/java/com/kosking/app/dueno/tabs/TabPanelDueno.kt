@@ -143,7 +143,6 @@ internal fun TabPanelDueno(
 
         // Lista de clientes con deuda (Acuerdos vencidos)
         seccionAcuerdosVencidos(
-            clientesUrgentes = clientesVencidos,
             clientesVencidos = clientesVencidos,
             hoy = hoy,
             fmtCompromiso = fmtCompromiso,

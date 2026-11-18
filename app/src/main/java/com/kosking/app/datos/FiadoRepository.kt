@@ -215,6 +215,16 @@ object FiadoRepository {
 
     // ── Empleados ────────────────────────────────────────────────────────────
 
+    fun empleadoFlowPorUid(uid: String, localId: String): Flow<Empleado?> = callbackFlow {
+        val sub = db.collection("empleados")
+            .whereEqualTo("uid", uid)
+            .whereEqualTo("localId", localId)
+            .addSnapshotListener { snap, _ ->
+                trySend(snap?.toObjects(Empleado::class.java)?.firstOrNull())
+            }
+        awaitClose { sub.remove() }
+    }
+
     fun empleadosFlow(localId: String): Flow<List<Empleado>> = callbackFlow {
         val sub = db.collection("empleados")
             .whereEqualTo("localId", localId)
@@ -231,6 +241,10 @@ object FiadoRepository {
 
     suspend fun eliminarEmpleado(empleadoId: String) {
         db.collection("empleados").document(empleadoId).delete().await()
+    }
+
+    suspend fun actualizarCampoEmpleado(empleadoId: String, campo: String, valor: Any) {
+        db.collection("empleados").document(empleadoId).update(campo, valor).await()
     }
 
     suspend fun verificarYUsarCodigoEmpleado(codigo: String, uid: String): String? {

@@ -34,7 +34,9 @@ internal fun TabPanelDueno(
     onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
-    onAbrirProductos: () -> Unit = {}
+    onAbrirProductos: () -> Unit = {},
+    esEmpleado: Boolean = false,
+    puedeVerDeuda: Boolean = true
 ) {
     var mostrarHistorial by remember { mutableStateOf(false) }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
@@ -147,8 +149,31 @@ internal fun TabPanelDueno(
                 cobradoMesAnterior = resumenMesAnterior.cobrado,
                 onAnotar = onAnotar,
                 onVerClientes = onVerClientes,
-                onAbrirProductos = onAbrirProductos
+                onAbrirProductos = onAbrirProductos,
+                esEmpleado = esEmpleado,
+                puedeVerDeuda = puedeVerDeuda
             )
+        }
+
+        if (esEmpleado) {
+            item {
+                // Accesos rápidos para empleado debajo de la card
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onAnotar, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Anotar")
+                        }
+                        OutlinedButton(onClick = onAbrirProductos) {
+                            Icon(Icons.Default.Sell, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Precios")
+                        }
+                    }
+                }
+                HorizontalDivider()
+            }
         }
 
         seccionHoy(
@@ -157,31 +182,33 @@ internal fun TabPanelDueno(
             fiadoHoy = fiadoHoy,
             cobradoHoy = cobradoHoy,
             visitasHoy = visitasHoy,
-            onCompartirResumen = onCompartirResumen,
+            onCompartirResumen = if (esEmpleado) ({}) else onCompartirResumen,
             onVerClientes = onVerClientes,
             onAbrirVisita = { visitaDetalle = it },
             onVerHistorial = { mostrarHistorial = true }
         )
 
-        // Lista de clientes con deuda (Acuerdos vencidos)
-        seccionAcuerdosVencidos(
-            clientesVencidos = clientesVencidos,
-            hoy = hoy,
-            fmtCompromiso = fmtCompromiso,
-            onRecordarTodos = onRecordarTodos,
-            onRegistrarPago = onRegistrarPago,
-            onWhatsAppCliente = onWhatsAppCliente,
-            onAbrirDetalleCliente = onAbrirDetalleCliente
-        )
+        if (!esEmpleado) {
+            // Lista de clientes con deuda (Acuerdos vencidos)
+            seccionAcuerdosVencidos(
+                clientesVencidos = clientesVencidos,
+                hoy = hoy,
+                fmtCompromiso = fmtCompromiso,
+                onRecordarTodos = onRecordarTodos,
+                onRegistrarPago = onRegistrarPago,
+                onWhatsAppCliente = onWhatsAppCliente,
+                onAbrirDetalleCliente = onAbrirDetalleCliente
+            )
 
-        // Alertas: disputas y clientes sobre límite
-        alertasCards(
-            disputados = disputados,
-            clienteMap = clienteMap,
-            sobreLimite = sobreLimite,
-            onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
-            onAbrirDetalleCliente = onAbrirDetalleCliente
-        )
+            // Alertas: disputas y clientes sobre límite
+            alertasCards(
+                disputados = disputados,
+                clienteMap = clienteMap,
+                sobreLimite = sobreLimite,
+                onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
+                onAbrirDetalleCliente = onAbrirDetalleCliente
+            )
+        }
 
         item { Spacer(Modifier.height(16.dp)) }
     }

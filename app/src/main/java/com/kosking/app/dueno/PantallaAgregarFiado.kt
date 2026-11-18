@@ -53,32 +53,6 @@ fun PantallaAgregarFiado(
     )
 }
 
-/** Versión para el flujo de empleado — recibe datos y callback desde Navegacion. */
-@Composable
-fun PantallaAgregarFiadoConLambda(
-    onVolver: () -> Unit,
-    onConfirmar: (items: List<Triple<String, Double, Int>>, tipo: String, visitante: String) -> Unit,
-    cargando: Boolean = false,
-    error: String? = null,
-    deudaActual: Double = 0.0,
-    limiteCredito: Double = 0.0,
-    nombreCliente: String = "",
-    nombreEmpleado: String = "",
-    productos: List<Producto> = emptyList(),
-) {
-    PantallaAgregarFiadoUI(
-        onVolver = onVolver,
-        cargando = cargando,
-        error = error,
-        deudaActual = deudaActual,
-        limiteCredito = limiteCredito,
-        nombreCliente = nombreCliente,
-        nombreEmpleado = nombreEmpleado,
-        mostrarVisitante = false,
-        productos = productos,
-        onConfirmar = { items, tipo, visitante -> onConfirmar(items, tipo, visitante) }
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable

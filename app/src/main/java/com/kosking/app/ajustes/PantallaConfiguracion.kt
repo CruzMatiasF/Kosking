@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,8 @@ fun PantallaConfiguracion(
     esEmpleado: Boolean,
     onVolver: () -> Unit,
     onMiLocal: () -> Unit = {},
+    onApariencia: () -> Unit = {},
+    onSoporte: () -> Unit = {},
     onCerrarSesion: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -79,6 +82,29 @@ fun PantallaConfiguracion(
                 leadingContent = { Icon(Icons.Default.Store, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 modifier = Modifier.clickable(onClick = onMiLocal)
+            )
+
+            // ── App ────────────────────────────────────────────────────
+            HorizontalDivider()
+            Text(
+                "App",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+            )
+            ListItem(
+                headlineContent = { Text("Apariencia", fontWeight = FontWeight.Medium) },
+                supportingContent = { Text("Tema claro, oscuro o según el sistema", style = MaterialTheme.typography.bodySmall) },
+                leadingContent = { Icon(Icons.Default.Palette, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) },
+                trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable(onClick = onApariencia)
+            )
+            ListItem(
+                headlineContent = { Text("Ayuda y soporte", fontWeight = FontWeight.Medium) },
+                supportingContent = { Text("Contacto y preguntas frecuentes", style = MaterialTheme.typography.bodySmall) },
+                leadingContent = { Icon(Icons.AutoMirrored.Filled.HelpOutline, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) },
+                trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable(onClick = onSoporte)
             )
 
             // ── Solo dueño ──────────────────────────────────────────────

@@ -127,9 +127,6 @@ fun PantallaHome(
                             onVerClientes = {},
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
-                            onAbrirAgregarFiado = { clienteId, tipo ->
-                                vistaDueno = NavDueno.AgregarFiado(clienteId, tipo, volverAPanel = tabPanelDueno != 0)
-                            },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
                         )
                     } else {
@@ -246,6 +243,8 @@ fun PantallaHome(
                     esEmpleado = esEmpleadoState,
                     onVolver = { vistaExtra = VistaExtra.Ninguna },
                     onMiLocal = onMiLocal,
+                    onApariencia = { vistaExtra = VistaExtra.Apariencia },
+                    onSoporte = { vistaExtra = VistaExtra.Soporte },
                     onCerrarSesion = onCerrarSesionCuenta
                 )
                 is VistaExtra.Notificaciones -> PantallaNotificaciones(

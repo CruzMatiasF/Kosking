@@ -61,7 +61,8 @@ data class Empleado(
     val id: String = "",
     val localId: String = "",
     val uid: String = "",
-    val nombre: String = ""
+    val nombre: String = "",
+    val puedeVerDeuda: Boolean = false
 )
 
 @Immutable
@@ -79,7 +80,7 @@ data class Producto(
 data class Usuario(
     val uid: String = "",
     val nombre: String = "",
-    val rol: String = "dueno",
+    val rol: String = "",
     val localId: String = "",
     val empleadoLocalId: String = "",
     val empleadoNombreLocal: String = "",

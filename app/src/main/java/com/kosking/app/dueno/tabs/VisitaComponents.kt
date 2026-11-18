@@ -121,6 +121,15 @@ fun FilaVisitaMP(visita: VisitaResumen, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            if (visita.anotadoPor.isNotBlank()) {
+                Text(
+                    visita.anotadoPor,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
 
         Column(horizontalAlignment = Alignment.End) {

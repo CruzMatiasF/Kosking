@@ -5,19 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
-import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
-import com.kosking.app.modelo.Movimiento
-import com.kosking.app.modelo.Producto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 
@@ -45,11 +42,22 @@ class EmpleadoViewModel : ViewModel() {
         .map { it.isNotBlank() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    private val _uid = MutableStateFlow("")
+
+    val puedeVerDeuda: StateFlow<Boolean> = combine(_uid, _localId) { uid, localId ->
+        Pair(uid, localId)
+    }.flatMapLatest { (uid, localId) ->
+        if (uid.isNotBlank() && localId.isNotBlank())
+            FiadoRepository.empleadoFlowPorUid(uid, localId).map { it?.puedeVerDeuda ?: false }
+        else flowOf(false)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val authListener = FirebaseAuth.AuthStateListener { fa ->
         val user = fa.currentUser
         if (user != null && !user.isAnonymous) {
             viewModelScope.launch { cargarEmpleoDeFirestore(user.uid) }
         } else {
+            _uid.value = ""
             _localId.value = ""
             _nombreLocal.value = ""
             _nombreEmpleado.value = ""
@@ -67,6 +75,7 @@ class EmpleadoViewModel : ViewModel() {
 
     private suspend fun cargarEmpleoDeFirestore(uid: String) {
         try {
+            _uid.value = uid
             val empleo = FiadoRepository.obtenerEmpleoDeUsuario(uid)
             if (empleo != null) {
                 _localId.value = empleo.first
@@ -165,104 +174,4 @@ class EmpleadoViewModel : ViewModel() {
         }
     }
 
-    val productos: StateFlow<List<Producto>> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val clientesHabilitados: StateFlow<List<Cliente>> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.clientesFlow(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val movimientosLocal: StateFlow<List<Movimiento>> = _localId
-        .flatMapLatest { id ->
-            if (id.isNotBlank()) FiadoRepository.movimientosLocalFlow(id) else flowOf(emptyList())
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    fun agregarMovimientos(
-        clienteId: String,
-        items: List<Triple<String, Double, Int>>, // producto, monto, cantidad
-        tipo: String,
-        visitante: String = "",
-        onExito: () -> Unit
-    ) {
-        viewModelScope.launch {
-            _cargando.value = true
-            _error.value = null
-            try {
-                val uid = auth.currentUser?.uid ?: ""
-                val grupoId = java.util.UUID.randomUUID().toString()
-                val movs = items.map { (producto, monto, cantidad) ->
-                    Movimiento(
-                        localId = _localId.value,
-                        clienteId = clienteId,
-                        tipo = tipo,
-                        producto = producto,
-                        monto = monto,
-                        cantidad = cantidad,
-                        anotadoPorUid = uid,
-                        anotadoPorNombre = _nombreEmpleado.value,
-                        grupoId = grupoId,
-                        visitante = visitante
-                    )
-                }
-                FiadoRepository.agregarMovimientos(movs)
-                items.forEach { (producto, monto) ->
-                    if (producto.isNotBlank()) FiadoRepository.upsertProducto(_localId.value, producto, monto)
-                }
-                onExito()
-            } catch (e: Exception) {
-                CrashLogger.log(e, "agregarMovimientos empleado")
-                _error.value = "No se pudo guardar"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
-    fun agregarCliente(nombre: String, telefono: String, onExito: () -> Unit) {
-        viewModelScope.launch {
-            if (clientesHabilitados.value.size >= 50) {
-                _error.value = "Límite de ${com.kosking.app.dueno.DuenoViewModel.LIMITE_CLIENTES_GRATIS} clientes alcanzado."
-                return@launch
-            }
-            _cargando.value = true
-            _error.value = null
-            try {
-                FiadoRepository.agregarCliente(
-                    Cliente(
-                        localId = _localId.value,
-                        nombre = nombre,
-                        telefono = telefono,
-                        domicilio = "",
-                        limiteCredito = 0.0
-                    )
-                )
-                onExito()
-            } catch (e: Exception) {
-                CrashLogger.log(e, "agregarCliente empleado")
-                _error.value = "No se pudo agregar el cliente"
-            } finally {
-                _cargando.value = false
-            }
-        }
-    }
-
-    suspend fun buscarProductosGlobales(query: String): List<String> =
-        FiadoRepository.buscarProductosGlobales(query)
-
-    fun guardarProducto(nombre: String, precio: Double, onExito: () -> Unit = {}) {
-        viewModelScope.launch {
-            try {
-                FiadoRepository.upsertProducto(_localId.value, nombre, precio)
-                onExito()
-            } catch (e: Exception) {
-                CrashLogger.log(e, "guardarProducto empleado")
-            }
-        }
-    }
 }

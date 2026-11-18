@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +41,9 @@ internal fun CardsResumenDueno(
     cobradoMesAnterior: Double,
     onAnotar: () -> Unit,
     onVerClientes: () -> Unit,
-    onAbrirProductos: () -> Unit
+    onAbrirProductos: () -> Unit,
+    esEmpleado: Boolean = false,
+    puedeVerDeuda: Boolean = true
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         if (localData != null && localData.nombre.isNotBlank()) {
@@ -82,7 +85,9 @@ internal fun CardsResumenDueno(
                             clientesConDeuda = clientesConDeuda,
                             onAnotar = onAnotar,
                             onVerClientes = onVerClientes,
-                            onAbrirProductos = onAbrirProductos
+                            onAbrirProductos = onAbrirProductos,
+                            esEmpleado = esEmpleado,
+                            puedeVerDeuda = puedeVerDeuda
                         )
                         else -> CardResumenPeriodo(
                             cardWidth = cardWidth,
@@ -130,10 +135,14 @@ private fun CardDeudaTotal(
     clientesConDeuda: List<Cliente>,
     onAnotar: () -> Unit,
     onVerClientes: () -> Unit,
-    onAbrirProductos: () -> Unit
+    onAbrirProductos: () -> Unit,
+    esEmpleado: Boolean = false,
+    puedeVerDeuda: Boolean = true
 ) {
     val totalClientes = clientesConDeuda.size
     val alDia = remember(totalClientes) { clientesConDeuda.count { it.deudaTotal <= 0 } }
+    // Para empleados, el monto empieza oculto; solo puede destaparlo si el dueño lo habilitó
+    var montoVisible by rememberSaveable { mutableStateOf(!esEmpleado) }
 
     Card(
         modifier = Modifier.width(cardWidth).height(220.dp),
@@ -142,18 +151,46 @@ private fun CardDeudaTotal(
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                "Te deben en total",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "$${"%.0f".format(totalDeuda)}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Te deben en total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (esEmpleado && puedeVerDeuda) {
+                    IconButton(
+                        onClick = { montoVisible = !montoVisible },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            if (montoVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (montoVisible) "Ocultar monto" else "Ver monto",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            if (montoVisible) {
+                Text(
+                    "$${"%.0f".format(totalDeuda)}",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurface
+                )
+            } else {
+                Text(
+                    "• • • • • •",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
                 buildString {
                     if (clientesConDeuda.isNotEmpty()) append("${clientesConDeuda.size} deben")

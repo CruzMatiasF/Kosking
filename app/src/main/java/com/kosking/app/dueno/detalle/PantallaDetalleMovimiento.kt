@@ -25,7 +25,8 @@ import java.util.Locale
 fun PantallaDetalleMovimiento(
     movimientoId: String,
     onVolver: () -> Unit,
-    vm: DuenoViewModel
+    vm: DuenoViewModel,
+    esEmpleado: Boolean = false
 ) {
     LaunchedEffect(movimientoId) { vm.seleccionarMovimiento(movimientoId) }
     val mov by vm.movimientoSeleccionado.collectAsState()
@@ -54,7 +55,16 @@ fun PantallaDetalleMovimiento(
         val movActual = mov
         if (movActual == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                if (vmError != null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(vmError ?: "No se pudo cargar el movimiento",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = onVolver) { Text("Volver") }
+                    }
+                } else {
+                    CircularProgressIndicator()
+                }
             }
             return@Scaffold
         }
@@ -151,19 +161,21 @@ fun PantallaDetalleMovimiento(
                     }
                     Spacer(Modifier.height(8.dp))
                 }
-                OutlinedButton(
-                    onClick = {
-                        montoCorregido = "%.0f".format(movActual.monto)
-                        mostrarDialogCorregir = true
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Corregir monto")
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(onClick = { mostrarDialogAnular = true }, modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                    Text("Anular movimiento")
+                if (!esEmpleado) {
+                    OutlinedButton(
+                        onClick = {
+                            montoCorregido = "%.0f".format(movActual.monto)
+                            mostrarDialogCorregir = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Corregir monto")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = { mostrarDialogAnular = true }, modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                        Text("Anular movimiento")
+                    }
                 }
             }
         }

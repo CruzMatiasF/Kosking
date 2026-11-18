@@ -54,8 +54,15 @@ class DuenoViewModel : ViewModel() {
 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
         val uid = firebaseAuth.currentUser?.uid
-        if (uid != null && _localId.value.isBlank()) {
-            viewModelScope.launch { cargarDatos(uid) }
+        if (uid == null) {
+            cerrarSesion()
+        } else if (_localId.value.isBlank()) {
+            viewModelScope.launch {
+                val usuario = try { FiadoRepository.obtenerUsuario(uid) } catch (_: Exception) { null }
+                if (usuario?.localId?.isNotBlank() == true) {
+                    cargarDatos(uid)
+                }
+            }
         }
     }
 
@@ -192,11 +199,11 @@ class DuenoViewModel : ViewModel() {
     val movimientoSeleccionado: StateFlow<Movimiento?> = _movimientoSeleccionado.asStateFlow()
 
     fun seleccionarMovimiento(id: String) {
-        _movimientoSeleccionado.value =
-            movimientosLocal.value.find { it.id == id }
+        val enCache = movimientosLocal.value.find { it.id == id }
             ?: movimientosDetalle.value.find { it.id == id }
-        viewModelScope.launch {
-            if (_movimientoSeleccionado.value == null) {
+        _movimientoSeleccionado.value = enCache
+        if (enCache == null) {
+            viewModelScope.launch {
                 try {
                     val mov = FiadoRepository.obtenerMovimiento(id)
                     _movimientoSeleccionado.value = mov
@@ -242,6 +249,15 @@ class DuenoViewModel : ViewModel() {
 
     fun seleccionarCliente(clienteId: String) {
         _detalleClienteId.value = clienteId
+    }
+
+    fun inicializarDesdeEmpleado(localId: String, nombreEmpleado: String = "") {
+        if (_localId.value.isBlank()) {
+            _localId.value = localId
+        }
+        if (nombreEmpleado.isNotBlank()) {
+            _nombreDueno.value = nombreEmpleado
+        }
     }
 
     fun agregarMovimientos(
@@ -477,6 +493,16 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarPermisoVerDeuda(empleadoId: String, puede: Boolean) {
+        viewModelScope.launch {
+            try {
+                FiadoRepository.actualizarCampoEmpleado(empleadoId, "puedeVerDeuda", puede)
+            } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarPermisoVerDeuda")
+            }
+        }
+    }
+
     fun generarCodigoEmpleado(onExito: (String) -> Unit) {
         viewModelScope.launch {
             _cargando.value = true
@@ -508,5 +534,8 @@ class DuenoViewModel : ViewModel() {
         _localId.value = ""
         _nombreLocal.value = ""
         _codigoLocal.value = ""
+        _nombreDueno.value = ""
+        _movimientoSeleccionado.value = null
+        _detalleClienteId.value = ""
     }
 }

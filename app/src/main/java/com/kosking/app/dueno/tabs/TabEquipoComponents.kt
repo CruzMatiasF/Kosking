@@ -103,7 +103,8 @@ internal fun CardEmpleado(
     inicioDia: Long,
     fmtFecha: SimpleDateFormat,
     fmtHora: SimpleDateFormat,
-    onEliminar: () -> Unit
+    onEliminar: () -> Unit,
+    onToggleVerDeuda: (Boolean) -> Unit = {}
 ) {
     val avatarColors = listOf(
         MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer,
@@ -176,6 +177,24 @@ internal fun CardEmpleado(
                         }
                     }
                 }
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 56.dp, end = 4.dp, top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Puede ver deuda de clientes",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Switch(
+                    checked = emp.puedeVerDeuda,
+                    onCheckedChange = onToggleVerDeuda,
+                    modifier = Modifier.height(24.dp)
+                )
             }
         }
     }

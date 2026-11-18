@@ -34,7 +34,8 @@ internal fun BarraFiltrosClientes(
     onOrdenChange: (String) -> Unit,
     onVistaChange: (Boolean) -> Unit,
     onFiltroChange: (String) -> Unit,
-    onAgregarCliente: () -> Unit
+    onAgregarCliente: () -> Unit,
+    esEmpleado: Boolean = false
 ) {
     var mostrarOrden by remember { mutableStateOf(false) }
 
@@ -84,8 +85,10 @@ internal fun BarraFiltrosClientes(
             Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Vista", Modifier.size(20.dp))
         }
         // Agregar
-        FilledIconButton(onClick = onAgregarCliente, modifier = Modifier.size(44.dp)) {
-            Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp))
+        if (!esEmpleado) {
+            FilledIconButton(onClick = onAgregarCliente, modifier = Modifier.size(44.dp)) {
+                Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp))
+            }
         }
     }
 

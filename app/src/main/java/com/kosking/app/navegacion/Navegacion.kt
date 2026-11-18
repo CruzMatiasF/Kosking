@@ -8,7 +8,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.activity.compose.BackHandler
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.kosking.app.autenticacion.PantallaLogin
@@ -20,18 +19,21 @@ import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
 import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
-import com.kosking.app.empleado.PantallaPanelEmpleado
 import com.kosking.app.home.PantallaHome
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.datos.StartupUseCase
 import com.kosking.app.datos.StartupDestino
 import com.kosking.app.ajustes.PantallaAcercaDe
+import com.kosking.app.ajustes.PantallaApariencia
 import com.kosking.app.ajustes.PantallaConfiguracion
 import com.kosking.app.ajustes.PantallaSeguridad
 import com.kosking.app.ajustes.PantallaNotificaciones
+import com.kosking.app.ajustes.PantallaSoporte
 import com.kosking.app.perfil.PantallaConfigurarPerfil
 import com.kosking.app.perfil.PantallaPerfil
+import com.kosking.app.dueno.PanelDuenoEmbedido
 import com.kosking.app.dueno.PantallaColaboradores
+import com.kosking.app.dueno.detalle.PantallaDetalleCliente
 import com.kosking.app.autenticacion.PantallaOnboarding
 import com.kosking.app.perfil.PantallaPrivacidad
 import androidx.compose.foundation.layout.*
@@ -245,40 +247,43 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
         }
 
         composable(Rutas.PANEL_EMPLEADO) {
-            PantallaPanelEmpleado(
-                onVerCliente = { id -> nav.navigate(Rutas.agregarFiadoEmpleado(id)) },
-                onCerrarSesion = {
+            val empleadoLocalId by empleadoVm.localId.collectAsState()
+            val puedeVerDeuda by empleadoVm.puedeVerDeuda.collectAsState()
+            val nombreEmpleado by empleadoVm.nombreEmpleado.collectAsState()
+            val nombreLocalEmpleado by empleadoVm.nombreLocal.collectAsState()
+            LaunchedEffect(empleadoLocalId, nombreEmpleado) {
+                if (empleadoLocalId.isNotBlank()) duenoVm.inicializarDesdeEmpleado(empleadoLocalId, nombreEmpleado)
+            }
+            PanelDuenoEmbedido(
+                vm = duenoVm,
+                esEmpleado = true,
+                puedeVerDeuda = puedeVerDeuda,
+                nombreEmpleado = nombreEmpleado,
+                nombreLocal = nombreLocalEmpleado,
+                onCerrarSesionEmpleado = {
                     empleadoVm.cerrarSesion()
+                    duenoVm.cerrarSesion()
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
-                onVolver = { nav.popBackStack() },
-                vm = empleadoVm
+                onAbrirAgregarCliente = {},
+                onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
+                onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) }
             )
         }
 
         composable(
-            Rutas.AGREGAR_FIADO_EMPLEADO,
+            Rutas.DETALLE_CLIENTE_EMPLEADO,
             arguments = listOf(navArgument("clienteId") { type = NavType.StringType })
         ) { back ->
             val clienteId = back.arguments?.getString("clienteId") ?: return@composable
-            val cargando by empleadoVm.cargando.collectAsState()
-            val error by empleadoVm.error.collectAsState()
-            val nombreEmpleado by empleadoVm.nombreEmpleado.collectAsState()
-            val clientes by empleadoVm.clientesHabilitados.collectAsState()
-            val productos by empleadoVm.productos.collectAsState()
-            val cliente = remember(clientes, clienteId) { clientes.find { it.id == clienteId } }
-            com.kosking.app.dueno.PantallaAgregarFiadoConLambda(
+            val puedeVerDeuda by empleadoVm.puedeVerDeuda.collectAsState()
+            PantallaDetalleCliente(
+                clienteId = clienteId,
                 onVolver = { nav.popBackStack() },
-                cargando = cargando,
-                error = error,
-                deudaActual = cliente?.deudaTotal ?: 0.0,
-                limiteCredito = cliente?.limiteCredito ?: 0.0,
-                nombreCliente = cliente?.nombre ?: "",
-                nombreEmpleado = nombreEmpleado,
-                productos = productos,
-                onConfirmar = { items, tipo, visitante ->
-                    empleadoVm.agregarMovimientos(clienteId, items, tipo, visitante) { nav.popBackStack() }
-                }
+                onVerMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) },
+                vm = duenoVm,
+                esEmpleado = true,
+                puedeVerDeuda = puedeVerDeuda
             )
         }
 
@@ -287,19 +292,24 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
             arguments = listOf(navArgument("movimientoId") { type = NavType.StringType })
         ) { back ->
             val movimientoId = back.arguments?.getString("movimientoId") ?: return@composable
+            val esEmpleadoVal by empleadoVm.tieneSession.collectAsState()
             PantallaDetalleMovimiento(
                 movimientoId = movimientoId,
                 onVolver = { nav.popBackStack() },
-                vm = duenoVm
+                vm = duenoVm,
+                esEmpleado = esEmpleadoVal
             )
         }
 
         composable(Rutas.PERFIL) {
             val esDuenoVal by duenoVm.localId.collectAsState()
+            val esEmpleadoVal by empleadoVm.tieneSession.collectAsState()
+            val nombreLocal by empleadoVm.nombreLocal.collectAsState()
             PantallaPerfil(
                 nombreUsuario = nombreUsuario,
                 rol = when {
                     esDuenoVal.isNotBlank() -> "Dueño de local"
+                    esEmpleadoVal -> if (nombreLocal.isNotBlank()) "Empleado en $nombreLocal" else "Empleado"
                     else -> "Cuenta personal"
                 },
                 esDueno = esDuenoVal.isNotBlank(),
@@ -362,6 +372,8 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                 esDueno = esDuenoVal.isNotBlank(),
                 esEmpleado = esEmpleadoVal,
                 onVolver = { nav.popBackStack() },
+                onApariencia = { nav.navigate(Rutas.APARIENCIA) },
+                onSoporte = { nav.navigate(Rutas.SOPORTE) },
                 onMiLocal = {
                     when {
                         esDuenoVal.isNotBlank() -> nav.navigate(Rutas.CONFIGURAR_LOCAL)
@@ -383,6 +395,17 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                 onVolver = { nav.popBackStack() },
                 onPrivacidad = { nav.navigate(Rutas.POLITICA_PRIVACIDAD) }
             )
+        }
+
+        composable(Rutas.APARIENCIA) {
+            PantallaApariencia(
+                onVolver = { nav.popBackStack() },
+                onTemaChanged = onTemaChanged
+            )
+        }
+
+        composable(Rutas.SOPORTE) {
+            PantallaSoporte(onVolver = { nav.popBackStack() })
         }
 
         composable(Rutas.PRIVACIDAD) {

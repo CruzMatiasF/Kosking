@@ -7,11 +7,13 @@ object Rutas {
     const val CREAR_LOCAL = "crear_local"
     const val INGRESAR_CODIGO = "ingresar_codigo"
     const val PANEL_EMPLEADO = "panel_empleado"
-    const val AGREGAR_FIADO_EMPLEADO = "agregar_fiado_empleado/{clienteId}"
+    const val DETALLE_CLIENTE_EMPLEADO = "detalle_cliente_empleado/{clienteId}"
     const val DETALLE_MOVIMIENTO = "detalle_movimiento/{movimientoId}"
     const val CONFIGURAR_PERFIL = "configurar_perfil"
     const val CONFIGURACION = "configuracion"
     const val ACERCA_DE = "acerca_de"
+    const val APARIENCIA = "apariencia"
+    const val SOPORTE = "soporte"
     const val PRIVACIDAD = "privacidad"
     const val POLITICA_PRIVACIDAD = "politica_privacidad"
     const val SEGURIDAD = "seguridad"
@@ -21,6 +23,6 @@ object Rutas {
     const val CONFIGURAR_LOCAL = "configurar_local"
     const val NOTIFICACIONES = "notificaciones"
 
-    fun agregarFiadoEmpleado(clienteId: String) = "agregar_fiado_empleado/$clienteId"
+    fun detalleClienteEmpleado(clienteId: String) = "detalle_cliente_empleado/$clienteId"
     fun detalleMovimiento(movimientoId: String) = "detalle_movimiento/$movimientoId"
 }

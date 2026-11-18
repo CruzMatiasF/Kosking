@@ -229,7 +229,8 @@ internal fun TabEquipo(
                     inicioDia = inicioDia,
                     fmtFecha = fmtFecha,
                     fmtHora = fmtHora,
-                    onEliminar = { empleadoAEliminar = emp }
+                    onEliminar = { empleadoAEliminar = emp },
+                    onToggleVerDeuda = { puede -> vm.actualizarPermisoVerDeuda(emp.id, puede) }
                 )
             }
         }

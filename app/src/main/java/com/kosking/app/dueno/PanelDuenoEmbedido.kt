@@ -36,8 +36,12 @@ fun PanelDuenoEmbedido(
     onVerClientes: () -> Unit = {},
     onAbrirAgregarCliente: () -> Unit,
     onAbrirDetalleCliente: (String) -> Unit,
-    onAbrirAgregarFiado: (clienteId: String, tipo: String) -> Unit,
-    onAbrirDetalleMovimiento: (String) -> Unit
+    onAbrirDetalleMovimiento: (String) -> Unit,
+    esEmpleado: Boolean = false,
+    puedeVerDeuda: Boolean = true,
+    nombreEmpleado: String = "",
+    nombreLocal: String = "",
+    onCerrarSesionEmpleado: () -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
@@ -66,16 +70,19 @@ fun PanelDuenoEmbedido(
     BackHandler(enabled = mostrarClientes) { mostrarClientes = false }
     BackHandler(enabled = mostrarProductos) { mostrarProductos = false }
 
-    // Actualiza las prefs que leen los workers de notificaciones y el widget
-    LaunchedEffect(totalDeuda, clientesConDeuda.size, localId, localData?.nombre) {
-        context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE).edit()
-            .putFloat("total_deuda", totalDeuda.toFloat())
-            .putInt("clientes_con_deuda", clientesConDeuda.size)
-            .putLong("prefs_timestamp", System.currentTimeMillis())
-            .also { if (localId.isNotBlank()) it.putString("local_id", localId) }
-            .also { localData?.nombre?.let { n -> if (n.isNotBlank()) it.putString("nombre_local", n) } }
-            .apply()
-        KoskingWidget.actualizarTodos(context)
+    // Actualiza las prefs que leen los workers de notificaciones y el widget.
+    // Solo para dueños: el widget no debe exponer datos financieros en el teléfono del empleado.
+    if (!esEmpleado) {
+        LaunchedEffect(totalDeuda, clientesConDeuda.size, localId, localData?.nombre) {
+            context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE).edit()
+                .putFloat("total_deuda", totalDeuda.toFloat())
+                .putInt("clientes_con_deuda", clientesConDeuda.size)
+                .putLong("prefs_timestamp", System.currentTimeMillis())
+                .also { if (localId.isNotBlank()) it.putString("local_id", localId) }
+                .also { localData?.nombre?.let { n -> if (n.isNotBlank()) it.putString("nombre_local", n) } }
+                .apply()
+            KoskingWidget.actualizarTodos(context)
+        }
     }
 
     var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
@@ -92,7 +99,33 @@ fun PanelDuenoEmbedido(
         vm.clearError()
     }
 
-    Scaffold { scaffoldPadding ->
+    var mostrarMenuEmpleado by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            if (esEmpleado) {
+                TopAppBar(
+                    title = { Text(localData?.nombre?.ifBlank { nombreLocal.ifBlank { "Kosking" } } ?: nombreLocal.ifBlank { "Kosking" }) },
+                    actions = {
+                        IconButton(onClick = { mostrarProductos = true }) {
+                            Icon(Icons.Default.Sell, "Precios")
+                        }
+                        Box {
+                            IconButton(onClick = { mostrarMenuEmpleado = true }) {
+                                Icon(Icons.Default.MoreVert, "Opciones")
+                            }
+                            DropdownMenu(expanded = mostrarMenuEmpleado, onDismissRequest = { mostrarMenuEmpleado = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Cerrar sesión") },
+                                    onClick = { mostrarMenuEmpleado = false; onCerrarSesionEmpleado() }
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    ) { scaffoldPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -111,7 +144,8 @@ fun PanelDuenoEmbedido(
                 onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
                 onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
                 onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
-                onRecordarTodos = { mostrarRecordarTodos = true },
+                puedeVerDeuda = puedeVerDeuda,
+                onRecordarTodos = { if (!esEmpleado) mostrarRecordarTodos = true },
                 onCompartirResumen = {
                     val resumen = vm.resumenHoy.value
                     val (movHoy, fiadoHoy, cobradoHoy) = resumen
@@ -127,7 +161,8 @@ fun PanelDuenoEmbedido(
                     WhatsAppUtil.compartir(context, texto)
                 },
                 onWhatsAppCliente = { clienteWhatsApp = it },
-                onAbrirProductos = { mostrarProductos = true }
+                onAbrirProductos = { mostrarProductos = true },
+                esEmpleado = esEmpleado
             )
 
             SnackbarHost(
@@ -182,7 +217,8 @@ fun PanelDuenoEmbedido(
                                 clientePreseleccionado = cliente
                                 tipoAnotar = tipo
                                 mostrarAnotar = true
-                            }
+                            },
+                            esEmpleado = esEmpleado
                         )
                     }
                 }
@@ -206,8 +242,10 @@ fun PanelDuenoEmbedido(
                                     }
                                 },
                                 actions = {
-                                    IconButton(onClick = { mostrarAgregarProducto = true }) {
-                                        Icon(Icons.Default.Add, "Agregar producto")
+                                    if (!esEmpleado) {
+                                        IconButton(onClick = { mostrarAgregarProducto = true }) {
+                                            Icon(Icons.Default.Add, "Agregar producto")
+                                        }
                                     }
                                 }
                             )

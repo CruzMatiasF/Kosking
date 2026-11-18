@@ -28,7 +28,8 @@ internal fun TabClientes(
     modifier: Modifier = Modifier,
     onVerCliente: (String) -> Unit,
     onAgregarCliente: () -> Unit,
-    onAnotarRapido: ((Cliente, String) -> Unit)? = null
+    onAnotarRapido: ((Cliente, String) -> Unit)? = null,
+    esEmpleado: Boolean = false
 ) {
     var filtro by rememberSaveable { mutableStateOf("deuda") }
     var busqueda by rememberSaveable { mutableStateOf("") }
@@ -117,7 +118,8 @@ internal fun TabClientes(
             onOrdenChange = { orden = it },
             onVistaChange = { vistaLista = it },
             onFiltroChange = { filtro = it },
-            onAgregarCliente = onAgregarCliente
+            onAgregarCliente = onAgregarCliente,
+            esEmpleado = esEmpleado
         )
 
         if (clientesFiltrados.isEmpty()) {
@@ -135,20 +137,22 @@ internal fun TabClientes(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
-                            "Todavía no tenés clientes",
+                            "Todavía no hay clientes",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            "Agregá tu primer cliente para empezar a anotar",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Button(onClick = onAgregarCliente) {
-                            Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Agregar cliente")
+                        if (!esEmpleado) {
+                            Text(
+                                "Agregá tu primer cliente para empezar a anotar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Button(onClick = onAgregarCliente) {
+                                Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Agregar cliente")
+                            }
                         }
                     } else {
                         Icon(

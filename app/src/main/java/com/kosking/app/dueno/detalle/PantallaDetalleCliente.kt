@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
 import com.kosking.app.util.PdfExportUtil
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,7 +32,9 @@ fun PantallaDetalleCliente(
     onVerMovimiento: (String) -> Unit = {},
     onAnotarFiado: (String) -> Unit = {},
     onCobrar: (String) -> Unit = {},
-    vm: DuenoViewModel
+    vm: DuenoViewModel,
+    esEmpleado: Boolean = false,
+    puedeVerDeuda: Boolean = true
 ) {
     LaunchedEffect(clienteId) { vm.seleccionarCliente(clienteId) }
 
@@ -52,6 +55,7 @@ fun PantallaDetalleCliente(
     var mostrarEditar by remember { mutableStateOf(false) }
     var mostrarMenu by remember { mutableStateOf(false) }
     var mostrarConfirmarRecalcular by remember { mutableStateOf(false) }
+    var mostrarVistaCliente by remember { mutableStateOf(false) }
 
     if (mostrarConfirmarRecalcular && cliente != null) {
         AlertDialog(
@@ -115,7 +119,7 @@ fun PantallaDetalleCliente(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
                     Spacer(Modifier.weight(1f))
-                    if (cliente != null) {
+                    if (cliente != null && !esEmpleado) {
                         IconButton(onClick = { mostrarEditar = true }) {
                             Icon(Icons.Default.Edit, "Editar cliente")
                         }
@@ -184,38 +188,53 @@ fun PantallaDetalleCliente(
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             cliente?.let {
-                item { HeroCliente(it) }
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (it.telefono.isNotBlank() && it.deudaTotal > 0) {
-                            OutlinedButton(
-                                onClick = {
-                                    WhatsAppUtil.abrirWhatsApp(
-                                        context = context,
-                                        telefono = it.telefono,
-                                        mensaje = WhatsAppUtil.mensajeResumen(
-                                            nombreCliente = it.nombre,
-                                            nombreLocal = localData?.nombre ?: "el local",
-                                            deudaTotal = it.deudaTotal
+                if (!esEmpleado || puedeVerDeuda) {
+                    item { HeroCliente(it) }
+                }
+                if (!esEmpleado) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (it.deudaTotal > 0) {
+                                Button(
+                                    onClick = { mostrarVistaCliente = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Visibility, null, Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Mostrar al cliente — ${"$"}${"%.0f".format(it.deudaTotal)}")
+                                }
+                            }
+                            if (it.telefono.isNotBlank() && it.deudaTotal > 0) {
+                                OutlinedButton(
+                                    onClick = {
+                                        WhatsAppUtil.abrirWhatsApp(
+                                            context = context,
+                                            telefono = it.telefono,
+                                            mensaje = WhatsAppUtil.mensajeResumen(
+                                                nombreCliente = it.nombre,
+                                                nombreLocal = localData?.nombre ?: "el local",
+                                                deudaTotal = it.deudaTotal
+                                            )
                                         )
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.Phone, null, Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Recordar por WhatsApp — ${"$"}${"%.0f".format(it.deudaTotal)}")
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Phone, null, Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Recordar por WhatsApp — ${"$"}${"%.0f".format(it.deudaTotal)}")
+                                }
                             }
                         }
                     }
+                    item { ConfigTiles(it, vm) }
                 }
-                item { ConfigTiles(it, vm) }
             }
 
             if (frecuentes.isNotEmpty()) {
@@ -281,7 +300,17 @@ fun PantallaDetalleCliente(
         }
     }
 
-    if (mostrarEditar && cliente != null) {
+    if (!esEmpleado && mostrarVistaCliente && cliente != null) {
+        VistaCliente(
+            nombreCliente = cliente.nombre,
+            nombreLocal = localData?.nombre ?: "el local",
+            deudaTotal = cliente.deudaTotal,
+            movimientos = movimientos,
+            onCerrar = { mostrarVistaCliente = false }
+        )
+    }
+
+    if (!esEmpleado && mostrarEditar && cliente != null) {
         DialogEditarCliente(
             cliente = cliente,
             onGuardar = { actualizado ->

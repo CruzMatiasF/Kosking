@@ -38,6 +38,7 @@ internal fun CardsResumenDueno(
     fiadoMes: Double,
     cobradoMes: Double,
     fiadoMesAnterior: Double,
+    cobradoMesAnterior: Double,
     onAnotar: () -> Unit,
     onVerClientes: () -> Unit,
     onAbrirProductos: () -> Unit
@@ -92,7 +93,8 @@ internal fun CardsResumenDueno(
                             cobradoSemanaAnterior = cobradoSemanaAnterior,
                             fiadoMes = fiadoMes,
                             cobradoMes = cobradoMes,
-                            fiadoMesAnterior = fiadoMesAnterior
+                            fiadoMesAnterior = fiadoMesAnterior,
+                            cobradoMesAnterior = cobradoMesAnterior
                         )
                     }
                 }
@@ -183,22 +185,23 @@ private fun CardResumenPeriodo(
     cobradoSemanaAnterior: Double,
     fiadoMes: Double,
     cobradoMes: Double,
-    fiadoMesAnterior: Double
+    fiadoMesAnterior: Double,
+    cobradoMesAnterior: Double
 ) {
     var esSemana by remember { mutableStateOf(true) }
 
     val fiado = if (esSemana) fiadoSemana else fiadoMes
     val cobrado = if (esSemana) cobradoSemana else cobradoMes
     val fiadoAnterior = if (esSemana) fiadoSemanaAnterior else fiadoMesAnterior
-    val cobradoAnterior = if (esSemana) cobradoSemanaAnterior else 0.0
+    val cobradoAnterior = if (esSemana) cobradoSemanaAnterior else cobradoMesAnterior
 
     val saldo = cobrado - fiado
-    val pctFiado = if (fiadoAnterior > 0) ((fiado - fiadoAnterior) / fiadoAnterior * 100).toInt() else null
-    val pctCobrado = if (cobradoAnterior > 0) ((cobrado - cobradoAnterior) / cobradoAnterior * 100).toInt() else null
+    val saldoAnterior = cobradoAnterior - fiadoAnterior
+    val pctSaldo = if (saldoAnterior != 0.0) ((saldo - saldoAnterior) / abs(saldoAnterior) * 100).toInt() else null
     val maxVal = maxOf(fiado, cobrado).takeIf { it > 0 } ?: 1.0
 
     Card(
-        modifier = Modifier.width(cardWidth).height(200.dp),
+        modifier = Modifier.width(cardWidth).height(220.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -208,9 +211,25 @@ private fun CardResumenPeriodo(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatSemana("Anotado", fiado, MaterialTheme.colorScheme.error, pctFiado, esAumento = true)
-                StatSemana("Cobrado", cobrado, Verde, pctCobrado, esAumento = false)
-                StatSemana("Saldo", saldo, if (saldo >= 0) Verde else MaterialTheme.colorScheme.error, null, esAumento = false)
+                StatSemana("Anotado", fiado, MaterialTheme.colorScheme.error)
+                StatSemana("Cobrado", cobrado, Verde)
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text("Saldo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "$${"%.0f".format(saldo)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (saldo >= 0) Verde else MaterialTheme.colorScheme.error
+                    )
+                    if (pctSaldo != null) {
+                        val mejoro = pctSaldo > 0
+                        Text(
+                            if (mejoro) "mejor que antes" else "peor que antes",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (mejoro) Verde else MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
 
             HorizontalDivider()
@@ -237,9 +256,7 @@ private fun CardResumenPeriodo(
 private fun StatSemana(
     label: String,
     valor: Double,
-    color: androidx.compose.ui.graphics.Color,
-    pct: Int?,
-    esAumento: Boolean
+    color: androidx.compose.ui.graphics.Color
 ) {
     Column(horizontalAlignment = Alignment.Start) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -249,20 +266,6 @@ private fun StatSemana(
             fontWeight = FontWeight.SemiBold,
             color = color
         )
-        if (pct != null) {
-            val sube = pct > 0
-            val flecha = if (sube) "↑" else "↓"
-            val pctColor = if (esAumento) {
-                if (sube) MaterialTheme.colorScheme.error else Verde
-            } else {
-                if (sube) Verde else MaterialTheme.colorScheme.error
-            }
-            Text(
-                "$flecha ${abs(pct)}%",
-                style = MaterialTheme.typography.labelSmall,
-                color = pctColor
-            )
-        }
     }
 }
 

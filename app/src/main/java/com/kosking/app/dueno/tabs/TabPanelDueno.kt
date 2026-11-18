@@ -144,6 +144,7 @@ internal fun TabPanelDueno(
                 fiadoMes = resumenMesActual.fiado,
                 cobradoMes = resumenMesActual.cobrado,
                 fiadoMesAnterior = resumenMesAnterior.fiado,
+                cobradoMesAnterior = resumenMesAnterior.cobrado,
                 onAnotar = onAnotar,
                 onVerClientes = onVerClientes,
                 onAbrirProductos = onAbrirProductos

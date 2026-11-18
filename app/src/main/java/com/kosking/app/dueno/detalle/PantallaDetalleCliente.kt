@@ -140,20 +140,6 @@ fun PantallaDetalleCliente(
                                         }
                                     )
 
-                                    DropdownMenuItem(
-                                        text = { Text("Enviar historial por WhatsApp") },
-                                        leadingIcon = { Icon(Icons.Default.History, null) },
-                                        onClick = {
-                                            mostrarMenu = false
-                                            val texto = WhatsAppUtil.historialCliente(
-                                                nombreCliente = cliente.nombre,
-                                                nombreLocal = localData?.nombre ?: "el local",
-                                                deudaTotal = cliente.deudaTotal,
-                                                movimientos = movimientos
-                                            )
-                                            WhatsAppUtil.compartir(context, texto)
-                                        }
-                                    )
                                 }
                                 DropdownMenuItem(
                                     text = { Text("Recalcular deuda") },

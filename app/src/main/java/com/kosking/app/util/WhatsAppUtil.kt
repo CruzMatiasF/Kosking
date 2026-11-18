@@ -3,9 +3,6 @@ package com.kosking.app.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.kosking.app.modelo.Movimiento
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 object WhatsAppUtil {
 
@@ -86,49 +83,6 @@ object WhatsAppUtil {
         return sb.toString()
     }
 
-
-    fun historialCliente(
-        nombreCliente: String,
-        nombreLocal: String,
-        deudaTotal: Double,
-        movimientos: List<Movimiento>
-    ): String {
-        val fmtFecha = SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR"))
-        val activos = movimientos.filter { !it.anulado }.sortedByDescending { it.fecha.toDate().time }
-        val sb = StringBuilder()
-        sb.append("📋 *Lo que te llevaste en $nombreLocal*\n")
-        sb.append("─────────────────\n")
-
-        // Agrupar por visita (grupoId o fecha si no tiene)
-        val fmtKey = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault())
-        val visitas = activos
-            .filter { it.tipo == "cargo" }
-            .groupBy { it.grupoId.ifBlank { fmtKey.format(it.fecha.toDate()) } }
-            .entries
-            .sortedByDescending { (_, movs) -> movs.first().fecha.toDate().time }
-
-        if (visitas.isEmpty()) {
-            sb.append("Sin compras registradas.\n")
-        } else {
-            visitas.forEach { (_, movs) ->
-                val fecha = fmtFecha.format(movs.first().fecha.toDate())
-                val itemsTexto = movs
-                    .filter { it.producto.isNotBlank() }
-                    .groupBy { it.producto }
-                    .map { (prod, ms) ->
-                        val total = ms.sumOf { it.cantidad }
-                        if (total > 1) "${total}× $prod" else prod
-                    }
-                    .joinToString(", ")
-                if (itemsTexto.isNotBlank()) sb.append("$fecha — $itemsTexto\n")
-            }
-        }
-
-        sb.append("─────────────────\n")
-        sb.append("*Deuda total: \$${"%.0f".format(deudaTotal)}*\n")
-        sb.append("📱 Kosking")
-        return sb.toString()
-    }
 
     fun compartir(context: Context, texto: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {

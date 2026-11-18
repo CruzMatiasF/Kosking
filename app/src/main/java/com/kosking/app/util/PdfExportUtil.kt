@@ -157,12 +157,10 @@ object PdfExportUtil {
                     p.avanzar(LINE_H)
 
                     if (esCargo && mov.producto.isNotBlank()) {
-                        // Detalle de productos
-                        mov.producto.split("\n").filter { it.isNotBlank() }.forEach { linea ->
-                            p.saltoPaginaSiNecesario()
-                            p.canvas.drawText("  · $linea", MARGIN + 16f, p.y, paintNormal())
-                            p.avanzar(LINE_H)
-                        }
+                        p.saltoPaginaSiNecesario()
+                        val linea = if (mov.cantidad > 1) "${mov.cantidad}× ${mov.producto}" else mov.producto
+                        p.canvas.drawText("  · $linea", MARGIN + 16f, p.y, paintNormal())
+                        p.avanzar(LINE_H)
                     }
 
                     val montoStr = (if (esCargo) "+ " else "- ") + moneda.format(mov.monto)
@@ -218,70 +216,81 @@ object PdfExportUtil {
         val p = Pagina(doc, page, canvas, MARGIN + 10f, 1)
 
         p.cabecera(
-            "Historial — ${cliente.nombre}",
+            "Lo que te llevaste — ${cliente.nombre}",
             "$localNombre · Generado el ${fmtFecha.format(Date())}"
         )
 
-        // Resumen de cuenta
-        p.canvas.drawText("Deuda actual: ${moneda.format(cliente.deudaTotal)}", MARGIN, p.y, paintSubtitulo())
-        if (cliente.limiteCredito > 0) {
-            p.avanzar(LINE_H)
-            p.canvas.drawText("Límite de crédito: ${moneda.format(cliente.limiteCredito)}", MARGIN, p.y, paintGris())
-        }
-        p.avanzar(LINE_H + 4f)
-        p.canvas.drawLine(MARGIN, p.y, PAGE_WIDTH - MARGIN, p.y, paintLinea())
-        p.avanzar(LINE_H)
+        val movActivos = movimientos.filter { !it.anulado }.sortedByDescending { it.fecha.toDate().time }
 
-        val movOrdenados = movimientos.filter { !it.anulado }.sortedByDescending { it.fecha }
-
-        if (movOrdenados.isEmpty()) {
+        if (movActivos.isEmpty()) {
             p.canvas.drawText("Sin movimientos registrados.", MARGIN, p.y, paintGris())
         } else {
-            var totalCargo = 0.0
-            var totalPago = 0.0
+            // Visitas (cargos agrupados por grupoId)
+            val fmtKey = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault())
+            val visitas = movActivos
+                .filter { it.tipo == "cargo" }
+                .groupBy { it.grupoId.ifBlank { fmtKey.format(it.fecha.toDate()) } }
+                .entries
+                .sortedByDescending { (_, movs) -> movs.first().fecha.toDate().time }
 
-            movOrdenados.forEach { mov ->
-                p.saltoPaginaSiNecesario(60f)
-                val esCargo = mov.tipo == "cargo"
-                val fecha = fmtFechaHora.format(mov.fecha.toDate())
-                val tipoLabel = if (esCargo) "Cargo" else "Pago"
+            // Pagos
+            val pagos = movActivos.filter { it.tipo == "pago" }
 
-                p.canvas.drawText("$fecha · $tipoLabel", MARGIN + 4f, p.y, paintGris())
-                p.avanzar(LINE_H)
+            if (visitas.isNotEmpty()) {
+                p.canvas.drawText("Compras", MARGIN, p.y, paintSubtitulo())
+                p.avanzar(LINE_H + 2f)
 
-                if (esCargo && mov.producto.isNotBlank()) {
-                    mov.producto.split("\n").filter { it.isNotBlank() }.forEach { linea ->
+                visitas.forEach { (_, movs) ->
+                    p.saltoPaginaSiNecesario(50f)
+                    val fecha = fmtFecha.format(movs.first().fecha.toDate())
+                    val totalVisita = movs.sumOf { it.monto }
+
+                    // Fecha + total de visita
+                    p.canvas.drawText(fecha, MARGIN + 4f, p.y, paintGris())
+                    p.canvas.drawTextRight(moneda.format(totalVisita), PAGE_WIDTH - MARGIN, p.y, paintGris())
+                    p.avanzar(LINE_H)
+
+                    // Productos con cantidad y precio
+                    movs.filter { it.producto.isNotBlank() }.forEach { mov ->
                         p.saltoPaginaSiNecesario()
+                        val linea = if (mov.cantidad > 1) "${mov.cantidad}× ${mov.producto}" else mov.producto
                         p.canvas.drawText("  · $linea", MARGIN + 12f, p.y, paintNormal())
+                        p.canvas.drawTextRight(moneda.format(mov.monto), PAGE_WIDTH - MARGIN, p.y, paintNormal())
                         p.avanzar(LINE_H)
                     }
+
+                    p.canvas.drawLine(MARGIN + 4f, p.y, PAGE_WIDTH - MARGIN - 4f, p.y, paintLinea())
+                    p.avanzar(LINE_H)
                 }
+            }
 
-                val montoStr = (if (esCargo) "+ " else "- ") + moneda.format(mov.monto)
-                p.canvas.drawTextRight(montoStr, PAGE_WIDTH - MARGIN, p.y - LINE_H / 2, paintMonto(esCargo))
+            // Pagos realizados
+            if (pagos.isNotEmpty()) {
+                p.saltoPaginaSiNecesario(40f)
+                p.avanzar(4f)
+                p.canvas.drawText("Pagos realizados", MARGIN, p.y, paintSubtitulo())
+                p.avanzar(LINE_H + 2f)
 
-                if (!mov.anotadoPorNombre.isNullOrBlank()) {
-                    p.canvas.drawText("  Registrado por: ${mov.anotadoPorNombre}", MARGIN + 12f, p.y, paintGris())
+                pagos.forEach { pago ->
+                    p.saltoPaginaSiNecesario()
+                    val fecha = fmtFechaHora.format(pago.fecha.toDate())
+                    p.canvas.drawText(fecha, MARGIN + 4f, p.y, paintGris())
+                    p.canvas.drawTextRight(moneda.format(pago.monto), PAGE_WIDTH - MARGIN, p.y, paintMonto(false))
                     p.avanzar(LINE_H)
                 }
 
                 p.canvas.drawLine(MARGIN + 4f, p.y, PAGE_WIDTH - MARGIN - 4f, p.y, paintLinea())
                 p.avanzar(LINE_H)
-
-                if (esCargo) totalCargo += mov.monto else totalPago += mov.monto
             }
 
-            // Totales
-            p.saltoPaginaSiNecesario(60f)
+            // Deuda actual
+            p.saltoPaginaSiNecesario(50f)
             p.avanzar(4f)
             p.canvas.drawLine(MARGIN, p.y, PAGE_WIDTH - MARGIN, p.y,
                 Paint().apply { color = Color.BLACK; strokeWidth = 1.5f })
             p.avanzar(LINE_H + 2f)
-            p.canvas.drawText("Total cargado:", MARGIN + 8f, p.y, paintNormal())
-            p.canvas.drawTextRight(moneda.format(totalCargo), PAGE_WIDTH - MARGIN, p.y, paintMonto(true))
-            p.avanzar(LINE_H)
-            p.canvas.drawText("Total cobrado:", MARGIN + 8f, p.y, paintNormal())
-            p.canvas.drawTextRight(moneda.format(totalPago), PAGE_WIDTH - MARGIN, p.y, paintMonto(false))
+            p.canvas.drawText("Deuda actual:", MARGIN + 8f, p.y, paintSubtitulo())
+            p.canvas.drawTextRight(moneda.format(cliente.deudaTotal), PAGE_WIDTH - MARGIN, p.y, paintMonto(true))
         }
 
         doc.finishPage(p.page)

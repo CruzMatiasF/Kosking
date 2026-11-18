@@ -130,8 +130,8 @@ internal fun ZonaResumen(
     onSugerenciaSelected: (String) -> Unit,
     onOcultarOtro: () -> Unit,
     onPedirConfirmSinPrecioChange: (Boolean) -> Unit,
-    buildItems: () -> List<Pair<String, Double>>,
-    onGuardar: (clienteId: String, items: List<Pair<String, Double>>, tipo: String) -> Unit
+    buildItems: () -> List<Triple<String, Double, Int>>,
+    onGuardar: (clienteId: String, items: List<Triple<String, Double, Int>>, tipo: String) -> Unit
 ) {
     val hayProductosSinPrecio = carrito.any { it.producto.ultimoPrecio <= 0 }
 

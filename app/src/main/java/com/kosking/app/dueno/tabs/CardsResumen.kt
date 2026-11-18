@@ -219,7 +219,7 @@ private fun CardResumenPeriodo(
                     recuperoPct >= 50 -> MaterialTheme.colorScheme.secondary
                     else -> MaterialTheme.colorScheme.error
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         "Recuperaste el $recuperoPct% de lo que anotaste",
                         style = MaterialTheme.typography.bodySmall,
@@ -232,6 +232,15 @@ private fun CardResumenPeriodo(
                         color = color,
                         trackColor = MaterialTheme.colorScheme.outlineVariant,
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                    val periodoLabel = if (esSemana) "semana anterior" else "mes anterior"
+                    Text(
+                        if (cobradoAnterior > 0)
+                            "Período anterior: $${"%.0f".format(cobradoAnterior)} cobrado"
+                        else
+                            "Sin datos del $periodoLabel",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {

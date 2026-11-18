@@ -17,9 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.dueno.AnotarRapidoSheet
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.ui.components.BannerOffline
+import com.kosking.app.util.WhatsAppUtil
+import kotlinx.coroutines.launch
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +49,11 @@ fun PantallaPanelEmpleado(
     var mostrarAgregarCliente by remember { mutableStateOf(false) }
     val cargando by vm.cargando.collectAsState()
     val error by vm.error.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    data class UltimoAnotado(val cliente: Cliente, val monto: Double, val tipo: String, val items: List<Triple<String, Double, Int>>)
+    var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
     val inicioHoy = remember {
         Calendar.getInstance().apply {
@@ -98,6 +107,7 @@ fun PantallaPanelEmpleado(
                 }
             )
         }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             BannerOffline()
@@ -226,7 +236,39 @@ fun PantallaPanelEmpleado(
                     clienteId = clienteId,
                     items = items,
                     tipo = tipo,
-                    onExito = { clienteAnotar = null }
+                    onExito = {
+                        val cliente = clientes.find { it.id == clienteId }
+                        clienteAnotar = null
+                        if (cliente != null && cliente.telefono.isNotBlank()) {
+                            val monto = items.sumOf { it.second }
+                            ultimoAnotado = UltimoAnotado(cliente, monto, tipo, items)
+                            val accion = if (tipo == "cargo") "anotado" else "pago"
+                            scope.launch {
+                                val resultado = snackbarHostState.showSnackbar(
+                                    message = "$accion \$${"%.0f".format(monto)} a ${cliente.nombre}",
+                                    actionLabel = "Avisar por WA",
+                                    duration = SnackbarDuration.Long
+                                )
+                                if (resultado == SnackbarResult.ActionPerformed) {
+                                    ultimoAnotado?.let { ua ->
+                                        val hora = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+                                        WhatsAppUtil.abrirWhatsApp(
+                                            context = context,
+                                            telefono = ua.cliente.telefono,
+                                            mensaje = WhatsAppUtil.ticketVisita(
+                                                nombreCliente = ua.cliente.nombre,
+                                                nombreLocal = nombreLocal.ifBlank { "el local" },
+                                                items = ua.items,
+                                                tipo = ua.tipo,
+                                                hora = hora
+                                            )
+                                        )
+                                    }
+                                }
+                                ultimoAnotado = null
+                            }
+                        }
+                    }
                 )
             },
             onDismiss = { clienteAnotar = null }

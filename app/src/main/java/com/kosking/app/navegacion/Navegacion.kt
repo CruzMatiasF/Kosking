@@ -56,7 +56,6 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
     val duenoVm: DuenoViewModel = viewModel()
     val empleadoVm: EmpleadoViewModel = viewModel()
     var mostrarPanelDueno by remember { mutableStateOf(false) }
-    var tabInicialDueno by remember { mutableStateOf(0) }
     var destinoPostLogin by remember { mutableStateOf<DestinoPostLogin?>(null) }
 
     val authUser by produceState<FirebaseUser?>(
@@ -130,10 +129,7 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                     StartupDestino.PanelEmpleado ->
                         nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
                     StartupDestino.PanelDueno -> mostrarPanelDueno = true
-                    is StartupDestino.PanelDuenoConTab -> {
-                        tabInicialDueno = destino.tab
-                        mostrarPanelDueno = true
-                    }
+                    is StartupDestino.PanelDuenoConTab -> mostrarPanelDueno = true
                     else -> {}
                 }
                 startupResuelto = true
@@ -154,7 +150,6 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                 duenoVm = duenoVm,
                 mostrarPanelDueno = mostrarPanelDueno,
                 onCerrarPanelDueno = { mostrarPanelDueno = false },
-                tabInicialDueno = tabInicialDueno,
                 onSoyDueno = {
                     when {
                         !estaLogueado -> {
@@ -258,14 +253,11 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                 vm = duenoVm,
                 esEmpleado = true,
                 puedeVerDeuda = puedeVerDeuda,
-                nombreEmpleado = nombreEmpleado,
-                nombreLocal = nombreLocalEmpleado,
                 onCerrarSesionEmpleado = {
                     empleadoVm.cerrarSesion()
                     duenoVm.cerrarSesion()
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
-                onAbrirAgregarCliente = {},
                 onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
                 onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) }
             )

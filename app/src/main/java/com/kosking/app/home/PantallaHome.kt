@@ -64,7 +64,6 @@ fun PantallaHome(
     duenoVm: DuenoViewModel,
     mostrarPanelDueno: Boolean,
     onCerrarPanelDueno: () -> Unit,
-    tabInicialDueno: Int,
     onSoyDueno: () -> Unit,
     onSoyEmpleado: () -> Unit,
     onIniciarSesion: () -> Unit,
@@ -78,15 +77,11 @@ fun PantallaHome(
     onTemaChanged: (String) -> Unit = {},
 ) {
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
-    var tabPanelDueno by remember { mutableIntStateOf(tabInicialDueno) }
     var tabNav by rememberSaveable { mutableStateOf(TabNav.MI_LOCAL) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
 
     LaunchedEffect(mostrarPanelDueno) {
-        if (mostrarPanelDueno) {
-            vistaDueno = NavDueno.Panel
-            tabPanelDueno = tabInicialDueno
-        }
+        if (mostrarPanelDueno) vistaDueno = NavDueno.Panel
     }
 
     BackHandler(enabled = vistaDueno !is NavDueno.Panel) {
@@ -196,8 +191,6 @@ fun PantallaHome(
                     if (mostrarPanelDueno) {
                         PanelDuenoEmbedido(
                             vm = duenoVm,
-                            tabSeleccionado = tabPanelDueno,
-                            onVerClientes = {},
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }

@@ -21,7 +21,10 @@ object Rutas {
     const val PERFIL = "perfil"
     const val CONFIGURAR_LOCAL = "configurar_local"
     const val NOTIFICACIONES = "notificaciones"
+    const val ELEGIR_RUBRO = "elegir_rubro"
+    const val DESCARGANDO_RUBRO = "descargando_rubro/{tipo}"
 
     fun detalleClienteEmpleado(clienteId: String) = "detalle_cliente_empleado/$clienteId"
     fun detalleMovimiento(movimientoId: String) = "detalle_movimiento/$movimientoId"
+    fun descargandoRubro(tipo: String) = "descargando_rubro/$tipo"
 }

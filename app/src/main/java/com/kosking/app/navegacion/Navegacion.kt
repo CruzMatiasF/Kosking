@@ -34,6 +34,8 @@ import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.feature.kiosco.PanelDuenoEmbedido
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
 import com.kosking.app.autenticacion.PantallaOnboarding
+import com.kosking.app.autenticacion.PantallaElegirRubro
+import com.kosking.app.autenticacion.PantallaDescargandoRubro
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
@@ -154,7 +156,7 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                             nav.navigate(Rutas.LOGIN)
                         }
                         duenoTieneSession -> mostrarPanelDueno = true
-                        else -> nav.navigate(Rutas.CREAR_LOCAL)
+                        else -> nav.navigate(Rutas.ELEGIR_RUBRO)
                     }
                 },
                 onSoyEmpleado = {
@@ -191,7 +193,7 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                     val destino = destinoPostLogin
                     destinoPostLogin = null
                     when (destino) {
-                        DestinoPostLogin.CrearLocal -> nav.navigate(Rutas.CREAR_LOCAL)
+                        DestinoPostLogin.CrearLocal -> nav.navigate(Rutas.ELEGIR_RUBRO)
                         DestinoPostLogin.IngresarCodigo -> nav.navigate(Rutas.INGRESAR_CODIGO)
                         null -> {}
                     }
@@ -208,12 +210,35 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                     val destino = destinoPostLogin
                     destinoPostLogin = null
                     when (destino) {
-                        DestinoPostLogin.CrearLocal -> nav.navigate(Rutas.CREAR_LOCAL)
+                        DestinoPostLogin.CrearLocal -> nav.navigate(Rutas.ELEGIR_RUBRO)
                         DestinoPostLogin.IngresarCodigo -> nav.navigate(Rutas.INGRESAR_CODIGO)
                         null -> {}
                     }
                 },
                 onVolver = { nav.popBackStack() }
+            )
+        }
+
+        composable(Rutas.ELEGIR_RUBRO) {
+            PantallaElegirRubro(
+                onRubroElegido = { tipo ->
+                    nav.navigate(Rutas.descargandoRubro(tipo))
+                }
+            )
+        }
+
+        composable(
+            Rutas.DESCARGANDO_RUBRO,
+            arguments = listOf(navArgument("tipo") { type = NavType.StringType })
+        ) { back ->
+            val tipo = back.arguments?.getString("tipo") ?: "Kiosco"
+            PantallaDescargandoRubro(
+                tipo = tipo,
+                onListo = {
+                    nav.navigate(Rutas.CREAR_LOCAL) {
+                        popUpTo(Rutas.ELEGIR_RUBRO) { inclusive = true }
+                    }
+                }
             )
         }
 

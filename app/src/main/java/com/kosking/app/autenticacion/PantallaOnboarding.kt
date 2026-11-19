@@ -39,7 +39,7 @@ private val slides = listOf(
     SlideOnboarding(
         emoji = "🚀",
         titulo = "Empezá gratis ahora",
-        descripcion = "Sin tarjeta. Sin complicaciones. En 60 segundos tenés tu kiosco organizado."
+        descripcion = "Sin tarjeta. Sin complicaciones. En 60 segundos tenés tu negocio organizado."
     )
 )
 

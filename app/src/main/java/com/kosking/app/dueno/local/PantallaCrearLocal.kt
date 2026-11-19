@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 private val tiposLocales = listOf(
-    "Kiosco", "Almacén", "Maxikiosco", "Ropa", "Corralón", "Farmacia", "Verdulería", "Otro"
+    "Kiosco", "Almacén", "Maxikiosco", "Peluquería", "Farmacia", "Verdulería", "Ropa", "Ferretería", "Corralón", "Otro"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,7 +77,7 @@ fun PantallaCrearLocal(
             value = nombre,
             onValueChange = { nombre = it },
             label = { Text("Nombre del local") },
-            placeholder = { Text("Ej: Kiosco Don Pedro") },
+            placeholder = { Text("Ej: Don Pedro") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)

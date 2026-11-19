@@ -28,7 +28,7 @@ class ResumenDiaWorker(
         val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
             NotificationChannel("kosking_resumen_dia", "Resumen del día", NotificationManager.IMPORTANCE_DEFAULT)
-                .apply { description = "Resumen diario de actividad del kiosco" }
+                .apply { description = "Resumen diario de actividad del local" }
         )
 
         val inicioDia = Calendar.getInstance().apply {

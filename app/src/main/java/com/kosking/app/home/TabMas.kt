@@ -65,7 +65,7 @@ internal fun TabMas(
                         ) {
                             Text("🏪", style = MaterialTheme.typography.headlineSmall)
                             Column {
-                                Text("Soy el dueño", style = MaterialTheme.typography.titleSmall,
+                                Text("Tengo un negocio", style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer)
                                 Text("Creo y administro mi local",
@@ -89,7 +89,7 @@ internal fun TabMas(
                                 Text("Soy empleado", style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("Me uno con el código del dueño",
+                                Text("Me uno al local con un código",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f))
                             }
@@ -126,13 +126,13 @@ internal fun TabMas(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                "Crear una cuenta es gratis",
+                "Administrá tu negocio con Kosking",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Text(
-                "Con tu cuenta podés crear o unirte a un local.",
+                "Creá tu local o unite al de tu empleador.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -182,7 +182,7 @@ internal fun TabMas(
                         when {
                             esDueno -> "Dueño de local"
                             esEmpleado -> "Empleado"
-                            else -> "Cuenta personal"
+                            else -> "Sin local asignado"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -215,7 +215,13 @@ internal fun TabMas(
                 shape = RoundedCornerShape(12.dp)) {
                 Icon(Icons.Default.Store, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Crear mi local")
+                Text("Registrar mi negocio")
+            }
+            OutlinedButton(onClick = onSoyEmpleado, modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)) {
+                Icon(Icons.Default.Badge, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Soy empleado")
             }
         }
 

@@ -29,7 +29,7 @@ import java.util.Calendar
 import java.util.Locale
 
 @Composable
-internal fun TabEquipo(
+fun TabEquipo(
     empleados: List<Empleado>,
     movimientos: List<Movimiento>,
     clientes: List<com.kosking.app.modelo.Cliente> = emptyList(),

@@ -1,11 +1,11 @@
 ﻿package com.kosking.app.dueno
 
 import com.kosking.app.dueno.tabs.*
+import com.kosking.app.feature.base.RubroConfig
+import com.kosking.app.feature.base.TabRubroId
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,11 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.kosking.app.ui.components.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
 import com.kosking.app.widget.KoskingWidget
@@ -60,18 +55,20 @@ fun PanelDuenoEmbedido(
 
     val context = LocalContext.current
 
+    // Tabs dinámicos según rubro
+    val tabs = remember(localData?.tipo) {
+        RubroConfig.tabs(localData?.tipo ?: "Kiosco")
+    }
+    var tabActual by remember(tabSeleccionado) {
+        mutableIntStateOf(tabSeleccionado.coerceIn(0, tabs.lastIndex))
+    }
+
     var mostrarAnotar by remember { mutableStateOf(false) }
     var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
-    var mostrarProductos by remember { mutableStateOf(false) }
-    var mostrarClientes by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = mostrarClientes) { mostrarClientes = false }
-    BackHandler(enabled = mostrarProductos) { mostrarProductos = false }
-
-    // Actualiza las prefs que leen los workers de notificaciones y el widget.
-    // Solo para dueños: el widget no debe exponer datos financieros en el teléfono del empleado.
+    // Solo para dueños: el widget no debe exponer datos del teléfono del empleado
     if (!esEmpleado) {
         LaunchedEffect(totalDeuda, clientesConDeuda.size, localId, localData?.nombre) {
             context.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE).edit()
@@ -100,14 +97,17 @@ fun PanelDuenoEmbedido(
     }
 
     var mostrarMenuEmpleado by remember { mutableStateOf(false) }
+    val tituloLocal = localData?.nombre?.ifBlank { nombreLocal.ifBlank { "Kosking" } } ?: nombreLocal.ifBlank { "Kosking" }
 
     Scaffold(
         topBar = {
-            if (esEmpleado) {
-                TopAppBar(
-                    title = { Text(localData?.nombre?.ifBlank { nombreLocal.ifBlank { "Kosking" } } ?: nombreLocal.ifBlank { "Kosking" }) },
-                    actions = {
-                        IconButton(onClick = { mostrarProductos = true }) {
+            TopAppBar(
+                title = { Text(tituloLocal, fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    if (esEmpleado) {
+                        IconButton(onClick = {
+                            tabActual = tabs.indexOfFirst { it.id == TabRubroId.PRODUCTOS }.takeIf { it >= 0 } ?: tabActual
+                        }) {
                             Icon(Icons.Default.Sell, "Precios")
                         }
                         Box {
@@ -122,52 +122,12 @@ fun PanelDuenoEmbedido(
                             }
                         }
                     }
-                )
-            }
-        }
-    ) { scaffoldPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
-            Column(modifier = Modifier.fillMaxSize()) {
-            BannerOffline()
-            Box(modifier = Modifier.weight(1f)) {
-            TabPanelDueno(
-                clientes = clientes,
-                movimientosLocal = movimientosLocal,
-                totalDeuda = totalDeuda,
-                clientesConDeuda = clientesConDeuda,
-                localData = localData,
-                disputados = disputados,
-                sobreLimite = sobreLimite,
-                onVerClientes = { mostrarClientes = true },
-                onAbrirDetalleCliente = onAbrirDetalleCliente,
-                onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
-                onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
-                onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
-                puedeVerDeuda = puedeVerDeuda,
-                onRecordarTodos = { if (!esEmpleado) mostrarRecordarTodos = true },
-                onCompartirResumen = {
-                    val resumen = vm.resumenHoy.value
-                    val (movHoy, fiadoHoy, cobradoHoy) = resumen
-                    val cantFiados = movHoy.count { it.tipo == "cargo" }
-                    val cantPagos = movHoy.count { it.tipo == "pago" }
-                    val texto = WhatsAppUtil.mensajeResumenDia(
-                        nombreLocal = localData?.nombre ?: "Mi local",
-                        fiadoHoy = fiadoHoy,
-                        cobradoHoy = cobradoHoy,
-                        cantFiados = cantFiados,
-                        cantPagos = cantPagos
-                    )
-                    WhatsAppUtil.compartir(context, texto)
-                },
-                onWhatsAppCliente = { clienteWhatsApp = it },
-                onAbrirProductos = { mostrarProductos = true },
-                esEmpleado = esEmpleado
+                }
             )
-
+        },
+        snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
                 snackbar = { data ->
                     Snackbar(
                         action = {
@@ -183,90 +143,108 @@ fun PanelDuenoEmbedido(
                     ) { Text(data.visuals.message) }
                 }
             )
-            } // Box weight(1f)
-            } // Column
-        } // Box scaffoldPadding
+        }
+    ) { scaffoldPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
+            BannerOffline()
 
-            // Clientes como pantalla completa
-            if (mostrarClientes) {
-                Dialog(
-                    onDismissRequest = { mostrarClientes = false },
-                    properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-                ) {
-                    Scaffold(
-                        topBar = {
-                            @OptIn(ExperimentalMaterial3Api::class)
-                            TopAppBar(
-                                title = { Text("Clientes") },
-                                navigationIcon = {
-                                    IconButton(onClick = { mostrarClientes = false }) {
-                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                                    }
-                                }
-                            )
-                        }
-                    ) { padding ->
-                        TabClientes(
-                            modifier = Modifier.padding(padding),
-                            clientes = clientes,
-                            movimientos = movimientosLocal,
-                            onVerCliente = { mostrarClientes = false; onAbrirDetalleCliente(it) },
-                            onAgregarCliente = { mostrarClientes = false; onAbrirAgregarCliente() },
-                            onAnotarRapido = { cliente, tipo ->
-                                mostrarClientes = false
-                                clientePreseleccionado = cliente
-                                tipoAnotar = tipo
-                                mostrarAnotar = true
-                            },
-                            esEmpleado = esEmpleado
+            // TabRow dinámico según rubro
+            if (tabs.size > 1) {
+                TabRow(selectedTabIndex = tabActual) {
+                    tabs.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = tabActual == index,
+                            onClick = { tabActual = index },
+                            text = { Text(tab.titulo, style = MaterialTheme.typography.labelMedium) },
+                            icon = { Icon(tab.icono, null, Modifier.size(18.dp)) }
                         )
                     }
                 }
             }
 
-            // Productos como pantalla completa
-            if (mostrarProductos) {
-                Dialog(
-                    onDismissRequest = { mostrarProductos = false },
-                    properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-                ) {
-                    var mostrarAgregarProducto by remember { mutableStateOf(false) }
-                    Scaffold(
-                        topBar = {
-                            @OptIn(ExperimentalMaterial3Api::class)
-                            TopAppBar(
-                                title = { Text("Productos") },
-                                navigationIcon = {
-                                    IconButton(onClick = { mostrarProductos = false }) {
-                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+            // Contenido según tab seleccionado
+            Box(modifier = Modifier.weight(1f)) {
+                when (tabs.getOrNull(tabActual)?.id) {
+                    TabRubroId.DASHBOARD, null -> TabPanelDueno(
+                        clientes = clientes,
+                        movimientosLocal = movimientosLocal,
+                        totalDeuda = totalDeuda,
+                        clientesConDeuda = clientesConDeuda,
+                        localData = localData,
+                        disputados = disputados,
+                        sobreLimite = sobreLimite,
+                        onVerClientes = {
+                            tabActual = tabs.indexOfFirst { it.id == TabRubroId.CLIENTES }.takeIf { it >= 0 } ?: tabActual
+                        },
+                        onAbrirDetalleCliente = onAbrirDetalleCliente,
+                        onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
+                        onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
+                        onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
+                        puedeVerDeuda = puedeVerDeuda,
+                        onRecordarTodos = { if (!esEmpleado) mostrarRecordarTodos = true },
+                        onCompartirResumen = {
+                            val resumen = vm.resumenHoy.value
+                            val (movHoy, fiadoHoy, cobradoHoy) = resumen
+                            val cantFiados = movHoy.count { it.tipo == "cargo" }
+                            val cantPagos = movHoy.count { it.tipo == "pago" }
+                            val texto = WhatsAppUtil.mensajeResumenDia(
+                                nombreLocal = localData?.nombre ?: "Mi local",
+                                fiadoHoy = fiadoHoy,
+                                cobradoHoy = cobradoHoy,
+                                cantFiados = cantFiados,
+                                cantPagos = cantPagos
+                            )
+                            WhatsAppUtil.compartir(context, texto)
+                        },
+                        onWhatsAppCliente = { clienteWhatsApp = it },
+                        onAbrirProductos = {
+                            tabActual = tabs.indexOfFirst { it.id == TabRubroId.PRODUCTOS }.takeIf { it >= 0 } ?: tabActual
+                        },
+                        esEmpleado = esEmpleado
+                    )
+
+                    TabRubroId.CLIENTES -> TabClientes(
+                        clientes = clientes,
+                        movimientos = movimientosLocal,
+                        onVerCliente = onAbrirDetalleCliente,
+                        onAgregarCliente = onAbrirAgregarCliente,
+                        onAnotarRapido = { cliente, tipo ->
+                            clientePreseleccionado = cliente
+                            tipoAnotar = tipo
+                            mostrarAnotar = true
+                        },
+                        esEmpleado = esEmpleado
+                    )
+
+                    TabRubroId.PRODUCTOS -> {
+                        var mostrarAgregarProducto by remember { mutableStateOf(false) }
+                        Scaffold(
+                            floatingActionButton = {
+                                if (!esEmpleado) {
+                                    FloatingActionButton(onClick = { mostrarAgregarProducto = true }) {
+                                        Icon(Icons.Default.Add, "Agregar producto")
                                     }
+                                }
+                            }
+                        ) { innerPadding ->
+                            TabProductos(
+                                modifier = Modifier.padding(innerPadding),
+                                productos = productos,
+                                cargando = cargando,
+                                mostrarHeader = false,
+                                onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
+                                onGuardar = { nombre, precio, categoria, productoId, imagenUri, onExito ->
+                                    vm.guardarProducto(nombre, precio, productoId, categoria, imagenUri, onExito)
                                 },
-                                actions = {
-                                    if (!esEmpleado) {
-                                        IconButton(onClick = { mostrarAgregarProducto = true }) {
-                                            Icon(Icons.Default.Add, "Agregar producto")
-                                        }
-                                    }
-                                }
+                                onEliminar = { vm.eliminarProducto(it) },
+                                mostrarDialogExterno = mostrarAgregarProducto,
+                                onDismissDialogExterno = { mostrarAgregarProducto = false }
                             )
                         }
-                    ) { padding ->
-                        TabProductos(
-                            modifier = Modifier.padding(padding),
-                            productos = productos,
-                            cargando = cargando,
-                            mostrarHeader = false,
-                            onBuscarGlobal = { query -> vm.buscarProductosGlobales(query) },
-                            onGuardar = { nombre, precio, categoria, productoId, imagenUri, onExito -> vm.guardarProducto(nombre, precio, productoId, categoria, imagenUri, onExito) },
-                            onEliminar = { vm.eliminarProducto(it) },
-                            mostrarDialogExterno = mostrarAgregarProducto,
-                            onDismissDialogExterno = { mostrarAgregarProducto = false }
-                        )
                     }
                 }
             }
-
-        } // Box outer
+        }
     }
 
     // Sheet anotar rápido
@@ -330,7 +308,7 @@ fun PanelDuenoEmbedido(
     // WhatsApp desde lista de clientes
     LaunchedEffect(clienteWhatsApp) {
         val cliente = clienteWhatsApp ?: return@LaunchedEffect
-        val nombreLocal = localData?.nombre ?: "el local"
+        val nombreLocalStr = localData?.nombre ?: "el local"
         val resultado = snackbarHostState.showSnackbar(
             message = "Deuda de ${cliente.nombre}: ${"$"}${"%.0f".format(cliente.deudaTotal)}",
             actionLabel = "Avisar por WA",
@@ -342,7 +320,7 @@ fun PanelDuenoEmbedido(
                 telefono = cliente.telefono,
                 mensaje = WhatsAppUtil.mensajeResumen(
                     nombreCliente = cliente.nombre,
-                    nombreLocal = nombreLocal,
+                    nombreLocal = nombreLocalStr,
                     deudaTotal = cliente.deudaTotal
                 )
             )
@@ -350,13 +328,12 @@ fun PanelDuenoEmbedido(
         clienteWhatsApp = null
     }
 
-
     // BottomSheet recordar a todos
     if (mostrarRecordarTodos) {
         val clientesConFono = remember(clientesConDeuda) {
             clientesConDeuda.filter { it.telefono.isNotBlank() }
         }
-        val nombreLocal = localData?.nombre ?: "el local"
+        val nombreLocalStr = localData?.nombre ?: "el local"
         ModalBottomSheet(onDismissRequest = { mostrarRecordarTodos = false }) {
             Column(
                 modifier = Modifier
@@ -394,7 +371,7 @@ fun PanelDuenoEmbedido(
                                         telefono = cliente.telefono,
                                         mensaje = WhatsAppUtil.mensajeResumen(
                                             nombreCliente = cliente.nombre,
-                                            nombreLocal = nombreLocal,
+                                            nombreLocal = nombreLocalStr,
                                             deudaTotal = cliente.deudaTotal
                                         )
                                     )

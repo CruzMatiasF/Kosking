@@ -7,8 +7,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.dueno.NavDueno
@@ -17,6 +18,7 @@ import com.kosking.app.dueno.PantallaAgregarCliente
 import com.kosking.app.dueno.PantallaAgregarFiado
 import com.kosking.app.dueno.detalle.PantallaDetalleCliente
 import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
+import com.kosking.app.dueno.tabs.TabEquipo
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.perfil.PantallaPrivacidad
 import com.kosking.app.perfil.PantallaPoliticaPrivacidad
@@ -46,6 +48,13 @@ private sealed class VistaExtra {
     object AcercaDe : VistaExtra()
 }
 
+// Tabs de la barra inferior — siempre los mismos para todos los rubros
+private enum class TabNav(val titulo: String) {
+    MI_LOCAL("Mi Local"),
+    MI_EQUIPO("Mi Equipo"),
+    MAS("Más")
+}
+
 @Composable
 fun PantallaHome(
     estaLogueado: Boolean,
@@ -70,8 +79,7 @@ fun PantallaHome(
 ) {
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
     var tabPanelDueno by remember { mutableIntStateOf(tabInicialDueno) }
-    // 0 = Panel/Inicio, 1 = Más
-    var tabNav by rememberSaveable { mutableIntStateOf(0) }
+    var tabNav by rememberSaveable { mutableStateOf(TabNav.MI_LOCAL) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
 
     LaunchedEffect(mostrarPanelDueno) {
@@ -97,19 +105,42 @@ fun PantallaHome(
         }
     }
 
-    val esDuenoState = esDueno
-    val esEmpleadoState = esEmpleado
-
-    // Si hay una sub-pantalla del panel abierta, ocultar la nav bar
     val enSubPantalla = vistaDueno !is NavDueno.Panel || vistaExtra !is VistaExtra.Ninguna
+
+    // Empleados y clientes para Mi Equipo
+    val empleados by duenoVm.empleados.collectAsState()
+    val movimientos by duenoVm.movimientosLocal.collectAsState()
+    val clientes by duenoVm.clientes.collectAsState()
 
     Scaffold(
         bottomBar = {
-            if (!enSubPantalla) {
+            if (!enSubPantalla && esDueno) {
+                NavigationBar {
+                    TabNav.entries.forEach { tab ->
+                        // Mi Equipo solo para dueños (ya filtrado por esDueno arriba)
+                        NavigationBarItem(
+                            selected = tabNav == tab,
+                            onClick = { tabNav = tab },
+                            icon = {
+                                Icon(
+                                    when (tab) {
+                                        TabNav.MI_LOCAL  -> Icons.Default.Store
+                                        TabNav.MI_EQUIPO -> Icons.Default.Groups
+                                        TabNav.MAS       -> Icons.Default.Menu
+                                    },
+                                    null
+                                )
+                            },
+                            label = { Text(tab.titulo) }
+                        )
+                    }
+                }
+            } else if (!enSubPantalla && !esDueno) {
+                // Sin sesión o empleado: solo tab Más
                 NavigationBar {
                     NavigationBarItem(
-                        selected = tabNav == 1,
-                        onClick = { tabNav = 1 },
+                        selected = true,
+                        onClick = {},
                         icon = { Icon(Icons.Default.Menu, null) },
                         label = { Text("Más") }
                     )
@@ -117,39 +148,12 @@ fun PantallaHome(
             }
         }
     ) { padding ->
-        Box(modifier = androidx.compose.ui.Modifier.padding(padding)) {
+        Box(modifier = Modifier.padding(padding)) {
             when {
-                enSubPantalla || tabNav == 0 -> when (val vista = vistaDueno) {
-                    is NavDueno.Panel -> if (mostrarPanelDueno) {
-                        PanelDuenoEmbedido(
-                            vm = duenoVm,
-                            tabSeleccionado = tabPanelDueno,
-                            onVerClientes = {},
-                            onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
-                            onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
-                            onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
-                        )
-                    } else {
-                        TabMas(
-                            estaLogueado = estaLogueado,
-                            nombreUsuario = nombreUsuario,
-                            esDueno = esDueno,
-                            esEmpleado = esEmpleado,
-                            onSoyDueno = onSoyDueno,
-                            onSoyEmpleado = onSoyEmpleado,
-                            onIniciarSesion = onIniciarSesion,
-                            onRegistrarse = onRegistrarse,
-                            onCerrarSesion = onCerrarSesionCuenta,
-                            onConfigurarPerfil = { vistaExtra = VistaExtra.ConfigurarPerfil },
-                            onAbrirPerfil = { vistaExtra = VistaExtra.Perfil },
-                            onConfiguracion = { if (esDueno) onMiLocal() else vistaExtra = VistaExtra.Configuracion },
-                            onNotificaciones = { vistaExtra = VistaExtra.Notificaciones },
-                            onApariencia = { vistaExtra = VistaExtra.Apariencia },
-                            onExportar = { vistaExtra = VistaExtra.Exportar },
-                            onEstadisticas = { vistaExtra = VistaExtra.Estadisticas },
-                            onSoporte = { vistaExtra = VistaExtra.Soporte },
-                            onAcercaDe = { vistaExtra = VistaExtra.AcercaDe },
-                        )
+                // Sub-pantallas de navegación (DetalleCiente, AgregarFiado, etc.)
+                enSubPantalla -> when (val vista = vistaDueno) {
+                    is NavDueno.Panel -> {
+                        // vistaExtra está activa
                     }
                     is NavDueno.AgregarCliente -> PantallaAgregarCliente(
                         onVolver = { vistaDueno = NavDueno.Panel },
@@ -186,12 +190,82 @@ fun PantallaHome(
                         vm = duenoVm
                     )
                 }
+
+                // Tab Mi Local
+                tabNav == TabNav.MI_LOCAL -> {
+                    if (mostrarPanelDueno) {
+                        PanelDuenoEmbedido(
+                            vm = duenoVm,
+                            tabSeleccionado = tabPanelDueno,
+                            onVerClientes = {},
+                            onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
+                            onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
+                            onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
+                        )
+                    } else {
+                        // Sin local creado — CTA para registrar negocio
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Text("🏪", style = MaterialTheme.typography.displayMedium)
+                                Text(
+                                    "Tu panel de negocio",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Registrá tu negocio o iniciá sesión para ver tu panel.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Button(onClick = onSoyDueno, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Registrar mi negocio")
+                                }
+                                OutlinedButton(onClick = onSoyEmpleado, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Soy empleado")
+                                }
+                                if (!estaLogueado) {
+                                    TextButton(onClick = onIniciarSesion) {
+                                        Text("Ya tengo cuenta — Iniciar sesión")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Tab Mi Equipo (solo dueños)
+                tabNav == TabNav.MI_EQUIPO -> {
+                    Scaffold(
+                        topBar = {
+                            @OptIn(ExperimentalMaterial3Api::class)
+                            TopAppBar(title = { Text("Mi Equipo", fontWeight = FontWeight.SemiBold) })
+                        }
+                    ) { innerPadding ->
+                        Box(Modifier.padding(innerPadding)) {
+                        TabEquipo(
+                            empleados = empleados,
+                            movimientos = movimientos,
+                            clientes = clientes,
+                            onEliminarEmpleado = { duenoVm.eliminarEmpleado(it) },
+                            vm = duenoVm
+                        )
+                        }
+                    }
+                }
+
+                // Tab Más
                 else -> TabMas(
                     estaLogueado = estaLogueado,
                     nombreUsuario = nombreUsuario,
                     esDueno = esDueno,
                     esEmpleado = esEmpleado,
-                    onSoyDueno = { onSoyDueno(); tabNav = 0 },
+                    onSoyDueno = { onSoyDueno(); tabNav = TabNav.MI_LOCAL },
                     onSoyEmpleado = onSoyEmpleado,
                     onIniciarSesion = onIniciarSesion,
                     onRegistrarse = onRegistrarse,
@@ -239,8 +313,8 @@ fun PantallaHome(
                     onVolver = { vistaExtra = VistaExtra.Privacidad }
                 )
                 is VistaExtra.Configuracion -> PantallaConfiguracion(
-                    esDueno = esDuenoState,
-                    esEmpleado = esEmpleadoState,
+                    esDueno = esDueno,
+                    esEmpleado = esEmpleado,
                     onVolver = { vistaExtra = VistaExtra.Ninguna },
                     onMiLocal = onMiLocal,
                     onApariencia = { vistaExtra = VistaExtra.Apariencia },
@@ -248,7 +322,7 @@ fun PantallaHome(
                     onCerrarSesion = onCerrarSesionCuenta
                 )
                 is VistaExtra.Notificaciones -> PantallaNotificaciones(
-                    esDueno = esDuenoState,
+                    esDueno = esDueno,
                     onVolver = { vistaExtra = VistaExtra.Ninguna }
                 )
                 is VistaExtra.Apariencia -> PantallaApariencia(
@@ -275,4 +349,3 @@ fun PantallaHome(
         }
     }
 }
-

@@ -1,7 +1,5 @@
-﻿package com.kosking.app.dueno
+﻿package com.kosking.app.feature.kiosco
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*

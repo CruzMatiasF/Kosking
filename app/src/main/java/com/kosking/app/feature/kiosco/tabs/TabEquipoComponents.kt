@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

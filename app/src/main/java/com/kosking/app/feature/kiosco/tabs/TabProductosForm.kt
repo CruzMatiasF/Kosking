@@ -1,5 +1,6 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +37,8 @@ import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
 import com.kosking.app.datos.ItemCatalogo
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.delay
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,15 +97,15 @@ internal fun PantallaProducto(
     val pickerCamara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp ->
         if (bmp != null) {
             // Guardamos el bitmap como archivo temporal y obtenemos su Uri
-            val file = java.io.File(context.cacheDir, "producto_foto_${System.currentTimeMillis()}.jpg")
-            file.outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, it) }
+            val file = File(context.cacheDir, "producto_foto_${System.currentTimeMillis()}.jpg")
+            file.outputStream().use { bmp.compress(Bitmap.CompressFormat.JPEG, 90, it) }
             imagenUri = Uri.fromFile(file)
         }
     }
 
     LaunchedEffect(busqueda) {
         if (busqueda.length < 2) { sugerencias = emptyList(); return@LaunchedEffect }
-        kotlinx.coroutines.delay(300)
+        delay(300)
         val delCatalogo = CatalogoRepository.buscar(context, busqueda)
         val nombresYaCubiertos = delCatalogo.map { it.nombre.lowercase() }.toSet()
         val delGlobal = try {

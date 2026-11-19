@@ -16,7 +16,7 @@ import com.kosking.app.autenticacion.AuthViewModel
 import com.kosking.app.dueno.local.PantallaCrearLocal
 import com.kosking.app.dueno.local.PantallaConfigurarLocal
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
+import com.kosking.app.feature.kiosco.detalle.PantallaDetalleMovimiento
 import com.kosking.app.empleado.EmpleadoViewModel
 import com.kosking.app.empleado.PantallaIngresarCodigo
 import com.kosking.app.home.PantallaHome
@@ -31,17 +31,15 @@ import com.kosking.app.ajustes.PantallaNotificaciones
 import com.kosking.app.ajustes.PantallaSoporte
 import com.kosking.app.perfil.PantallaConfigurarPerfil
 import com.kosking.app.perfil.PantallaPerfil
-import com.kosking.app.dueno.PanelDuenoEmbedido
-import com.kosking.app.dueno.detalle.PantallaDetalleCliente
+import com.kosking.app.feature.kiosco.PanelDuenoEmbedido
+import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
 import com.kosking.app.autenticacion.PantallaOnboarding
-import com.kosking.app.perfil.PantallaPrivacidad
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.kosking.app.datos.PreferenciasRepository
-import kotlinx.coroutines.launch
 
 private sealed class DestinoPostLogin {
     object CrearLocal : DestinoPostLogin()

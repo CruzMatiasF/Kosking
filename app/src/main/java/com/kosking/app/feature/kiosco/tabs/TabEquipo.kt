@@ -1,4 +1,4 @@
-﻿package com.kosking.app.dueno.tabs
+﻿package com.kosking.app.feature.kiosco.tabs
 
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.feature.kiosco.DialogInvitarEmpleado
@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
+import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Movimiento
 import java.text.SimpleDateFormat
@@ -32,7 +33,7 @@ import java.util.Locale
 fun TabEquipo(
     empleados: List<Empleado>,
     movimientos: List<Movimiento>,
-    clientes: List<com.kosking.app.modelo.Cliente> = emptyList(),
+    clientes: List<Cliente> = emptyList(),
     onEliminarEmpleado: (String) -> Unit,
     vm: DuenoViewModel
 ) {

@@ -1,4 +1,4 @@
-﻿package com.kosking.app.dueno.tabs
+﻿package com.kosking.app.feature.kiosco.tabs
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
@@ -49,14 +50,14 @@ internal fun TabClientes(
 
     // Clientes que pagaron este mes calendario
     val pagaronEsteMes = remember(movimientos) {
-        val cal = java.util.Calendar.getInstance()
-        val mesActual = cal.get(java.util.Calendar.MONTH)
-        val anioActual = cal.get(java.util.Calendar.YEAR)
+        val cal = Calendar.getInstance()
+        val mesActual = cal.get(Calendar.MONTH)
+        val anioActual = cal.get(Calendar.YEAR)
         movimientos
             .filter { !it.anulado && it.tipo == "pago" }
             .filter {
-                val c = java.util.Calendar.getInstance().apply { time = it.fecha.toDate() }
-                c.get(java.util.Calendar.MONTH) == mesActual && c.get(java.util.Calendar.YEAR) == anioActual
+                val c = Calendar.getInstance().apply { time = it.fecha.toDate() }
+                c.get(Calendar.MONTH) == mesActual && c.get(Calendar.YEAR) == anioActual
             }
             .map { it.clienteId }
             .toSet()
@@ -127,13 +128,13 @@ internal fun TabClientes(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = androidx.compose.ui.Modifier.padding(32.dp)
+                    modifier = Modifier.padding(32.dp)
                 ) {
                     if (clientes.isEmpty()) {
                         Icon(
                             Icons.Default.PersonAdd,
                             contentDescription = null,
-                            modifier = androidx.compose.ui.Modifier.size(48.dp),
+                            modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
@@ -146,7 +147,7 @@ internal fun TabClientes(
                                 "Agregá tu primer cliente para empezar a anotar",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                textAlign = TextAlign.Center
                             )
                             Button(onClick = onAgregarCliente) {
                                 Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
@@ -158,7 +159,7 @@ internal fun TabClientes(
                         Icon(
                             Icons.Default.SearchOff,
                             contentDescription = null,
-                            modifier = androidx.compose.ui.Modifier.size(40.dp),
+                            modifier = Modifier.size(40.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
@@ -166,7 +167,7 @@ internal fun TabClientes(
                             else "Sin clientes en este filtro",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                         if (busqueda.isNotEmpty()) {
                             TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
@@ -182,14 +183,14 @@ internal fun TabClientes(
                         supportingContent = {
                             val dias = remember(ultimaVisita, cliente.id) {
                                 val uv = ultimaVisita[cliente.id] ?: return@remember null
-                                val hoy = java.util.Calendar.getInstance().apply {
-                                    set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                                    set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                                val hoy = Calendar.getInstance().apply {
+                                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                                 }
-                                val dia = java.util.Calendar.getInstance().apply {
+                                val dia = Calendar.getInstance().apply {
                                     time = uv
-                                    set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                                    set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                                 }
                                 ((hoy.timeInMillis - dia.timeInMillis) / 86_400_000L).toInt()
                             }

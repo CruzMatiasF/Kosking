@@ -1,16 +1,17 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
@@ -98,7 +99,7 @@ internal fun TabReportes(
                 "ESTE MES VS MES ANTERIOR",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = androidx.compose.ui.unit.TextUnit(0.8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                letterSpacing = TextUnit(0.8f, TextUnitType.Sp)
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -131,7 +132,7 @@ internal fun TabReportes(
                 "ÚLTIMOS 6 MESES",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = androidx.compose.ui.unit.TextUnit(0.8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                letterSpacing = TextUnit(0.8f, TextUnitType.Sp)
             )
             Spacer(Modifier.height(8.dp))
             Card(shape = RoundedCornerShape(12.dp)) {
@@ -179,7 +180,7 @@ internal fun TabReportes(
                     "PRODUCTOS MÁS ANOTADOS",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = androidx.compose.ui.unit.TextUnit(0.8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                    letterSpacing = TextUnit(0.8f, TextUnitType.Sp)
                 )
                 Spacer(Modifier.height(8.dp))
                 Card(shape = RoundedCornerShape(12.dp)) {
@@ -219,7 +220,7 @@ internal fun TabReportes(
                     "MAYORES DEUDAS",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = androidx.compose.ui.unit.TextUnit(0.8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                    letterSpacing = TextUnit(0.8f, TextUnitType.Sp)
                 )
                 Spacer(Modifier.height(8.dp))
                 Card(shape = RoundedCornerShape(12.dp)) {
@@ -262,8 +263,8 @@ private fun MesCard(
     mesAnterior: Double,
     nombreMesActual: String,
     nombreMesAnterior: String,
-    colorActual: androidx.compose.ui.graphics.Color,
-    containerColor: androidx.compose.ui.graphics.Color
+    colorActual: Color,
+    containerColor: Color
 ) {
     Card(
         modifier = modifier,

@@ -1,23 +1,25 @@
-﻿package com.kosking.app.dueno
+﻿package com.kosking.app.feature.kiosco
 
-import com.kosking.app.dueno.tabs.*
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
+import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.feature.kiosco.tabs.TabPanelDueno
+import com.kosking.app.modelo.Cliente
 import com.kosking.app.ui.components.BannerOffline
 import com.kosking.app.util.WhatsAppUtil
 import com.kosking.app.widget.KoskingWidget
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +52,7 @@ fun PanelDuenoEmbedido(
     val context = LocalContext.current
 
     var mostrarAnotar by remember { mutableStateOf(false) }
-    var clientePreseleccionado by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
+    var clientePreseleccionado by remember { mutableStateOf<Cliente?>(null) }
     var tipoAnotar by remember { mutableStateOf("cargo") }
     var mostrarRecordarTodos by remember { mutableStateOf(false) }
 
@@ -68,11 +70,11 @@ fun PanelDuenoEmbedido(
         }
     }
 
-    var clienteWhatsApp by remember { mutableStateOf<com.kosking.app.modelo.Cliente?>(null) }
+    var clienteWhatsApp by remember { mutableStateOf<Cliente?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    data class UltimoAnotado(val cliente: com.kosking.app.modelo.Cliente, val monto: Double, val descripcion: String, val tipo: String, val items: List<Triple<String, Double, Int>> = emptyList())
+    data class UltimoAnotado(val cliente: Cliente, val monto: Double, val descripcion: String, val tipo: String, val items: List<Triple<String, Double, Int>> = emptyList())
     var ultimoAnotado by remember { mutableStateOf<UltimoAnotado?>(null) }
 
     val vmError by vm.error.collectAsState()
@@ -117,7 +119,9 @@ fun PanelDuenoEmbedido(
                 onAbrirDetalleCliente = onAbrirDetalleCliente,
                 onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
                 onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
-                onRegistrarPago = { cliente -> clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true },
+                onRegistrarPago = { cliente ->
+                    clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true
+                },
                 puedeVerDeuda = puedeVerDeuda,
                 onRecordarTodos = { if (!esEmpleado) mostrarRecordarTodos = true },
                 onCompartirResumen = {
@@ -175,7 +179,9 @@ fun PanelDuenoEmbedido(
                                 )
                                 if (resultado == SnackbarResult.ActionPerformed) {
                                     ultimoAnotado?.let { ua ->
-                                        val hora = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+                                        val hora = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
+                                            Date()
+                                        )
                                         WhatsAppUtil.abrirWhatsApp(
                                             context = context,
                                             telefono = ua.cliente.telefono,

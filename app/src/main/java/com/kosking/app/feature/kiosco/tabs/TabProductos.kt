@@ -1,5 +1,6 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,6 +29,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -45,7 +47,7 @@ internal fun TabProductos(
     mostrarDialogExterno: Boolean = false,
     onDismissDialogExterno: () -> Unit = {},
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: android.net.Uri?, onExito: () -> Unit) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit
 ) {
     var mostrarDialog by remember { mutableStateOf(false) }
@@ -210,7 +212,7 @@ internal fun TabProductos(
                             "Al anotar vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                         Button(onClick = { editando = null; mostrarDialog = true }) {
                             Icon(Icons.Default.Add, null, Modifier.size(18.dp))
@@ -233,7 +235,7 @@ internal fun TabProductos(
                         Text("No encontramos \"$busqueda\"",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            textAlign = TextAlign.Center)
                         TextButton(onClick = { busqueda = "" }) { Text("Limpiar búsqueda") }
                     }
                 }
@@ -351,7 +353,7 @@ private fun ProductoCard(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     if (prod.ultimoPrecio > 0) "$${"%.0f".format(prod.ultimoPrecio)}" else "Sin precio",

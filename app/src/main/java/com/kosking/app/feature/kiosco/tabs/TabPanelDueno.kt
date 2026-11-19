@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -6,15 +6,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -124,7 +123,7 @@ internal fun TabPanelDueno(
         movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
     }
 
-    val hoy = remember { java.util.Date() }
+    val hoy = remember { Date() }
     val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
     val clientesVencidos = remember(clientesConDeuda) {
         clientesConDeuda

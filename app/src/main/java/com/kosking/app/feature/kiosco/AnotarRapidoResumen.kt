@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+package com.kosking.app.feature.kiosco
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun ZonaProductos(
@@ -274,7 +276,7 @@ internal fun ZonaResumen(
             if (prevCargando.value && !cargando) {
                 exito = true
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                kotlinx.coroutines.delay(600)
+                delay(600)
                 exito = false
             }
             prevCargando.value = cargando
@@ -289,7 +291,7 @@ internal fun ZonaResumen(
                 }
             },
             enabled = puedeGuardar,
-            colors = if (exito) ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32))
+            colors = if (exito) ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
                      else ButtonDefaults.buttonColors(),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).height(52.dp)
         ) {

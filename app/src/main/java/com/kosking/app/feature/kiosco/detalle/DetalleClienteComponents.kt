@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.detalle
+package com.kosking.app.feature.kiosco.detalle
 
 import com.kosking.app.dueno.DuenoViewModel
 import androidx.compose.foundation.background
@@ -12,8 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kosking.app.modelo.Cliente
@@ -89,7 +91,7 @@ internal fun HeroCliente(cliente: Cliente) {
 }
 
 @Composable
-private fun InfoChip(icon: ImageVector, texto: String, onBgColor: androidx.compose.ui.graphics.Color) {
+private fun InfoChip(icon: ImageVector, texto: String, onBgColor: Color) {
     Row(
         modifier = Modifier
             .background(
@@ -218,7 +220,7 @@ internal fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
                         style = MaterialTheme.typography.bodySmall,
                         color = if (cliente.notaInterna.isNotBlank()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Icon(Icons.Default.Edit, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))

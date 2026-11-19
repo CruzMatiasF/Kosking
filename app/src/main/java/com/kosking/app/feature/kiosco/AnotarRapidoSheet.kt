@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+package com.kosking.app.feature.kiosco
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInHorizontally
@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.delay
 
 @Composable
 fun AnotarRapidoSheet(
@@ -69,7 +71,7 @@ fun AnotarRapidoSheet(
     var productosGlobales by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(busquedaProducto, productosFiltrados) {
         if (busquedaProducto.length < 2) { productosGlobales = emptyList(); return@LaunchedEffect }
-        kotlinx.coroutines.delay(400)
+        delay(400)
         val nombresLocales = productosFiltrados.map { it.nombre.lowercase() }.toSet()
         productosGlobales = try {
             onBuscarGlobal(busquedaProducto).filter { it.lowercase() !in nombresLocales }
@@ -90,7 +92,7 @@ fun AnotarRapidoSheet(
 
     LaunchedEffect(descripcionOtro) {
         if (descripcionOtro.length < 2) { sugerenciasOtro = emptyList(); return@LaunchedEffect }
-        kotlinx.coroutines.delay(300)
+        delay(300)
         sugerenciasOtro = try { onBuscarGlobal(descripcionOtro) } catch (_: Exception) { emptyList() }
     }
 
@@ -250,7 +252,7 @@ fun AnotarRapidoSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 4.dp, vertical = 8.dp),
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (clienteInicial == null) {
                                 IconButton(onClick = { paso = 1; busquedaCliente = "" }) {

@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+package com.kosking.app.feature.kiosco
 
 sealed class NavDueno {
     object Panel : NavDueno()

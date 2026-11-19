@@ -1,5 +1,6 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -148,7 +152,7 @@ private fun CardDeudaTotal(
         modifier = Modifier.width(cardWidth).height(220.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(
@@ -237,7 +241,7 @@ private fun CardResumenPeriodo(
         modifier = Modifier.width(cardWidth).height(220.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(
@@ -268,7 +272,7 @@ private fun CardResumenPeriodo(
                         modifier = Modifier.fillMaxWidth().height(6.dp),
                         color = color,
                         trackColor = MaterialTheme.colorScheme.outlineVariant,
-                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                        strokeCap = StrokeCap.Round
                     )
                     val periodoLabel = if (esSemana) "semana anterior" else "mes anterior"
                     Text(
@@ -305,7 +309,7 @@ private fun CardResumenPeriodo(
 private fun StatSemana(
     label: String,
     valor: Double,
-    color: androidx.compose.ui.graphics.Color
+    color: Color
 ) {
     Column(horizontalAlignment = Alignment.Start) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -321,7 +325,7 @@ private fun StatSemana(
 
 @Composable
 private fun AtajoBtn(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     onClick: () -> Unit,
     primary: Boolean = false

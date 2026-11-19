@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.detalle
+package com.kosking.app.feature.kiosco.detalle
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+package com.kosking.app.feature.kiosco
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,15 +10,12 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kosking.app.dueno.DuenoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

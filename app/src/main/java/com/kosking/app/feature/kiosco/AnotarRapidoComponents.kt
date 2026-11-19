@@ -1,4 +1,4 @@
-package com.kosking.app.dueno
+package com.kosking.app.feature.kiosco
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.modelo.Producto
+import kotlinx.coroutines.delay
 
 internal data class ItemCarrito(val producto: Producto, val cantidad: Int)
 
@@ -57,7 +58,7 @@ internal fun FilaProductoAnotar(
     LaunchedEffect(cantidad) {
         if (cantidad > prevCantidad.intValue) {
             highlighted = true
-            kotlinx.coroutines.delay(350)
+            delay(350)
             highlighted = false
         }
         prevCantidad.intValue = cantidad
@@ -160,7 +161,7 @@ internal fun FilaProductoAnotar(
                     ),
                     modifier = Modifier.width(36.dp),
                     decorationBox = { inner ->
-                        androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { inner() }
+                        Box(contentAlignment = Alignment.Center) { inner() }
                     }
                 )
             } else {

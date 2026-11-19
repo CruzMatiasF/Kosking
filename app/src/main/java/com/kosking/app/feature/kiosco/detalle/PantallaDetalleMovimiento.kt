@@ -1,4 +1,4 @@
-﻿package com.kosking.app.dueno.detalle
+﻿package com.kosking.app.feature.kiosco.detalle
 
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.ui.theme.Verde
@@ -11,12 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.kosking.app.modelo.Movimiento
 import java.text.SimpleDateFormat
 import java.util.Locale
 

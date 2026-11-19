@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.detalle
+package com.kosking.app.feature.kiosco.detalle
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

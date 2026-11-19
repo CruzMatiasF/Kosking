@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.detalle
+package com.kosking.app.feature.kiosco.detalle
 
 import com.kosking.app.modelo.Cliente
 import java.util.Calendar
@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -127,7 +126,7 @@ internal fun DialogEditarFechaPago(
 ) {
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = (fechaActual ?: run {
-            java.util.Calendar.getInstance().apply { add(java.util.Calendar.WEEK_OF_YEAR, 1) }.time
+            Calendar.getInstance().apply { add(Calendar.WEEK_OF_YEAR, 1) }.time
         }).time
     )
 

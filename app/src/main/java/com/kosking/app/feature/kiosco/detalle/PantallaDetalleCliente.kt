@@ -1,5 +1,6 @@
-﻿package com.kosking.app.dueno.detalle
+﻿package com.kosking.app.feature.kiosco.detalle
 
+import android.content.Intent
 import com.kosking.app.dueno.DuenoViewModel
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,7 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import com.kosking.app.modelo.Cliente
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.kosking.app.util.WhatsAppUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,7 +142,7 @@ fun PantallaDetalleCliente(
                                                 cliente = cliente,
                                                 movimientos = movimientos
                                             )
-                                            context.startActivity(android.content.Intent.createChooser(intent, "Compartir PDF"))
+                                            context.startActivity(Intent.createChooser(intent, "Compartir PDF"))
                                         }
                                     )
 
@@ -164,8 +166,8 @@ fun PantallaDetalleCliente(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
@@ -281,7 +283,7 @@ fun PantallaDetalleCliente(
                         Text("Anotá el primer cargo con el botón de arriba",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            textAlign = TextAlign.Center)
                     }
                 }
             } else {

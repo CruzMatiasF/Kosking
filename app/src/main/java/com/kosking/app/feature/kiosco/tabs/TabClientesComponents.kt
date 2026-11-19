@@ -1,4 +1,4 @@
-package com.kosking.app.dueno.tabs
+package com.kosking.app.feature.kiosco.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,9 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.ui.theme.Verde
+import java.util.Calendar
+import java.util.Date
 
 @Composable
 internal fun BarraFiltrosClientes(
@@ -121,7 +125,7 @@ internal fun BarraFiltrosClientes(
 @Composable
 internal fun CardCliente(
     cliente: Cliente,
-    ultimaVisitaDate: java.util.Date?,
+    ultimaVisitaDate: Date?,
     ahoraMs: Long,
     onVerCliente: (String) -> Unit,
     onAnotarRapido: (() -> Unit)? = null
@@ -129,14 +133,14 @@ internal fun CardCliente(
     val diasSinVenir = remember(ultimaVisitaDate) {
         if (ultimaVisitaDate == null) null
         else {
-            val hoy = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+            val hoy = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }
-            val dia = java.util.Calendar.getInstance().apply {
+            val dia = Calendar.getInstance().apply {
                 time = ultimaVisitaDate
-                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
             }
             ((hoy.timeInMillis - dia.timeInMillis) / 86_400_000L).toInt()
         }
@@ -213,8 +217,8 @@ internal fun CardCliente(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
                 if (cliente.deudaTotal > 0 && cliente.habilitado) {
                     Text(

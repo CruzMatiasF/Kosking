@@ -377,7 +377,7 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                     when {
                         esDuenoVal.isNotBlank() -> nav.navigate(Rutas.CONFIGURAR_LOCAL)
                         esEmpleadoVal -> nav.navigate(Rutas.INGRESAR_CODIGO)
-                        else -> nav.navigate(Rutas.CREAR_LOCAL)
+                        else -> nav.navigate(Rutas.ELEGIR_RUBRO)
                     }
                 },
                 onCerrarSesion = {

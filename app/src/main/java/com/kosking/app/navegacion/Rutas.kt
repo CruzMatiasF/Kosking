@@ -19,7 +19,6 @@ object Rutas {
     const val SEGURIDAD = "seguridad"
     const val ONBOARDING = "onboarding"
     const val PERFIL = "perfil"
-    const val COLABORADORES = "colaboradores"
     const val CONFIGURAR_LOCAL = "configurar_local"
     const val NOTIFICACIONES = "notificaciones"
 

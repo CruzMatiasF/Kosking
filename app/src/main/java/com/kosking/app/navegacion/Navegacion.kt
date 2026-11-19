@@ -32,7 +32,6 @@ import com.kosking.app.ajustes.PantallaSoporte
 import com.kosking.app.perfil.PantallaConfigurarPerfil
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.dueno.PanelDuenoEmbedido
-import com.kosking.app.dueno.PantallaColaboradores
 import com.kosking.app.dueno.detalle.PantallaDetalleCliente
 import com.kosking.app.autenticacion.PantallaOnboarding
 import com.kosking.app.perfil.PantallaPrivacidad
@@ -317,20 +316,6 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
             PantallaSeguridad(onVolver = { nav.popBackStack() })
         }
 
-        composable(Rutas.COLABORADORES) {
-            val empleados by duenoVm.empleados.collectAsState()
-            val movimientos by duenoVm.movimientosLocal.collectAsState()
-            val clientes by duenoVm.clientes.collectAsState()
-            PantallaColaboradores(
-                empleados = empleados,
-                movimientos = movimientos,
-                clientes = clientes,
-                onEliminarEmpleado = { duenoVm.eliminarEmpleado(it) },
-                onVolver = { nav.popBackStack() },
-                vm = duenoVm
-            )
-        }
-
         composable(Rutas.CONFIGURAR_PERFIL) {
             PantallaConfigurarPerfil(
                 nombreActual = nombreUsuario,
@@ -352,7 +337,6 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                         nav.popBackStack()
                     }
                 },
-                onColaboradores = { nav.navigate(Rutas.COLABORADORES) },
                 onVolver = { nav.popBackStack() }
             )
         }

@@ -36,7 +36,6 @@ fun PantallaConfigurarLocal(
     localData: Local,
     cargando: Boolean = false,
     onGuardar: (nombre: String, direccion: String, telefono: String, horarios: Map<String, HorarioDia>) -> Unit,
-    onColaboradores: () -> Unit = {},
     onVolver: () -> Unit
 ) {
     val context = LocalContext.current
@@ -101,17 +100,6 @@ fun PantallaConfigurarLocal(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth()
-            )
-
-            HorizontalDivider()
-
-            // Colaboradores
-            ListItem(
-                headlineContent = { Text("Colaboradores", fontWeight = FontWeight.Medium) },
-                supportingContent = { Text("Empleados de tu local", style = MaterialTheme.typography.bodySmall) },
-                leadingContent = { Icon(Icons.Default.Group, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary) },
-                trailingContent = { Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                modifier = Modifier.clickable(onClick = onColaboradores)
             )
 
             HorizontalDivider()

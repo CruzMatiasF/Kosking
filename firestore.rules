@@ -2,8 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
     function isAuth() {
       return request.auth != null;
     }
@@ -12,28 +10,21 @@ service cloud.firestore {
       return request.auth.uid;
     }
 
-    // El usuario es dueño del local si locales/{localId}.duenoUid == su uid
     function isDueno(localId) {
       return isAuth()
         && exists(/databases/$(database)/documents/locales/$(localId))
         && get(/databases/$(database)/documents/locales/$(localId)).data.duenoUid == uid();
     }
 
-    // El usuario es empleado del local si usuarios/{uid}.empleadoLocalId == localId
     function isEmpleado(localId) {
       return isAuth()
         && exists(/databases/$(database)/documents/usuarios/$(uid()))
         && get(/databases/$(database)/documents/usuarios/$(uid())).data.empleadoLocalId == localId;
     }
 
-    // Acceso general al local (dueño o empleado)
     function tieneAcceso(localId) {
       return isDueno(localId) || isEmpleado(localId);
     }
-
-    // ── locales ───────────────────────────────────────────────────────────────
-    // El dueño crea su propio local (duenoUid debe coincidir con su uid).
-    // Solo el dueño puede leer y modificar su local.
 
     match /locales/{localId} {
       allow read:   if isDueno(localId) || isEmpleado(localId);
@@ -42,9 +33,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── usuarios ──────────────────────────────────────────────────────────────
-    // Cada usuario solo puede leer y escribir su propio documento.
-
     match /usuarios/{userId} {
       allow read:   if isAuth() && uid() == userId;
       allow create: if isAuth() && uid() == userId;
@@ -52,27 +40,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── clientes ──────────────────────────────────────────────────────────────
-    // Dueño y empleados leen y actualizan (deuda se actualiza en batch al anotar).
-    // Solo el dueño crea, elimina y bloquea clientes.
-    //
-    // FUTURO — vista del cliente:
-    // allow read: if uid() == resource.data.uid;  (cuando el cliente tenga uid vinculado)
-
     match /clientes/{clienteId} {
       allow read:   if tieneAcceso(resource.data.localId);
-      allow create: if isDueno(request.resource.data.localId);
+      allow create: if tieneAcceso(request.resource.data.localId);
       allow update: if tieneAcceso(resource.data.localId);
       allow delete: if isDueno(resource.data.localId);
     }
-
-    // ── movimientos ───────────────────────────────────────────────────────────
-    // Dueño y empleados anotan (create) y leen.
-    // Solo el dueño puede anular o marcar disputado (update).
-    // Los movimientos nunca se eliminan físicamente.
-    //
-    // FUTURO — vista del cliente:
-    // allow read: if uid() == resource.data.clienteUid;
 
     match /movimientos/{movimientoId} {
       allow read:   if tieneAcceso(resource.data.localId);
@@ -81,35 +54,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── empleados ─────────────────────────────────────────────────────────────
-    // El dueño ve y gestiona su equipo completo.
-    // Cada empleado puede leer y eliminar su propio registro (desvincularse).
-
+    // Empleado solo puede crearse a sí mismo, y solo si existe un código válido para ese local
     match /empleados/{empleadoId} {
       allow read:   if isAuth()
                       && (isDueno(resource.data.localId) || uid() == resource.data.uid);
-      allow create: if isAuth();
+      allow create: if isAuth()
+                      && request.resource.data.uid == uid()
+                      && exists(/databases/$(database)/documents/codigosEmpleado/$(request.resource.data.codigoId))
+                      && get(/databases/$(database)/documents/codigosEmpleado/$(request.resource.data.codigoId)).data.localId == request.resource.data.localId
+                      && get(/databases/$(database)/documents/codigosEmpleado/$(request.resource.data.codigoId)).data.usado == false;
       allow update: if isAuth()
                       && (isDueno(resource.data.localId) || uid() == resource.data.uid);
       allow delete: if isAuth()
                       && (isDueno(resource.data.localId) || uid() == resource.data.uid);
     }
 
-    // ── codigosEmpleado ───────────────────────────────────────────────────────
-    // Cualquier usuario autenticado puede leer (para verificar su código).
-    // Solo el dueño crea códigos.
-    // Un usuario autenticado puede marcar un código como usado (usado: false → true).
-
     match /codigosEmpleado/{codigoId} {
       allow read:   if isAuth();
       allow create: if isDueno(request.resource.data.localId);
-      allow update: if isAuth() && resource.data.usado == false;
+      allow update: if isAuth() && resource.data.usado == false
+                      && request.resource.data.usadoPorUid == uid();
       allow delete: if isDueno(resource.data.localId);
     }
-
-    // ── productos ─────────────────────────────────────────────────────────────
-    // Dueño y empleados leen y actualizan el catálogo (se actualiza al anotar).
-    // Solo el dueño elimina productos.
 
     match /productos/{productoId} {
       allow read:   if tieneAcceso(resource.data.localId);
@@ -118,24 +84,16 @@ service cloud.firestore {
       allow delete: if isDueno(resource.data.localId);
     }
 
-    // ── productos_globales ────────────────────────────────────────────────────
-    // Cualquier usuario autenticado puede leer y contribuir al catálogo global.
-
+    // Productos globales: solo lectura para usuarios, escritura solo desde admin (consola Firebase)
     match /productos_globales/{productoId} {
       allow read:  if isAuth();
-      allow write: if isAuth();
+      allow write: if false;
     }
 
-    // ── catalogo_base ─────────────────────────────────────────────────────────
-    // Catálogo base de productos (reemplaza catalogo.json del APK).
-    // Cualquier usuario autenticado puede leer.
-    // Solo se escribe desde la consola de Firebase (admin).
-
+    // Catálogo base: solo lectura, nunca escritura desde la app
     match /catalogo_base/{productoId} {
-      allow read:   if isAuth();
-      allow create: if isAuth();
-      allow update: if false;
-      allow delete: if false;
+      allow read:  if isAuth();
+      allow write: if false;
     }
   }
 }

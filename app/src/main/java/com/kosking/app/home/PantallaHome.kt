@@ -12,13 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.dueno.NavDueno
-import com.kosking.app.dueno.PanelDuenoEmbedido
-import com.kosking.app.dueno.PantallaAgregarCliente
-import com.kosking.app.dueno.PantallaAgregarFiado
-import com.kosking.app.dueno.detalle.PantallaDetalleCliente
-import com.kosking.app.dueno.detalle.PantallaDetalleMovimiento
-import com.kosking.app.dueno.tabs.TabEquipo
+import com.kosking.app.feature.kiosco.NavDueno
+import com.kosking.app.feature.kiosco.PanelDuenoEmbedido
+import com.kosking.app.feature.kiosco.PantallaAgregarCliente
+import com.kosking.app.feature.kiosco.PantallaAgregarFiado
+import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
+import com.kosking.app.feature.kiosco.detalle.PantallaDetalleMovimiento
+import com.kosking.app.feature.kiosco.tabs.TabEquipo
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.perfil.PantallaPrivacidad
 import com.kosking.app.perfil.PantallaPoliticaPrivacidad
@@ -188,43 +188,65 @@ fun PantallaHome(
 
                 // Tab Mi Local
                 tabNav == TabNav.MI_LOCAL -> {
-                    if (mostrarPanelDueno) {
-                        PanelDuenoEmbedido(
+                    when {
+                        mostrarPanelDueno -> PanelDuenoEmbedido(
                             vm = duenoVm,
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
                         )
-                    } else {
-                        // Sin local creado — CTA para registrar negocio
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.padding(32.dp)
-                            ) {
-                                Text("🏪", style = MaterialTheme.typography.displayMedium)
-                                Text(
-                                    "Tu panel de negocio",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "Registrá tu negocio o iniciá sesión para ver tu panel.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Button(onClick = onSoyDueno, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Registrar mi negocio")
+                        esEmpleado -> {
+                            // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion
+                            // Este estado no debería ocurrir normalmente, pero por si acaso:
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(32.dp)
+                                ) {
+                                    Text("👋", style = MaterialTheme.typography.displayMedium)
+                                    Text(
+                                        "Sos empleado",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "Tu panel de trabajo está en la pestaña Más.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
                                 }
-                                OutlinedButton(onClick = onSoyEmpleado, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Soy empleado")
-                                }
-                                if (!estaLogueado) {
-                                    TextButton(onClick = onIniciarSesion) {
-                                        Text("Ya tengo cuenta — Iniciar sesión")
+                            }
+                        }
+                        else -> {
+                            // Sin local — CTA para registrar negocio
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(32.dp)
+                                ) {
+                                    Text("🏪", style = MaterialTheme.typography.displayMedium)
+                                    Text(
+                                        "Tu panel de negocio",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "Registrá tu negocio para empezar.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(onClick = onSoyDueno, modifier = Modifier.fillMaxWidth()) {
+                                        Text("Registrar mi negocio")
+                                    }
+                                    if (!estaLogueado) {
+                                        TextButton(onClick = onIniciarSesion) {
+                                            Text("Ya tengo cuenta — Iniciar sesión")
+                                        }
                                     }
                                 }
                             }

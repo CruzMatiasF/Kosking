@@ -31,7 +31,7 @@ object StartupUseCase {
 
     private suspend fun resolverLocalId(flow: Flow<String>): String? {
         if (FirebaseAuth.getInstance().currentUser == null) return null
-        return withTimeoutOrNull(3000L) {
+        return withTimeoutOrNull(10_000L) {
             flow.filter { it.isNotBlank() }.first()
         }
     }

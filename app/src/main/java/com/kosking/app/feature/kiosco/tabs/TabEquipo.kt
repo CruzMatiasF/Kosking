@@ -1,7 +1,7 @@
 ﻿package com.kosking.app.dueno.tabs
 
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.dueno.DialogInvitarEmpleado
+import com.kosking.app.feature.kiosco.DialogInvitarEmpleado
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background

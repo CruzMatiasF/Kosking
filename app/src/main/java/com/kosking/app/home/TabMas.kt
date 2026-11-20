@@ -41,6 +41,7 @@ internal fun TabMas(
     onApariencia: () -> Unit = {},
     onExportar: () -> Unit = {},
     onEstadisticas: () -> Unit = {},
+    onMiEquipo: () -> Unit = {},
     onSoporte: () -> Unit = {},
     onAcercaDe: () -> Unit,
 ) {
@@ -234,6 +235,9 @@ internal fun TabMas(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     MasItem(Icons.Default.Settings, "Ajustes del local",
                         "Nombre, horarios, límite de crédito, empleados", onConfiguracion)
+                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                    MasItem(Icons.Default.Groups, "Mi Equipo",
+                        "Empleados, accesos y actividad", onMiEquipo)
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     MasItem(Icons.Default.BarChart, "Estadísticas",
                         "Deuda total, cobros del mes, actividad", onEstadisticas)

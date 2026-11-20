@@ -32,7 +32,9 @@ fun PanelDuenoEmbedido(
     onAbrirProductos: () -> Unit = {},
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
-    onCerrarSesionEmpleado: () -> Unit = {}
+    onCerrarSesionEmpleado: () -> Unit = {},
+    onAbrirPerfil: () -> Unit = {},
+    onAbrirNotificaciones: () -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
@@ -140,7 +142,9 @@ fun PanelDuenoEmbedido(
                 },
                 onWhatsAppCliente = { clienteWhatsApp = it },
                 onAbrirProductos = onAbrirProductos,
-                esEmpleado = esEmpleado
+                esEmpleado = esEmpleado,
+                onAbrirPerfil = onAbrirPerfil,
+                onAbrirNotificaciones = onAbrirNotificaciones
             )
         }
     }

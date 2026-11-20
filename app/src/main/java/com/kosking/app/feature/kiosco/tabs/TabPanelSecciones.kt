@@ -31,8 +31,7 @@ internal fun LazyListScope.seccionHoy(
     visitasHoy: List<VisitaResumen>,
     onCompartirResumen: () -> Unit,
     onVerClientes: () -> Unit,
-    onAbrirVisita: (VisitaResumen) -> Unit,
-    onVerHistorial: () -> Unit
+    onAbrirVisita: (VisitaResumen) -> Unit
 ) {
     item {
         Row(
@@ -40,7 +39,7 @@ internal fun LazyListScope.seccionHoy(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text("Hoja del día", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (fiadoHoy > 0) Text("-$${"%.0f".format(fiadoHoy)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 if (cobradoHoy > 0) Text("+$${"%.0f".format(cobradoHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
@@ -74,11 +73,6 @@ internal fun LazyListScope.seccionHoy(
         } else {
             visitasHoy.take(5).forEach { visita ->
                 FilaVisitaMP(visita, onClick = { onAbrirVisita(visita) })
-            }
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onVerHistorial, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                Text("Ver historial completo", style = MaterialTheme.typography.labelSmall)
             }
         }
         HorizontalDivider()

@@ -1,11 +1,13 @@
 package com.kosking.app.feature.kiosco.tabs
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
@@ -35,9 +37,10 @@ internal fun TabPanelDueno(
     onRegistrarPago: (Cliente) -> Unit = {},
     onAbrirProductos: () -> Unit = {},
     esEmpleado: Boolean = false,
-    puedeVerDeuda: Boolean = true
+    puedeVerDeuda: Boolean = true,
+    onAbrirPerfil: () -> Unit = {},
+    onAbrirNotificaciones: () -> Unit = {}
 ) {
-    var mostrarHistorial by remember { mutableStateOf(false) }
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val movimientosHoy = remember(movimientosLocal) {
@@ -83,46 +86,6 @@ internal fun TabPanelDueno(
     }
     var visitaDetalle by remember { mutableStateOf<VisitaResumen?>(null) }
 
-    data class ResumenSemana(val fiado: Double, val cobrado: Double)
-    val (semanaActual, semanaAnterior) = remember(movimientosLocal) {
-        val ahora = Calendar.getInstance()
-        val inicioSemana = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        val inicioSemanaAnterior = (inicioSemana.clone() as Calendar).apply { add(Calendar.WEEK_OF_YEAR, -1) }
-        val actual = ResumenSemana(
-            fiado = movimientosLocal.filter { !it.anulado && it.tipo == "cargo" && it.fecha.toDate().time >= inicioSemana.timeInMillis }.sumOf { it.monto },
-            cobrado = movimientosLocal.filter { !it.anulado && it.tipo == "pago" && it.fecha.toDate().time >= inicioSemana.timeInMillis }.sumOf { it.monto }
-        )
-        val anterior = ResumenSemana(
-            fiado = movimientosLocal.filter { !it.anulado && it.tipo == "cargo" && it.fecha.toDate().time >= inicioSemanaAnterior.timeInMillis && it.fecha.toDate().time < inicioSemana.timeInMillis }.sumOf { it.monto },
-            cobrado = movimientosLocal.filter { !it.anulado && it.tipo == "pago" && it.fecha.toDate().time >= inicioSemanaAnterior.timeInMillis && it.fecha.toDate().time < inicioSemana.timeInMillis }.sumOf { it.monto }
-        )
-        Pair(actual, anterior)
-    }
-
-    data class ResumenMes(val fiado: Double, val cobrado: Double)
-    fun movimientosDeMes(anio: Int, mes: Int): ResumenMes {
-        var fiado = 0.0; var cobrado = 0.0
-        movimientosLocal.filter { !it.anulado }.forEach { mov ->
-            val cal = Calendar.getInstance().also { c -> c.time = mov.fecha.toDate() }
-            if (cal.get(Calendar.YEAR) == anio && cal.get(Calendar.MONTH) == mes) {
-                if (mov.tipo == "cargo") fiado += mov.monto else cobrado += mov.monto
-            }
-        }
-        return ResumenMes(fiado, cobrado)
-    }
-    val resumenMesActual = remember(movimientosLocal) {
-        val cal = Calendar.getInstance()
-        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    }
-    val resumenMesAnterior = remember(movimientosLocal) {
-        val cal = Calendar.getInstance().also { it.add(Calendar.MONTH, -1) }
-        movimientosDeMes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
-    }
-
     val hoy = remember { Date() }
     val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
     val clientesVencidos = remember(clientesConDeuda) {
@@ -134,20 +97,32 @@ internal fun TabPanelDueno(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
         item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = onAbrirPerfil) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = "Perfil",
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onAbrirNotificaciones) {
+                    Icon(Icons.Default.Notifications, contentDescription = "Notificaciones",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        item {
             CardsResumenDueno(
                 localData = localData,
                 totalDeuda = totalDeuda,
                 clientesConDeuda = clientesConDeuda,
-                fiadoSemana = semanaActual.fiado,
-                cobradoSemana = semanaActual.cobrado,
-                fiadoSemanaAnterior = semanaAnterior.fiado,
-                cobradoSemanaAnterior = semanaAnterior.cobrado,
-                fiadoMes = resumenMesActual.fiado,
-                cobradoMes = resumenMesActual.cobrado,
-                fiadoMesAnterior = resumenMesAnterior.fiado,
-                cobradoMesAnterior = resumenMesAnterior.cobrado,
                 onAnotar = onAnotar,
-                onVerClientes = onVerClientes,
                 onAbrirProductos = onAbrirProductos,
                 esEmpleado = esEmpleado,
                 puedeVerDeuda = puedeVerDeuda
@@ -183,12 +158,10 @@ internal fun TabPanelDueno(
             visitasHoy = visitasHoy,
             onCompartirResumen = if (esEmpleado) ({}) else onCompartirResumen,
             onVerClientes = onVerClientes,
-            onAbrirVisita = { visitaDetalle = it },
-            onVerHistorial = { mostrarHistorial = true }
+            onAbrirVisita = { visitaDetalle = it }
         )
 
         if (!esEmpleado) {
-            // Lista de clientes con deuda (Acuerdos vencidos)
             seccionAcuerdosVencidos(
                 clientesVencidos = clientesVencidos,
                 hoy = hoy,
@@ -199,14 +172,45 @@ internal fun TabPanelDueno(
                 onAbrirDetalleCliente = onAbrirDetalleCliente
             )
 
-            // Alertas: disputas y clientes sobre límite
-            alertasCards(
-                disputados = disputados,
-                clienteMap = clienteMap,
-                sobreLimite = sobreLimite,
-                onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
-                onAbrirDetalleCliente = onAbrirDetalleCliente
-            )
+            if (sobreLimite.isNotEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.CreditCard, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                Text(
+                                    "${sobreLimite.size} cliente${if (sobreLimite.size != 1) "s" else ""} excedieron su límite",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                            sobreLimite.take(3).forEach { c ->
+                                Text(
+                                    "• ${c.nombre} — ${"$"}${"%.0f".format(c.deudaTotal)} / ${"$"}${"%.0f".format(c.limiteCredito)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onAbrirDetalleCliente(c.id) }
+                                        .padding(vertical = 2.dp)
+                                )
+                            }
+                            if (sobreLimite.size > 3) {
+                                Text(
+                                    "+ ${sobreLimite.size - 3} más",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         item { Spacer(Modifier.height(16.dp)) }
@@ -216,13 +220,5 @@ internal fun TabPanelDueno(
         DetalleVisitaSheet(visita = visita, onDismiss = { visitaDetalle = null })
     }
 
-    if (mostrarHistorial) {
-        HistorialSheet(
-            movimientos = movimientosLocal,
-            clienteMap = clienteMap,
-            onVerMovimiento = onAbrirDetalleMovimiento,
-            onDismiss = { mostrarHistorial = false }
-        )
-    }
 }
 

@@ -3,6 +3,7 @@
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,15 +48,17 @@ private sealed class VistaExtra {
     object Apariencia : VistaExtra()
     object Exportar : VistaExtra()
     object Estadisticas : VistaExtra()
+    object MiEquipo : VistaExtra()
     object Soporte : VistaExtra()
     object AcercaDe : VistaExtra()
 }
 
 // Tabs de la barra inferior — siempre los mismos para todos los rubros
 private enum class TabNav(val titulo: String) {
-    MI_LOCAL("Mi Local"),
-    MI_EQUIPO("Mi Equipo"),
+    MI_LOCAL("Local"),
+    CLIENTES("Clientes"),
     ESCANER(""),
+    HISTORIAL("Cuaderno"),
     MAS("Más")
 }
 
@@ -120,7 +123,63 @@ fun PantallaHome(
     val movimientos by duenoVm.movimientosLocal.collectAsState()
     val clientes by duenoVm.clientes.collectAsState()
 
+    var mostrarPerfilSheet by remember { mutableStateOf(false) }
+
+    if (mostrarPerfilSheet) {
+        @OptIn(ExperimentalMaterial3Api::class)
+        ModalBottomSheet(onDismissRequest = { mostrarPerfilSheet = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (estaLogueado && nombreUsuario.isNotBlank()) {
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Text(
+                                nombreUsuario.first().uppercase(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    Text(nombreUsuario, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        when {
+                            esDueno -> "Dueño de local"
+                            esEmpleado -> "Empleado"
+                            else -> "Sin local asignado"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Icon(Icons.Default.Person, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("No iniciaste sesión", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                HorizontalDivider()
+                Button(
+                    onClick = { mostrarPerfilSheet = false; vistaExtra = VistaExtra.Perfil },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Settings, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Configurar perfil")
+                }
+            }
+        }
+    }
+
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
             if (!enSubPantalla && esDueno) {
                 NavigationBar {
@@ -150,7 +209,8 @@ fun PantallaHome(
                                     Icon(
                                         when (tab) {
                                             TabNav.MI_LOCAL  -> Icons.Default.Store
-                                            TabNav.MI_EQUIPO -> Icons.Default.Groups
+                                            TabNav.CLIENTES  -> Icons.Default.People
+                                            TabNav.HISTORIAL -> Icons.Default.Receipt
                                             TabNav.MAS       -> Icons.Default.Menu
                                             TabNav.ESCANER   -> Icons.Default.QrCodeScanner
                                         },
@@ -255,7 +315,9 @@ fun PantallaHome(
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },
-                            onAbrirProductos = { vistaDueno = NavDueno.Productos }
+                            onAbrirProductos = { vistaDueno = NavDueno.Productos },
+                            onAbrirPerfil = { mostrarPerfilSheet = true },
+                            onAbrirNotificaciones = { vistaExtra = VistaExtra.Notificaciones }
                         )
                         esEmpleado -> {
                             // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion
@@ -316,24 +378,17 @@ fun PantallaHome(
                     }
                 }
 
-                // Tab Mi Equipo (solo dueños)
-                tabNav == TabNav.MI_EQUIPO -> {
-                    Scaffold(
-                        topBar = {
-                            @OptIn(ExperimentalMaterial3Api::class)
-                            TopAppBar(title = { Text("Mi Equipo", fontWeight = FontWeight.SemiBold) })
+                // Tab Clientes
+                tabNav == TabNav.CLIENTES -> {
+                    TabClientes(
+                        clientes = clientes,
+                        movimientos = movimientos,
+                        onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
+                        onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
+                        onAnotarRapido = { cliente, tipo ->
+                            vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                         }
-                    ) { innerPadding ->
-                        Box(Modifier.padding(innerPadding)) {
-                        TabEquipo(
-                            empleados = empleados,
-                            movimientos = movimientos,
-                            clientes = clientes,
-                            onEliminarEmpleado = { duenoVm.eliminarEmpleado(it) },
-                            vm = duenoVm
-                        )
-                        }
-                    }
+                    )
                 }
 
                 // Tab Escáner
@@ -341,6 +396,15 @@ fun PantallaHome(
                     PantallaEscaner(
                         vm = duenoVm,
                         onCerrar = { tabNav = TabNav.MI_LOCAL }
+                    )
+                }
+
+                // Tab Historial
+                tabNav == TabNav.HISTORIAL -> {
+                    TabHistorial(
+                        vm = duenoVm,
+                        clientes = clientes,
+                        onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) }
                     )
                 }
 
@@ -362,6 +426,7 @@ fun PantallaHome(
                     onApariencia = { vistaExtra = VistaExtra.Apariencia },
                     onExportar = { vistaExtra = VistaExtra.Exportar },
                     onEstadisticas = { vistaExtra = VistaExtra.Estadisticas },
+                    onMiEquipo = { vistaExtra = VistaExtra.MiEquipo },
                     onSoporte = { vistaExtra = VistaExtra.Soporte },
                     onAcercaDe = { vistaExtra = VistaExtra.AcercaDe },
                 )
@@ -423,6 +488,29 @@ fun PantallaHome(
                     vm = duenoVm,
                     onVolver = { vistaExtra = VistaExtra.Ninguna }
                 )
+                is VistaExtra.MiEquipo -> Scaffold(
+                    topBar = {
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        TopAppBar(
+                            title = { Text("Mi Equipo", fontWeight = FontWeight.SemiBold) },
+                            navigationIcon = {
+                                IconButton(onClick = { vistaExtra = VistaExtra.Ninguna }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                                }
+                            }
+                        )
+                    }
+                ) { innerPadding ->
+                    Box(Modifier.padding(innerPadding)) {
+                        TabEquipo(
+                            empleados = empleados,
+                            movimientos = movimientos,
+                            clientes = clientes,
+                            onEliminarEmpleado = { duenoVm.eliminarEmpleado(it) },
+                            vm = duenoVm
+                        )
+                    }
+                }
                 is VistaExtra.Soporte -> PantallaSoporte(
                     onVolver = { vistaExtra = VistaExtra.Ninguna }
                 )

@@ -154,7 +154,7 @@ object FiadoRepository {
     fun movimientosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
-            .limit(200)
+            .limit(1000)
             .addSnapshotListener { snap, error ->
                 if (error != null) { trySend(emptyList()); return@addSnapshotListener }
                 val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()

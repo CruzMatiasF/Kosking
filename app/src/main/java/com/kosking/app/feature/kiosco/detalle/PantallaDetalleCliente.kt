@@ -298,6 +298,19 @@ fun PantallaDetalleCliente(
                 items(extracto, key = { "ext_${it.fecha.time}_${it.conceptos.firstOrNull()}" }) { visita ->
                     FilaExtracto(visita, onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) })
                 }
+                if (movimientos.size >= 1000) {
+                    item {
+                        Text(
+                            "Mostrando los últimos 1.000 movimientos. Exportá el PDF para ver el historial completo.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 16.dp)
+                        )
+                    }
+                }
             }
         }
     }

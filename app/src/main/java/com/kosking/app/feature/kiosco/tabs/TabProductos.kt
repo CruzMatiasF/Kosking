@@ -17,7 +17,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,7 +41,7 @@ import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun TabProductos(
+fun TabProductos(
     productos: List<Producto>,
     cargando: Boolean,
     modifier: Modifier = Modifier,
@@ -48,7 +50,8 @@ internal fun TabProductos(
     onDismissDialogExterno: () -> Unit = {},
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, onExito: () -> Unit) -> Unit,
-    onEliminar: (Producto) -> Unit
+    onEliminar: (Producto) -> Unit,
+    onVolver: (() -> Unit)? = null
 ) {
     var mostrarDialog by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Producto?>(null) }
@@ -119,6 +122,8 @@ internal fun TabProductos(
         )
     }
 
+    if (onVolver != null) BackHandler(onBack = onVolver)
+
     Column(modifier.fillMaxSize()) {
         // Header con botón agregar
         if (mostrarHeader) Row(
@@ -128,6 +133,13 @@ internal fun TabProductos(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onVolver != null) {
+                    IconButton(onClick = onVolver, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                    Spacer(Modifier.width(4.dp))
+                }
             Column {
                 Text(
                     "Productos",
@@ -141,6 +153,7 @@ internal fun TabProductos(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            } // cierre Row interno
             Button(
                 onClick = { editando = null; mostrarDialog = true },
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)

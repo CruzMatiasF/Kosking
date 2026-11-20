@@ -19,6 +19,7 @@ import com.kosking.app.feature.kiosco.PantallaAgregarFiado
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleMovimiento
 import com.kosking.app.feature.kiosco.tabs.TabEquipo
+import com.kosking.app.feature.kiosco.tabs.TabProductos
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.perfil.PantallaPrivacidad
 import com.kosking.app.perfil.PantallaPoliticaPrivacidad
@@ -184,6 +185,20 @@ fun PantallaHome(
                         },
                         vm = duenoVm
                     )
+                    is NavDueno.Productos -> {
+                        val productos by duenoVm.productos.collectAsState()
+                        val cargando by duenoVm.cargando.collectAsState()
+                        TabProductos(
+                            productos = productos,
+                            cargando = cargando,
+                            onBuscarGlobal = { query -> duenoVm.buscarProductosGlobales(query) },
+                            onGuardar = { nombre, precio, _, productoId, uri, onExito ->
+                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, onExito)
+                            },
+                            onEliminar = { duenoVm.eliminarProducto(it) },
+                            onVolver = { vistaDueno = NavDueno.Panel }
+                        )
+                    }
                 }
 
                 // Tab Mi Local
@@ -193,7 +208,8 @@ fun PantallaHome(
                             vm = duenoVm,
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
-                            onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) }
+                            onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },
+                            onAbrirProductos = { vistaDueno = NavDueno.Productos }
                         )
                         esEmpleado -> {
                             // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion

@@ -2,6 +2,7 @@ package com.kosking.app.feature.kiosco
 
 sealed class NavDueno {
     object Panel : NavDueno()
+    object Productos : NavDueno()
     object AgregarCliente : NavDueno()
     data class DetalleCliente(val id: String) : NavDueno()
     data class AgregarFiado(

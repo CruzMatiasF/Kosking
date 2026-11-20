@@ -50,7 +50,11 @@ private sealed class DestinoPostLogin {
 }
 
 @Composable
-fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
+fun KoskingNavHost(
+    onTemaChanged: (String) -> Unit = {},
+    abrirEscaner: Boolean = false,
+    onEscanerConsumido: () -> Unit = {}
+) {
     val nav = rememberNavController()
     val authVm: AuthViewModel = viewModel()
     val duenoVm: DuenoViewModel = viewModel()
@@ -143,6 +147,8 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
             }
 
             PantallaHome(
+                abrirEscaner = abrirEscaner,
+                onEscanerConsumido = onEscanerConsumido,
                 estaLogueado = estaLogueado,
                 nombreUsuario = nombreUsuario,
                 esDueno = esDueno.isNotBlank(),

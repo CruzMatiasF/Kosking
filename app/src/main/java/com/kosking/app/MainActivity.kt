@@ -1,6 +1,7 @@
 package com.kosking.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -36,6 +37,14 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { /* si acepta, las notificaciones ya funcionan automáticamente */ }
 
+    private val _accionWidget = mutableStateOf<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        _accionWidget.value = intent.getStringExtra("accion")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -43,6 +52,7 @@ class MainActivity : ComponentActivity() {
         habilitarPersistenciaOffline()
         pedirPermisoNotificacionSiNecesario()
         programarNotificaciones()
+        _accionWidget.value = intent?.getStringExtra("accion")
         setContent {
             val context = this
             var tema by remember { mutableStateOf(PreferenciasRepository.getTema(context)) }
@@ -66,11 +76,16 @@ class MainActivity : ComponentActivity() {
                 lifecycleOwner.lifecycle.addObserver(observer)
                 onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
+            val accion by _accionWidget
             KoskingTheme(darkTheme = esDark) {
                 if (bloqueado) {
                     PantallaBloqueo(onDesbloqueado = { bloqueado = false })
                 } else {
-                    KoskingNavHost(onTemaChanged = { tema = it })
+                    KoskingNavHost(
+                        onTemaChanged = { tema = it },
+                        abrirEscaner = accion == "escaner",
+                        onEscanerConsumido = { _accionWidget.value = null }
+                    )
                 }
             }
         }

@@ -42,12 +42,27 @@ class KoskingWidget : AppWidgetProvider() {
 
             val views = RemoteViews(context.packageName, R.layout.widget_kosking)
 
-            val pendingIntent = PendingIntent.getActivity(
-                context, 0,
-                Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_CLEAR_TOP },
-                PendingIntent.FLAG_IMMUTABLE
+            // Intent normal: abre la app
+            val intentNormal = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            val piNormal = PendingIntent.getActivity(
+                context, 0, intentNormal,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(android.R.id.background.let { R.layout.widget_kosking }, pendingIntent)
+
+            // Intent escáner: abre la app directo al escáner
+            val intentEscaner = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("accion", "escaner")
+            }
+            val piEscaner = PendingIntent.getActivity(
+                context, 1, intentEscaner,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            views.setOnClickPendingIntent(R.id.widget_root, piNormal)
+            views.setOnClickPendingIntent(R.id.widget_btn_anotar, piEscaner)
 
             if (tieneSesion) {
                 views.setViewVisibility(R.id.widget_local_nombre, View.VISIBLE)
@@ -65,9 +80,6 @@ class KoskingWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.widget_clientes_deuda, View.GONE)
                 views.setViewVisibility(R.id.widget_sin_sesion, View.VISIBLE)
             }
-
-            views.setOnClickPendingIntent(R.id.widget_deuda_total, pendingIntent)
-            views.setOnClickPendingIntent(R.id.widget_sin_sesion, pendingIntent)
 
             appWidgetManager.updateAppWidget(widgetId, views)
         }

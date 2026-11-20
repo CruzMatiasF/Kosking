@@ -21,6 +21,7 @@ import com.kosking.app.feature.kiosco.detalle.PantallaDetalleMovimiento
 import com.kosking.app.feature.kiosco.tabs.TabClientes
 import com.kosking.app.feature.kiosco.tabs.TabEquipo
 import com.kosking.app.feature.kiosco.tabs.TabProductos
+import com.kosking.app.scanner.PantallaEscaner
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.perfil.PantallaPrivacidad
 import com.kosking.app.perfil.PantallaPoliticaPrivacidad
@@ -54,11 +55,14 @@ private sealed class VistaExtra {
 private enum class TabNav(val titulo: String) {
     MI_LOCAL("Mi Local"),
     MI_EQUIPO("Mi Equipo"),
+    ESCANER(""),
     MAS("Más")
 }
 
 @Composable
 fun PantallaHome(
+    abrirEscaner: Boolean = false,
+    onEscanerConsumido: () -> Unit = {},
     estaLogueado: Boolean,
     nombreUsuario: String,
     esDueno: Boolean,
@@ -81,6 +85,13 @@ fun PantallaHome(
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
     var tabNav by rememberSaveable { mutableStateOf(TabNav.MI_LOCAL) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
+
+    LaunchedEffect(abrirEscaner) {
+        if (abrirEscaner) {
+            tabNav = TabNav.ESCANER
+            onEscanerConsumido()
+        }
+    }
 
     LaunchedEffect(mostrarPanelDueno) {
         if (mostrarPanelDueno) vistaDueno = NavDueno.Panel
@@ -114,22 +125,41 @@ fun PantallaHome(
             if (!enSubPantalla && esDueno) {
                 NavigationBar {
                     TabNav.entries.forEach { tab ->
-                        // Mi Equipo solo para dueños (ya filtrado por esDueno arriba)
-                        NavigationBarItem(
-                            selected = tabNav == tab,
-                            onClick = { tabNav = tab },
-                            icon = {
-                                Icon(
-                                    when (tab) {
-                                        TabNav.MI_LOCAL  -> Icons.Default.Store
-                                        TabNav.MI_EQUIPO -> Icons.Default.Groups
-                                        TabNav.MAS       -> Icons.Default.Menu
-                                    },
-                                    null
-                                )
-                            },
-                            label = { Text(tab.titulo) }
-                        )
+                        if (tab == TabNav.ESCANER) {
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { tabNav = TabNav.ESCANER },
+                                icon = {
+                                    Surface(
+                                        shape = androidx.compose.foundation.shape.CircleShape,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Icon(Icons.Default.QrCodeScanner, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(26.dp))
+                                        }
+                                    }
+                                },
+                                label = { Text("") }
+                            )
+                        } else {
+                            NavigationBarItem(
+                                selected = tabNav == tab,
+                                onClick = { tabNav = tab },
+                                icon = {
+                                    Icon(
+                                        when (tab) {
+                                            TabNav.MI_LOCAL  -> Icons.Default.Store
+                                            TabNav.MI_EQUIPO -> Icons.Default.Groups
+                                            TabNav.MAS       -> Icons.Default.Menu
+                                            TabNav.ESCANER   -> Icons.Default.QrCodeScanner
+                                        },
+                                        null
+                                    )
+                                },
+                                label = { Text(tab.titulo) }
+                            )
+                        }
                     }
                 }
             } else if (!enSubPantalla && !esDueno) {
@@ -304,6 +334,14 @@ fun PantallaHome(
                         )
                         }
                     }
+                }
+
+                // Tab Escáner
+                tabNav == TabNav.ESCANER -> {
+                    PantallaEscaner(
+                        vm = duenoVm,
+                        onCerrar = { tabNav = TabNav.MI_LOCAL }
+                    )
                 }
 
                 // Tab Más

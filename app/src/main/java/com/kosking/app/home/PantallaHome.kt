@@ -18,6 +18,7 @@ import com.kosking.app.feature.kiosco.PantallaAgregarCliente
 import com.kosking.app.feature.kiosco.PantallaAgregarFiado
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleMovimiento
+import com.kosking.app.feature.kiosco.tabs.TabClientes
 import com.kosking.app.feature.kiosco.tabs.TabEquipo
 import com.kosking.app.feature.kiosco.tabs.TabProductos
 import com.kosking.app.perfil.PantallaPerfil
@@ -185,6 +186,20 @@ fun PantallaHome(
                         },
                         vm = duenoVm
                     )
+                    is NavDueno.Clientes -> {
+                        val clientes by duenoVm.clientes.collectAsState()
+                        val movimientos by duenoVm.movimientosLocal.collectAsState()
+                        TabClientes(
+                            clientes = clientes,
+                            movimientos = movimientos,
+                            onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
+                            onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
+                            onAnotarRapido = { cliente, tipo ->
+                                vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
+                            },
+                            onVolver = { vistaDueno = NavDueno.Panel }
+                        )
+                    }
                     is NavDueno.Productos -> {
                         val productos by duenoVm.productos.collectAsState()
                         val cargando by duenoVm.cargando.collectAsState()
@@ -206,6 +221,7 @@ fun PantallaHome(
                     when {
                         mostrarPanelDueno -> PanelDuenoEmbedido(
                             vm = duenoVm,
+                            onVerClientes = { vistaDueno = NavDueno.Clientes },
                             onAbrirAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },

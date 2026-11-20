@@ -1,5 +1,6 @@
 ﻿package com.kosking.app.feature.kiosco.tabs
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,15 +24,17 @@ import com.kosking.app.modelo.Movimiento
 import java.util.Calendar
 
 @Composable
-internal fun TabClientes(
+fun TabClientes(
     clientes: List<Cliente>,
     movimientos: List<Movimiento> = emptyList(),
     modifier: Modifier = Modifier,
     onVerCliente: (String) -> Unit,
     onAgregarCliente: () -> Unit,
     onAnotarRapido: ((Cliente, String) -> Unit)? = null,
-    esEmpleado: Boolean = false
+    esEmpleado: Boolean = false,
+    onVolver: (() -> Unit)? = null
 ) {
+    if (onVolver != null) BackHandler(onBack = onVolver)
     var filtro by rememberSaveable { mutableStateOf("deuda") }
     var busqueda by rememberSaveable { mutableStateOf("") }
     var orden by rememberSaveable { mutableStateOf("deuda") }

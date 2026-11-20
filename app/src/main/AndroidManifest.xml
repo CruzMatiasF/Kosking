@@ -36,7 +36,8 @@
 
         <receiver
             android:name=".widget.KoskingWidget"
-            android:exported="true">
+            android:exported="true"
+            android:label="Kosking — Deudas">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -47,7 +48,8 @@
 
         <receiver
             android:name=".widget.EscanerWidget"
-            android:exported="true">
+            android:exported="true"
+            android:label="Kosking — Anotar">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

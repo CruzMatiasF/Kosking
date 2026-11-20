@@ -127,34 +127,39 @@ fun PantallaEscaner(
         ultimoCodigoTs.value = ahora
         buscandoProducto = true
         scope.launch {
-            val enLocal = productos.firstOrNull { it.codigoBarras == codigo }
-            val nombre: String
-            val precio: Double
-            val productoId: String?
-            if (enLocal != null) {
-                nombre = enLocal.nombre; precio = enLocal.ultimoPrecio; productoId = enLocal.id
-            } else {
-                val ext = OpenFoodFactsRepository.buscarPorCodigo(codigo)
-                nombre = ext?.nombre ?: ""; precio = 0.0; productoId = null
-            }
-            buscandoProducto = false
-            when (modo) {
-                ModoEscaner.ANOTAR -> {
-                    val item = ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId)
-                    val idx = itemsAnotados.indexOfFirst { it.productoId != null && it.productoId == productoId }
-                    itemsAnotados = if (idx >= 0)
-                        itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
-                    else itemsAnotados + item
-                    delay(300)
-                    yaDetecto.value = false
+            try {
+                val enLocal = productos.firstOrNull { it.codigoBarras == codigo }
+                val nombre: String
+                val precio: Double
+                val productoId: String?
+                if (enLocal != null) {
+                    nombre = enLocal.nombre; precio = enLocal.ultimoPrecio; productoId = enLocal.id
+                } else {
+                    val ext = OpenFoodFactsRepository.buscarPorCodigo(codigo)
+                    nombre = ext?.nombre ?: ""; precio = 0.0; productoId = null
                 }
-                ModoEscaner.CARGAR_NUEVO -> {
-                    productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
-                    nombreCarga = nombre
-                    precioCarga = if (precio > 0) precio.toInt().toString() else ""
-                    // yaDetecto queda en true hasta que el usuario toque "escanear otro"
+                buscandoProducto = false
+                when (modo) {
+                    ModoEscaner.ANOTAR -> {
+                        val item = ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId)
+                        val idx = itemsAnotados.indexOfFirst { it.productoId != null && it.productoId == productoId }
+                        itemsAnotados = if (idx >= 0)
+                            itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
+                        else itemsAnotados + item
+                        delay(300)
+                        yaDetecto.value = false
+                    }
+                    ModoEscaner.CARGAR_NUEVO -> {
+                        productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
+                        nombreCarga = nombre
+                        precioCarga = if (precio > 0) precio.toInt().toString() else ""
+                        // yaDetecto queda en true hasta que el usuario toque "escanear otro"
+                    }
+                    ModoEscaner.NINGUNO -> yaDetecto.value = false
                 }
-                ModoEscaner.NINGUNO -> yaDetecto.value = false
+            } catch (_: Exception) {
+                buscandoProducto = false
+                yaDetecto.value = false
             }
         }
     }

@@ -36,6 +36,7 @@ import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
 import com.kosking.app.autenticacion.PantallaOnboarding
 import com.kosking.app.autenticacion.PantallaElegirRubro
 import com.kosking.app.autenticacion.PantallaDescargandoRubro
+import com.kosking.app.feature.kiosco.tabs.TabClientes
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
@@ -280,8 +281,23 @@ fun KoskingNavHost(onTemaChanged: (String) -> Unit = {}) {
                     duenoVm.cerrarSesion()
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
+                onVerClientes = { nav.navigate(Rutas.CLIENTES_EMPLEADO) },
                 onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
                 onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) }
+            )
+        }
+
+        composable(Rutas.CLIENTES_EMPLEADO) {
+            val puedeVerDeuda by empleadoVm.puedeVerDeuda.collectAsState()
+            val clientes by duenoVm.clientes.collectAsState()
+            val movimientosEmpleado by duenoVm.movimientosLocal.collectAsState()
+            TabClientes(
+                clientes = clientes,
+                movimientos = movimientosEmpleado,
+                onVerCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
+                onAgregarCliente = {},
+                esEmpleado = true,
+                onVolver = { nav.popBackStack() }
             )
         }
 

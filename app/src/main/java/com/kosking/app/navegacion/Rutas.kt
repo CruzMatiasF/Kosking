@@ -21,6 +21,7 @@ object Rutas {
     const val PERFIL = "perfil"
     const val CONFIGURAR_LOCAL = "configurar_local"
     const val NOTIFICACIONES = "notificaciones"
+    const val CLIENTES_EMPLEADO = "clientes_empleado"
     const val ELEGIR_RUBRO = "elegir_rubro"
     const val DESCARGANDO_RUBRO = "descargando_rubro/{tipo}"
 

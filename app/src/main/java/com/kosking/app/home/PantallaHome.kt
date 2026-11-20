@@ -335,6 +335,7 @@ fun PantallaHome(
                     nombreUsuario = nombreUsuario,
                     rol = when {
                         esDueno -> "Dueño de local"
+                        esEmpleado -> "Empleado"
                         else -> "Cuenta personal"
                     },
                     esDueno = esDueno,

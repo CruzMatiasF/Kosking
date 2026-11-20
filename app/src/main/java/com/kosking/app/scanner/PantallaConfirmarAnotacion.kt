@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Movimiento
 
 @OptIn(ExperimentalMaterial3Api::class)

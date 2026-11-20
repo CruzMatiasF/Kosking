@@ -38,6 +38,7 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.kosking.app.datos.OpenFoodFactsRepository
+import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente

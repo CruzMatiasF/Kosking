@@ -42,8 +42,12 @@ import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.Executors
 
 private enum class ModoEscaner { NINGUNO, ANOTAR, CARGAR_NUEVO }
@@ -68,6 +72,7 @@ fun PantallaEscaner(
     val clientes by vm.clientes.collectAsState()
     val movimientos by vm.movimientosLocal.collectAsState()
     val cargandoVm by vm.cargando.collectAsState()
+    val nombreLocal by vm.nombreLocal.collectAsState()
 
     // Clientes ordenados por actividad más reciente
     val clientesOrdenados = remember(clientes, movimientos) {
@@ -86,6 +91,7 @@ fun PantallaEscaner(
     var precioCarga by remember { mutableStateOf("") }
     var nombreCarga by remember { mutableStateOf("") }
     var mostrarConfirmar by remember { mutableStateOf(false) }
+    var anotacionExitosa by remember { mutableStateOf<Pair<Cliente, List<ItemAnotado>>?>(null) }
     var mostrarDialogoCambioModo by remember { mutableStateOf(false) }
     val yaDetecto = remember { mutableStateOf(false) }
     // Rastrea el último código escaneado y cuándo, para ignorar solo ese código
@@ -172,11 +178,19 @@ fun PantallaEscaner(
             movimientos = movimientos,
             cargando = cargandoVm,
             onConfirmar = { cliente ->
+                val itemsSnap = itemsAnotados.toList()
                 vm.agregarMovimientos(
                     clienteId = cliente.id,
-                    items = itemsAnotados.map { Triple(it.nombre, it.precio, it.cantidad) },
+                    items = itemsSnap.map { Triple(it.nombre, it.precio, it.cantidad) },
                     tipo = "cargo",
-                    onExito = { onCerrar() }
+                    onExito = {
+                        mostrarConfirmar = false
+                        if (cliente.telefono.isNotBlank()) {
+                            anotacionExitosa = Pair(cliente, itemsSnap)
+                        } else {
+                            onCerrar()
+                        }
+                    }
                 )
             },
             onCrearYConfirmar = { nombre, onClienteCreado ->
@@ -184,6 +198,68 @@ fun PantallaEscaner(
             },
             onVolver = { mostrarConfirmar = false }
         )
+        return
+    }
+
+    // Pantalla de éxito con opción de enviar WhatsApp
+    anotacionExitosa?.let { (cliente, items) ->
+        val hora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
+        val ctx = LocalContext.current
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.CheckCircle,
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Anotado para ${cliente.nombre}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "${items.sumOf { it.cantidad }} producto${if (items.sumOf { it.cantidad } != 1) "s" else ""}  ·  $${items.sumOf { it.precio * it.cantidad }.toInt()}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = {
+                    val mensaje = WhatsAppUtil.ticketVisita(
+                        nombreCliente = cliente.nombre,
+                        nombreLocal = nombreLocal,
+                        items = items.map { Triple(it.nombre, it.precio, it.cantidad) },
+                        tipo = "cargo",
+                        hora = hora
+                    )
+                    WhatsAppUtil.abrirWhatsApp(ctx, cliente.telefono, mensaje)
+                    anotacionExitosa = null
+                    onCerrar()
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp)
+            ) {
+                Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Enviar ticket por WhatsApp", fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(12.dp))
+            TextButton(
+                onClick = { anotacionExitosa = null; onCerrar() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Listo, sin enviar")
+            }
+        }
         return
     }
 

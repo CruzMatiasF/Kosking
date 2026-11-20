@@ -130,6 +130,13 @@ fun PantallaDetalleCliente(
                                 Icon(Icons.Default.MoreVert, "Más opciones")
                             }
                             DropdownMenu(expanded = mostrarMenu, onDismissRequest = { mostrarMenu = false }) {
+                                if (cliente.deudaTotal > 0) {
+                                    DropdownMenuItem(
+                                        text = { Text("Mostrar al cliente") },
+                                        leadingIcon = { Icon(Icons.Default.Visibility, null) },
+                                        onClick = { mostrarMenu = false; mostrarVistaCliente = true }
+                                    )
+                                }
                                 if (movimientos.isNotEmpty()) {
                                     DropdownMenuItem(
                                         text = { Text("Exportar PDF") },
@@ -145,7 +152,6 @@ fun PantallaDetalleCliente(
                                             context.startActivity(Intent.createChooser(intent, "Compartir PDF"))
                                         }
                                     )
-
                                 }
                                 DropdownMenuItem(
                                     text = { Text("Recalcular deuda") },
@@ -191,51 +197,10 @@ fun PantallaDetalleCliente(
         ) {
             cliente?.let {
                 if (!esEmpleado || puedeVerDeuda) {
-                    item { HeroCliente(it) }
+                    item { HeroCliente(it, localNombre = localData?.nombre ?: "") }
                 }
                 if (!esEmpleado) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (it.deudaTotal > 0) {
-                                Button(
-                                    onClick = { mostrarVistaCliente = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Visibility, null, Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Mostrar al cliente — ${"$"}${"%.0f".format(it.deudaTotal)}")
-                                }
-                            }
-                            if (it.telefono.isNotBlank() && it.deudaTotal > 0) {
-                                OutlinedButton(
-                                    onClick = {
-                                        WhatsAppUtil.abrirWhatsApp(
-                                            context = context,
-                                            telefono = it.telefono,
-                                            mensaje = WhatsAppUtil.mensajeResumen(
-                                                nombreCliente = it.nombre,
-                                                nombreLocal = localData?.nombre ?: "el local",
-                                                deudaTotal = it.deudaTotal
-                                            )
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Phone, null, Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Recordar por WhatsApp — ${"$"}${"%.0f".format(it.deudaTotal)}")
-                                }
-                            }
-                        }
-                    }
-                    item { ConfigTiles(it, vm) }
+                    item { ConfigTilesColapsable(it, vm) }
                 }
             }
 

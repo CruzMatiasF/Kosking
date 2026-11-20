@@ -1,5 +1,6 @@
 package com.kosking.app.feature.kiosco.detalle
 
+import android.content.Context
 import com.kosking.app.dueno.DuenoViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,19 +15,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.Local
 import com.kosking.app.ui.theme.Verde
 import com.kosking.app.ui.theme.VerdeClaro
+import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-internal fun HeroCliente(cliente: Cliente) {
+internal fun HeroCliente(cliente: Cliente, localNombre: String = "") {
+    val context = LocalContext.current
     val sinDeuda = cliente.deudaTotal <= 0
     val bgColor = if (sinDeuda) MaterialTheme.colorScheme.tertiaryContainer
                   else MaterialTheme.colorScheme.errorContainer
@@ -45,12 +50,36 @@ internal fun HeroCliente(cliente: Cliente) {
             color = onBgColor.copy(alpha = 0.65f),
             letterSpacing = 0.8.sp
         )
-        Text(
-            "$${"%.0f".format(cliente.deudaTotal)}",
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = onBgColor
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "$${"%.0f".format(cliente.deudaTotal)}",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = onBgColor
+            )
+            if (cliente.telefono.isNotBlank() && cliente.deudaTotal > 0) {
+                FilledTonalIconButton(
+                    onClick = {
+                        WhatsAppUtil.abrirWhatsApp(
+                            context = context,
+                            telefono = cliente.telefono,
+                            mensaje = WhatsAppUtil.mensajeResumen(
+                                nombreCliente = cliente.nombre,
+                                nombreLocal = localNombre.ifBlank { "el local" },
+                                deudaTotal = cliente.deudaTotal
+                            )
+                        )
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.Send, "Recordar por WhatsApp", Modifier.size(18.dp))
+                }
+            }
+        }
 
         if (cliente.limiteCredito > 0) {
             Spacer(Modifier.height(8.dp))
@@ -327,4 +356,36 @@ internal fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
         }
     }
     Spacer(Modifier.height(4.dp))
+}
+
+@Composable
+internal fun ConfigTilesColapsable(cliente: Cliente, vm: DuenoViewModel) {
+    var expandido by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expandido = !expandido }
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Configuración del cliente",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                if (expandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (expandido) {
+            ConfigTiles(cliente, vm)
+        }
+        HorizontalDivider()
+    }
 }

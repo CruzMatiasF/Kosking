@@ -83,6 +83,7 @@ fun PantallaEscaner(
     var buscandoProducto by remember { mutableStateOf(false) }
     var queryBusqueda by remember { mutableStateOf("") }
     var precioCarga by remember { mutableStateOf("") }
+    var nombreCarga by remember { mutableStateOf("") }
     var mostrarConfirmar by remember { mutableStateOf(false) }
     var mostrarDialogoCambioModo by remember { mutableStateOf(false) }
     val yaDetecto = remember { mutableStateOf(false) }
@@ -149,6 +150,7 @@ fun PantallaEscaner(
                 }
                 ModoEscaner.CARGAR_NUEVO -> {
                     productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
+                    nombreCarga = nombre
                     precioCarga = if (precio > 0) precio.toInt().toString() else ""
                     // yaDetecto queda en true hasta que el usuario toque "escanear otro"
                 }
@@ -515,11 +517,22 @@ fun PantallaEscaner(
                                 )
                             }
                         } else {
-                            Text(
-                                prod.nombre.ifBlank { "Código: ${prod.codigoBarras}" },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                            if (prod.nombre.isBlank()) {
+                                OutlinedTextField(
+                                    value = nombreCarga,
+                                    onValueChange = { nombreCarga = it },
+                                    label = { Text("Nombre del producto") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
+                                )
+                            } else {
+                                Text(
+                                    prod.nombre,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                             OutlinedTextField(
                                 value = precioCarga,
                                 onValueChange = { precioCarga = it.filter { c -> c.isDigit() || c == '.' } },
@@ -532,7 +545,7 @@ fun PantallaEscaner(
                             Button(
                                 onClick = {
                                     vm.guardarProducto(
-                                        nombre = prod.nombre.ifBlank { prod.codigoBarras },
+                                        nombre = nombreCarga.trim().ifBlank { prod.nombre.ifBlank { prod.codigoBarras } },
                                         precio = precioCarga.toDoubleOrNull() ?: 0.0,
                                         productoId = prod.productoId,
                                         categoria = "",
@@ -543,14 +556,14 @@ fun PantallaEscaner(
                                         yaDetecto.value = false
                                     }
                                 },
-                                enabled = !cargandoVm,
+                                enabled = !cargandoVm && (prod.nombre.isNotBlank() || nombreCarga.isNotBlank()),
                                 modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
                                 if (cargandoVm) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                                 else Text("Guardar al local", fontWeight = FontWeight.Bold)
                             }
                             TextButton(
-                                onClick = { productoParaCargar = null; yaDetecto.value = false; precioCarga = "" },
+                                onClick = { productoParaCargar = null; yaDetecto.value = false; precioCarga = ""; nombreCarga = "" },
                                 modifier = Modifier.fillMaxWidth()
                             ) { Text("Escanear otro") }
                         }

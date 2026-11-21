@@ -45,29 +45,37 @@ internal fun TabPanelDueno(
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val movimientosHoy = remember(movimientosLocal) {
         val hoy = Calendar.getInstance()
+        val hoyYear = hoy.get(Calendar.YEAR)
+        val hoyDia  = hoy.get(Calendar.DAY_OF_YEAR)
+        val c = Calendar.getInstance()
         movimientosLocal.filter { mov ->
             if (mov.anulado) return@filter false
-            val cal = Calendar.getInstance().apply { time = mov.fecha.toDate() }
-            cal.get(Calendar.YEAR) == hoy.get(Calendar.YEAR) &&
-            cal.get(Calendar.DAY_OF_YEAR) == hoy.get(Calendar.DAY_OF_YEAR)
+            c.time = mov.fecha.toDate()
+            c.get(Calendar.YEAR) == hoyYear && c.get(Calendar.DAY_OF_YEAR) == hoyDia
         }.sortedByDescending { it.fecha.toDate().time }
     }
-    val fiadoHoy = remember(movimientosHoy) { movimientosHoy.filter { it.tipo == "cargo" }.sumOf { it.monto } }
-    val cobradoHoy = remember(movimientosHoy) { movimientosHoy.filter { it.tipo == "pago" }.sumOf { it.monto } }
+    val (fiadoHoy, cobradoHoy) = remember(movimientosHoy) {
+        var fiado = 0.0; var cobrado = 0.0
+        movimientosHoy.forEach { if (it.tipo == "cargo") fiado += it.monto else cobrado += it.monto }
+        fiado to cobrado
+    }
 
     val diasSinPagar = remember(movimientosLocal, clientesConDeuda) {
         val hoyNorm = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }
-        val ultPago = movimientosLocal
-            .filter { it.tipo == "pago" && !it.anulado }
-            .groupBy { it.clienteId }
-            .mapValues { (_, ms) -> ms.maxOf { it.fecha.toDate().time } }
-        val primerCargo = movimientosLocal
-            .filter { it.tipo == "cargo" && !it.anulado }
-            .groupBy { it.clienteId }
-            .mapValues { (_, ms) -> ms.minOf { it.fecha.toDate().time } }
+        val ultPago = mutableMapOf<String, Long>()
+        val primerCargo = mutableMapOf<String, Long>()
+        movimientosLocal.forEach { mov ->
+            if (mov.anulado) return@forEach
+            val t = mov.fecha.toDate().time
+            if (mov.tipo == "pago") {
+                ultPago[mov.clienteId] = maxOf(ultPago[mov.clienteId] ?: 0L, t)
+            } else {
+                primerCargo[mov.clienteId] = minOf(primerCargo[mov.clienteId] ?: Long.MAX_VALUE, t)
+            }
+        }
         clientesConDeuda.associate { c ->
             val ref = ultPago[c.id] ?: primerCargo[c.id]
             c.id to if (ref != null) {

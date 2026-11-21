@@ -29,6 +29,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private val fmtCompromiso = SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es-AR"))
+
 @Composable
 internal fun HeroCliente(cliente: Cliente, localNombre: String = "") {
     val context = LocalContext.current
@@ -257,7 +259,7 @@ internal fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
         }
 
         Spacer(Modifier.height(8.dp))
-        val fmtCompromiso = remember { SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es-AR")) }
+
         val compromisoVencido = cliente.fechaCompromiso?.let { it.toDate().before(Date()) } ?: false
         Card(
             modifier = Modifier.clickable { mostrarDialogoCompromiso = true },

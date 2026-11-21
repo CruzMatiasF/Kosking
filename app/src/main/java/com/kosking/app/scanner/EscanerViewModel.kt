@@ -137,12 +137,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 buscandoProducto = false
                 when (modo) {
                     ModoEscaner.ANOTAR -> {
-                        val item = ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId)
-                        val idx = itemsAnotados.indexOfFirst { it.productoId != null && it.productoId == productoId }
-                        itemsAnotados = if (idx >= 0)
-                            itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
-                        else itemsAnotados + item
-                        queryBusqueda = ""
+                        agregarALista(ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId))
                         escaneoExitoso = true
                         delay(400)
                         escaneoExitoso = false

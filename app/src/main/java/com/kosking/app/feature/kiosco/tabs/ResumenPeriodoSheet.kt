@@ -62,16 +62,25 @@ internal fun ResumenPeriodoSheet(
 
     val movsFiltrados = remember(movimientos, periodoKey) {
         movimientos.filter {
-            !it.anulado &&
-            it.fecha.toDate().time >= periodo.inicio &&
-            it.fecha.toDate().time <= finPeriodo
+            if (it.anulado) return@filter false
+            val t = it.fecha.toDate().time
+            t >= periodo.inicio && t <= finPeriodo
         }
     }
 
-    val fiadoTotal = remember(movsFiltrados) { movsFiltrados.filter { it.tipo == "cargo" }.sumOf { it.monto } }
-    val cobradoTotal = remember(movsFiltrados) { movsFiltrados.filter { it.tipo == "pago" }.sumOf { it.monto } }
-    val cantFiados = remember(movsFiltrados) { movsFiltrados.count { it.tipo == "cargo" } }
-    val cantPagos = remember(movsFiltrados) { movsFiltrados.count { it.tipo == "pago" } }
+    data class StatsMovs(val fiadoTotal: Double, val cobradoTotal: Double, val cantFiados: Int, val cantPagos: Int)
+    val stats = remember(movsFiltrados) {
+        var fiado = 0.0; var cobrado = 0.0; var nFiados = 0; var nPagos = 0
+        movsFiltrados.forEach { mov ->
+            if (mov.tipo == "cargo") { fiado += mov.monto; nFiados++ }
+            else { cobrado += mov.monto; nPagos++ }
+        }
+        StatsMovs(fiado, cobrado, nFiados, nPagos)
+    }
+    val fiadoTotal = stats.fiadoTotal
+    val cobradoTotal = stats.cobradoTotal
+    val cantFiados = stats.cantFiados
+    val cantPagos = stats.cantPagos
     val saldoNeto = cobradoTotal - fiadoTotal
 
     val topClientes = remember(movsFiltrados) {

@@ -13,6 +13,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.util.PdfExportUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +28,7 @@ fun PantallaExportar(
     val clientes by vm.clientes.collectAsState()
     val localData by vm.localData.collectAsState()
     var generando by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -59,16 +63,20 @@ fun PantallaExportar(
                 cargando = generando,
                 onClick = {
                     generando = true
-                    try {
-                        val intent = PdfExportUtil.generarResumenDia(
-                            context = context,
-                            localNombre = localData?.nombre ?: "Mi local",
-                            movimientos = movimientos,
-                            clientes = clientes
-                        )
-                        context.startActivity(android.content.Intent.createChooser(intent, "Compartir PDF"))
-                    } finally {
-                        generando = false
+                    scope.launch {
+                        try {
+                            val intent = withContext(Dispatchers.IO) {
+                                PdfExportUtil.generarResumenDia(
+                                    context = context,
+                                    localNombre = localData?.nombre ?: "Mi local",
+                                    movimientos = movimientos,
+                                    clientes = clientes
+                                )
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Compartir PDF"))
+                        } finally {
+                            generando = false
+                        }
                     }
                 }
             )

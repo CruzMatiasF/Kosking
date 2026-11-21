@@ -286,7 +286,8 @@ class DuenoViewModel : ViewModel() {
         items: List<Triple<String, Double, Int>>, // producto, monto, cantidad
         tipo: String,
         visitante: String = "",
-        onExito: () -> Unit
+        onExito: () -> Unit,
+        onError: () -> Unit = {}
     ) {
         viewModelScope.launch {
             _cargando.value = true
@@ -314,6 +315,7 @@ class DuenoViewModel : ViewModel() {
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarMovimientos dueno")
                 _error.value = "No se pudo guardar"
+                onError()
             } finally {
                 _cargando.value = false
             }

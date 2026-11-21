@@ -66,6 +66,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
             clienteId = cliente.id,
             items = itemsSnap.map { Triple(it.nombre, it.precio, it.cantidad) },
             tipo = "cargo",
+            onError = { cargandoAnotacion = false },
             onExito = {
                 cargandoAnotacion = false
                 mostrarConfirmar = false

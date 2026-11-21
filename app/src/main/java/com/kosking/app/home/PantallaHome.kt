@@ -179,10 +179,9 @@ fun PantallaHome(
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
             if (!enSubPantalla && esDueno) {
-                NavigationBar(windowInsets = WindowInsets(0.dp)) {
+                NavigationBar {
                     TabNav.entries.forEach { tab ->
                         if (tab == TabNav.ESCANER) {
                             NavigationBarItem(
@@ -224,7 +223,7 @@ fun PantallaHome(
                 }
             } else if (!enSubPantalla && !esDueno) {
                 // Sin sesión o empleado: solo tab Más
-                NavigationBar(windowInsets = WindowInsets(0.dp)) {
+                NavigationBar {
                     NavigationBarItem(
                         selected = true,
                         onClick = {},

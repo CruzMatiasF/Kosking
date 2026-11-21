@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.util.CrashLogger
 import com.kosking.app.util.PdfExportUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,6 +75,8 @@ fun PantallaExportar(
                                 )
                             }
                             context.startActivity(android.content.Intent.createChooser(intent, "Compartir PDF"))
+                        } catch (e: Exception) {
+                            CrashLogger.log(e, "exportarPDF")
                         } finally {
                             generando = false
                         }

@@ -196,7 +196,10 @@ class DuenoViewModel : ViewModel() {
     }
 
     fun actualizarCliente(cliente: Cliente) {
-        viewModelScope.launch { FiadoRepository.actualizarCliente(cliente) }
+        viewModelScope.launch {
+            try { FiadoRepository.actualizarCliente(cliente) }
+            catch (e: Exception) { CrashLogger.log(e, "actualizarCliente") }
+        }
     }
 
     fun setFechaCompromiso(clienteId: String, fecha: com.google.firebase.Timestamp?) {

@@ -100,13 +100,13 @@ internal fun ZonaProductos(
             }
 
             item {
-                TextButton(
+                OutlinedButton(
                     onClick = onToggleMostrarOtro,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(if (mostrarOtro) "Ocultar campo manual" else "No está en la lista — cargar manualmente")
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (mostrarOtro) "Ocultar" else "No está en la lista")
                 }
             }
         }

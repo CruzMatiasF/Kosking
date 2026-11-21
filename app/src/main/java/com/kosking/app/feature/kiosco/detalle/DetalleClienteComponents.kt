@@ -362,7 +362,7 @@ internal fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
 
 @Composable
 internal fun ConfigTilesColapsable(cliente: Cliente, vm: DuenoViewModel) {
-    var expandido by remember { mutableStateOf(false) }
+    var expandido by remember { mutableStateOf(true) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(

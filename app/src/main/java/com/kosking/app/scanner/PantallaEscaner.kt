@@ -347,57 +347,6 @@ fun PantallaEscaner(
                     }
                 }
 
-                // ── Chip de cliente superpuesto en la cámara (esquina inferior) ──
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 12.dp)
-                ) {
-                    Surface(
-                        onClick = { mostrarBuscarCliente = true },
-                        shape = RoundedCornerShape(50),
-                        color = if (clienteSeleccionado != null)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.92f)
-                        else Color.Black.copy(alpha = 0.55f),
-                        tonalElevation = 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                null,
-                                modifier = Modifier.size(15.dp),
-                                tint = Color.White
-                            )
-                            if (clienteSeleccionado != null) {
-                                Text(
-                                    clienteSeleccionado!!.nombre,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                                Spacer(Modifier.width(2.dp))
-                                Icon(
-                                    Icons.Default.Close,
-                                    null,
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clickable { clienteSeleccionado = null },
-                                    tint = Color.White.copy(alpha = 0.8f)
-                                )
-                            } else {
-                                Text(
-                                    "Cliente (opcional)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.85f)
-                                )
-                            }
-                        }
-                    }
-                }
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
@@ -408,6 +357,51 @@ fun PantallaEscaner(
 
             IconButton(onClick = onCerrar, modifier = Modifier.statusBarsPadding().padding(4.dp)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
+            }
+
+            // ── Chip de cliente superpuesto sobre la cámara ──
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 12.dp)
+            ) {
+                Surface(
+                    onClick = { mostrarBuscarCliente = true },
+                    shape = RoundedCornerShape(50),
+                    color = if (clienteSeleccionado != null)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.92f)
+                    else Color.Black.copy(alpha = 0.55f),
+                    tonalElevation = 0.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
+                        if (clienteSeleccionado != null) {
+                            Text(
+                                clienteSeleccionado!!.nombre,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Spacer(Modifier.width(2.dp))
+                            Icon(
+                                Icons.Default.Close,
+                                null,
+                                modifier = Modifier.size(14.dp).clickable { clienteSeleccionado = null },
+                                tint = Color.White.copy(alpha = 0.8f)
+                            )
+                        } else {
+                            Text(
+                                "Cliente (opcional)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+                }
             }
         }
 

@@ -69,7 +69,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         cargandoAnotacion = true
         duenoVm.agregarMovimientos(
             clienteId = cliente.id,
-            items = itemsSnap.map { Triple(it.nombre, it.precio, it.cantidad) },
+            items = itemsSnap.map { Triple(it.nombre, it.precio * it.cantidad, it.cantidad) },
             tipo = "cargo",
             onError = { cargandoAnotacion = false },
             onExito = {

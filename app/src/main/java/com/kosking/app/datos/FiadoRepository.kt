@@ -324,17 +324,18 @@ object FiadoRepository {
     suspend fun upsertProductosBatch(localId: String, items: List<Triple<String, Double, Int>>, productosEnMemoria: List<Producto>) {
         if (items.isEmpty()) return
         val batch = db.batch()
-        items.filter { it.first.isNotBlank() }.forEach { (nombre, precio, _) ->
+        items.filter { it.first.isNotBlank() }.forEach { (nombre, precio, cantidad) ->
+            val precioUnit = if (cantidad > 0) precio / cantidad else precio
             val existente = productosEnMemoria.firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }
             if (existente != null) {
                 batch.update(
                     db.collection("productos").document(existente.id),
-                    "ultimoPrecio", precio,
+                    "ultimoPrecio", precioUnit,
                     "vecesUsado", com.google.firebase.firestore.FieldValue.increment(1)
                 )
             } else {
                 val ref = db.collection("productos").document()
-                batch.set(ref, Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1))
+                batch.set(ref, Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precioUnit, vecesUsado = 1))
             }
         }
         batch.commit().await()

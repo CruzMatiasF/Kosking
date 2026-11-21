@@ -53,8 +53,10 @@ fun PantallaDetalleCliente(
     val localData by vm.localData.collectAsState()
     val context = LocalContext.current
 
-    val extracto = remember(movimientos) {
-        construirExtracto(movimientos)
+    val extracto by produceState(emptyList<VisitaExtracto>(), movimientos) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            construirExtracto(movimientos)
+        }
     }
     val scope = rememberCoroutineScope()
 

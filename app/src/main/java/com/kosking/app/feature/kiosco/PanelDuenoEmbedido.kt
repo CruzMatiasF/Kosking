@@ -87,6 +87,7 @@ fun PanelDuenoEmbedido(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +48,7 @@ internal fun ZonaProductos(
             value = busquedaProducto,
             onValueChange = onBusquedaChange,
             placeholder = { Text("Buscar producto…") },
-            leadingIcon = { Icon(Icons.Default.Add, null) },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
             trailingIcon = {
                 if (busquedaProducto.isNotEmpty()) {
                     IconButton(onClick = { onBusquedaChange("") }) {
@@ -299,7 +300,7 @@ internal fun ZonaResumen(
                 exito -> Icon(Icons.Default.Check, null, Modifier.size(22.dp))
                 cargando -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 else -> Text(
-                    if (totalConOtro > 0) "Guardar cargo $${"%.0f".format(totalConOtro)}" else "Guardar",
+                    if (totalConOtro > 0) "Anotar $${"%.0f".format(totalConOtro)}" else "Anotar",
                     style = MaterialTheme.typography.labelLarge
                 )
             }

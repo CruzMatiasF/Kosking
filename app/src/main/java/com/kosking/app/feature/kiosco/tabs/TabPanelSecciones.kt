@@ -230,7 +230,7 @@ internal fun LazyListScope.alertasCards(
                     }
                     disputados.take(3).forEach { mov ->
                         val nombreCliente = clienteMap[mov.clienteId]?.nombre ?: "Cliente"
-                        val concepto = mov.producto.ifBlank { if (mov.tipo == "cargo") "Cargo" else "Pago" }
+                        val concepto = mov.producto.ifBlank { if (mov.tipo == "cargo") "Anotación" else "Cobro" }
                         Text(
                             "• $nombreCliente — $concepto $${"%.0f".format(mov.monto)}",
                             style = MaterialTheme.typography.bodySmall,

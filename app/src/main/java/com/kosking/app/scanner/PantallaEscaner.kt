@@ -197,6 +197,7 @@ fun PantallaEscaner(
                         itemsAnotados = if (idx >= 0)
                             itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
                         else itemsAnotados + item
+                        queryBusqueda = ""
                         delay(300)
                         yaDetecto.value = false
                     }
@@ -364,7 +365,8 @@ fun PantallaEscaner(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
             }
 
-            // ── Campo inline de cliente superpuesto sobre la cámara ──
+            // ── Campo inline de cliente (solo en modo ANOTAR) ──
+            if (modo == ModoEscaner.ANOTAR) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -478,6 +480,7 @@ fun PantallaEscaner(
                     )
                 }
             }
+            } // end if ANOTAR
         }
 
         // ── Panel inferior ──
@@ -568,7 +571,6 @@ fun PantallaEscaner(
                                     }
                                 }
                             }
-                            HorizontalDivider()
                         }
 
                         HorizontalDivider()

@@ -45,7 +45,8 @@ internal fun TabPanelDueno(
     puedeVerDeuda: Boolean = true,
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
-    onAgregarCliente: () -> Unit = {}
+    onAgregarCliente: () -> Unit = {},
+    onGuardarNombreNegocio: ((nombre: String) -> Unit)? = null
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -168,6 +169,39 @@ internal fun TabPanelDueno(
         if (!esEmpleado && clientes.isEmpty()) {
             item {
                 val nombreOk = !localData?.nombre.isNullOrBlank()
+                var mostrarDialogoNombre by remember { mutableStateOf(false) }
+                var nombreTexto by remember { mutableStateOf(localData?.nombre ?: "") }
+
+                if (mostrarDialogoNombre && onGuardarNombreNegocio != null) {
+                    AlertDialog(
+                        onDismissRequest = { mostrarDialogoNombre = false },
+                        title = { Text("Nombre de tu negocio") },
+                        text = {
+                            OutlinedTextField(
+                                value = nombreTexto,
+                                onValueChange = { nombreTexto = it },
+                                placeholder = { Text("Ej: Kiosco Don Juan") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (nombreTexto.isNotBlank()) {
+                                        onGuardarNombreNegocio(nombreTexto.trim())
+                                        mostrarDialogoNombre = false
+                                    }
+                                },
+                                enabled = nombreTexto.isNotBlank()
+                            ) { Text("Guardar") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { mostrarDialogoNombre = false }) { Text("Cancelar") }
+                        }
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -181,9 +215,12 @@ internal fun TabPanelDueno(
                     )
                     PasoInicio(
                         numero = "1",
-                        texto = "Ponele nombre a tu negocio",
+                        texto = if (nombreOk) "Negocio: ${localData?.nombre}" else "Ponele nombre a tu negocio",
                         hecho = nombreOk,
-                        onClick = onAbrirPerfil
+                        onClick = {
+                            nombreTexto = localData?.nombre ?: ""
+                            mostrarDialogoNombre = true
+                        }
                     )
                     PasoInicio(
                         numero = "2",

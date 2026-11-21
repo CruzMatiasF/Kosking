@@ -21,6 +21,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,6 +108,7 @@ fun PantallaEscaner(
     val yaDetecto = remember { mutableStateOf(false) }
     val ultimoCodigo = remember { mutableStateOf("") }
     val ultimoCodigoTs = remember { mutableStateOf(0L) }
+    var escaneoExitoso by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -198,7 +201,9 @@ fun PantallaEscaner(
                             itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
                         else itemsAnotados + item
                         queryBusqueda = ""
-                        delay(300)
+                        escaneoExitoso = true
+                        delay(400)
+                        escaneoExitoso = false
                         yaDetecto.value = false
                     }
                     ModoEscaner.CARGAR_NUEVO -> {
@@ -328,9 +333,13 @@ fun PantallaEscaner(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Marco de escaneo
+                // Marco de escaneo — flash verde al detectar
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    val c = MaterialTheme.colorScheme.primary
+                    val colorMarco by animateColorAsState(
+                        targetValue = if (escaneoExitoso) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "marcoColor"
+                    )
                     Canvas(Modifier.size(220.dp)) {
                         val s = 28.dp.toPx(); val w = 3.5.dp.toPx()
                         listOf(
@@ -341,8 +350,8 @@ fun PantallaEscaner(
                         ).forEach { corner ->
                             val hx = if (corner.x == 0f) corner.x + s else corner.x - s
                             val vy = if (corner.y == 0f) corner.y + s else corner.y - s
-                            drawLine(c, corner, androidx.compose.ui.geometry.Offset(hx, corner.y), w)
-                            drawLine(c, corner, androidx.compose.ui.geometry.Offset(corner.x, vy), w)
+                            drawLine(colorMarco, corner, androidx.compose.ui.geometry.Offset(hx, corner.y), w)
+                            drawLine(colorMarco, corner, androidx.compose.ui.geometry.Offset(corner.x, vy), w)
                         }
                     }
                 }
@@ -374,42 +383,45 @@ fun PantallaEscaner(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Sugerencias encima del campo cuando están escribiendo
-                if (mostrarBuscarCliente && busquedaCliente.isNotBlank()) {
-                    val sugs = filtradosCliente.take(4)
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                        tonalElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                    ) {
-                        Column {
-                            if (sugs.isEmpty()) {
-                                ListItem(
-                                    headlineContent = { Text("Crear \"${busquedaCliente.trim()}\"", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) },
-                                    leadingContent = { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp)) },
-                                    modifier = Modifier.clickable {
-                                        vm.agregarClienteYObtener(nombre = busquedaCliente.trim()) { nuevo ->
-                                            clienteSeleccionado = nuevo
-                                            mostrarBuscarCliente = false
-                                            busquedaCliente = ""
-                                        }
-                                    }
-                                )
-                            } else {
-                                sugs.forEach { c ->
+                // Sugerencias encima del campo: recientes si campo vacío, filtradas si hay texto
+                if (mostrarBuscarCliente) {
+                    val sugs = if (busquedaCliente.isBlank()) clientesOrdenados.take(4) else filtradosCliente.take(4)
+                    val mostrarCrear = busquedaCliente.isNotBlank() && filtradosCliente.isEmpty()
+                    if (sugs.isNotEmpty() || mostrarCrear) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                            tonalElevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        ) {
+                            Column {
+                                if (mostrarCrear) {
                                     ListItem(
-                                        headlineContent = { Text(c.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium) },
-                                        supportingContent = if (c.deudaTotal > 0) ({
-                                            Text("Debe $${c.deudaTotal.toInt()}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-                                        }) else null,
+                                        headlineContent = { Text("Nuevo cliente: \"${busquedaCliente.trim()}\"", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) },
+                                        leadingContent = { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp)) },
                                         modifier = Modifier.clickable {
-                                            clienteSeleccionado = c
-                                            mostrarBuscarCliente = false
-                                            busquedaCliente = ""
+                                            vm.agregarClienteYObtener(nombre = busquedaCliente.trim()) { nuevo ->
+                                                clienteSeleccionado = nuevo
+                                                mostrarBuscarCliente = false
+                                                busquedaCliente = ""
+                                            }
                                         }
                                     )
-                                    if (c != sugs.last()) HorizontalDivider()
+                                } else {
+                                    sugs.forEach { c ->
+                                        ListItem(
+                                            headlineContent = { Text(c.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium) },
+                                            supportingContent = if (c.deudaTotal > 0) ({
+                                                Text("Debe $${c.deudaTotal.toInt()}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                                            }) else null,
+                                            modifier = Modifier.clickable {
+                                                clienteSeleccionado = c
+                                                mostrarBuscarCliente = false
+                                                busquedaCliente = ""
+                                            }
+                                        )
+                                        if (c != sugs.last()) HorizontalDivider()
+                                    }
                                 }
                             }
                         }
@@ -588,12 +600,20 @@ fun PantallaEscaner(
                                     ListItem(
                                         headlineContent = { Text(item.nombre, style = MaterialTheme.typography.bodyMedium) },
                                         supportingContent = {
-                                            Text(
-                                                "$${(item.precio * item.cantidad).toInt()}" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                                color = MaterialTheme.colorScheme.primary,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
+                                            if (item.precio > 0) {
+                                                Text(
+                                                    "$${(item.precio * item.cantidad).toInt()}" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            } else {
+                                                Text(
+                                                    "sin precio" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
                                         },
                                         trailingContent = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {

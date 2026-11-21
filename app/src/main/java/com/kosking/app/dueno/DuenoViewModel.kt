@@ -178,7 +178,7 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    fun agregarClienteYObtener(nombre: String, onExito: (Cliente) -> Unit) {
+    fun agregarClienteYObtener(nombre: String, telefono: String = "", onExito: (Cliente) -> Unit) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
@@ -187,7 +187,7 @@ class DuenoViewModel : ViewModel() {
                     _error.value = "Límite de $LIMITE_CLIENTES_GRATIS clientes alcanzado."
                     return@launch
                 }
-                val cliente = Cliente(localId = _localId.value, nombre = nombre)
+                val cliente = Cliente(localId = _localId.value, nombre = nombre, telefono = telefono)
                 val id = FiadoRepository.agregarCliente(cliente)
                 onExito(cliente.copy(id = id))
             } catch (e: Exception) {

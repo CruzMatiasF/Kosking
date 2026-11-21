@@ -94,6 +94,9 @@ fun PantallaEscaner(
     var mostrarBuscarCliente by remember { mutableStateOf(false) }
     var busquedaCliente by remember { mutableStateOf("") }
     val focusCliente = remember { FocusRequester() }
+    var mostrarRegistroCliente by remember { mutableStateOf(false) }
+    var nombreNuevoCliente by remember { mutableStateOf("") }
+    var telefonoNuevoCliente by remember { mutableStateOf("") }
 
     var itemsAnotados by remember { mutableStateOf(listOf<ItemAnotado>()) }
     var productoParaCargar by remember { mutableStateOf<ProductoDetectado?>(null) }
@@ -400,11 +403,11 @@ fun PantallaEscaner(
                                         headlineContent = { Text("Nuevo cliente: \"${busquedaCliente.trim()}\"", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) },
                                         leadingContent = { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp)) },
                                         modifier = Modifier.clickable {
-                                            vm.agregarClienteYObtener(nombre = busquedaCliente.trim()) { nuevo ->
-                                                clienteSeleccionado = nuevo
-                                                mostrarBuscarCliente = false
-                                                busquedaCliente = ""
-                                            }
+                                            nombreNuevoCliente = busquedaCliente.trim()
+                                            telefonoNuevoCliente = ""
+                                            mostrarBuscarCliente = false
+                                            busquedaCliente = ""
+                                            mostrarRegistroCliente = true
                                         }
                                     )
                                 } else {
@@ -714,6 +717,67 @@ fun PantallaEscaner(
                     }
                 }
                 } // end when
+            }
+        }
+    }
+
+    // ── Sheet registro de nuevo cliente ──
+    if (mostrarRegistroCliente) {
+        val telefonoValido = telefonoNuevoCliente.isBlank() ||
+                telefonoNuevoCliente.filter { it.isDigit() }.length >= 8
+        ModalBottomSheet(onDismissRequest = { mostrarRegistroCliente = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    "Nuevo cliente",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                OutlinedTextField(
+                    value = nombreNuevoCliente,
+                    onValueChange = { nombreNuevoCliente = it },
+                    label = { Text("Nombre *") },
+                    leadingIcon = { Icon(Icons.Default.Person, null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
+                )
+                OutlinedTextField(
+                    value = telefonoNuevoCliente,
+                    onValueChange = { telefonoNuevoCliente = it },
+                    label = { Text("Teléfono (opcional)") },
+                    leadingIcon = { Icon(Icons.Default.Phone, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    supportingText = {
+                        if (telefonoNuevoCliente.isNotBlank() && !telefonoValido)
+                            Text("Mínimo 8 dígitos", color = MaterialTheme.colorScheme.error)
+                        else
+                            Text("Para avisarle por WhatsApp")
+                    },
+                    isError = telefonoNuevoCliente.isNotBlank() && !telefonoValido
+                )
+                Button(
+                    onClick = {
+                        vm.agregarClienteYObtener(
+                            nombre = nombreNuevoCliente.trim(),
+                            telefono = telefonoNuevoCliente.trim()
+                        ) { nuevo ->
+                            clienteSeleccionado = nuevo
+                            mostrarRegistroCliente = false
+                        }
+                    },
+                    enabled = nombreNuevoCliente.isNotBlank() && telefonoValido,
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    Text("Crear y seleccionar", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

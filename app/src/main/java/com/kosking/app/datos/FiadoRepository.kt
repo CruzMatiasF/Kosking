@@ -319,6 +319,27 @@ object FiadoRepository {
         return ref.downloadUrl.await().toString()
     }
 
+    // Versión batch: usa la lista en memoria para evitar N lecturas a Firestore.
+    // items: (nombre, precio, cantidad)
+    suspend fun upsertProductosBatch(localId: String, items: List<Triple<String, Double, Int>>, productosEnMemoria: List<Producto>) {
+        if (items.isEmpty()) return
+        val batch = db.batch()
+        items.filter { it.first.isNotBlank() }.forEach { (nombre, precio, _) ->
+            val existente = productosEnMemoria.firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }
+            if (existente != null) {
+                batch.update(
+                    db.collection("productos").document(existente.id),
+                    "ultimoPrecio", precio,
+                    "vecesUsado", com.google.firebase.firestore.FieldValue.increment(1)
+                )
+            } else {
+                val ref = db.collection("productos").document()
+                batch.set(ref, Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1))
+            }
+        }
+        batch.commit().await()
+    }
+
     suspend fun upsertProducto(localId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", productoId: String? = null) {
         if (nombre.isBlank()) return
         val snap = db.collection("productos")

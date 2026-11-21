@@ -42,6 +42,7 @@ object CatalogoRepository {
         return try {
             val snap = db.collection("catalogo_base")
                 .orderBy("categoria")
+                .limit(500)
                 .get().await()
             snap.documents.map {
                 ItemCatalogo(

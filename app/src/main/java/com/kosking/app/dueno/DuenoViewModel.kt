@@ -309,9 +309,7 @@ class DuenoViewModel : ViewModel() {
                     )
                 }
                 FiadoRepository.agregarMovimientos(movs)
-                items.forEach { (producto, monto) ->
-                    if (producto.isNotBlank()) FiadoRepository.upsertProducto(_localId.value, producto, monto)
-                }
+                FiadoRepository.upsertProductosBatch(_localId.value, items, productos.value)
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarMovimientos dueno")

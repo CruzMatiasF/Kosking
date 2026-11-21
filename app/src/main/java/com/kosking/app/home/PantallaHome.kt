@@ -31,7 +31,7 @@ import com.kosking.app.ajustes.PantallaSeguridad
 import com.kosking.app.ajustes.PantallaConfiguracion
 import com.kosking.app.ajustes.PantallaAcercaDe
 import com.kosking.app.ajustes.PantallaNotificaciones
-import com.kosking.app.ajustes.PantallaAlertas
+import com.kosking.app.home.PantallaAlertas
 import com.kosking.app.ajustes.PantallaApariencia
 import com.kosking.app.ajustes.PantallaExportar
 import com.kosking.app.ajustes.PantallaEstadisticas

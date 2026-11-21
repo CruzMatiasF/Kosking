@@ -106,29 +106,18 @@ object WhatsAppUtil {
 
     private fun limpiarTelefono(telefono: String): String {
         val limpio = telefono.trim()
-        // Si ya tiene + al principio, solo quitar el +
         if (limpio.startsWith("+")) return limpio.drop(1).filter { it.isDigit() }
-        // Si empieza con 00 (formato internacional alternativo)
         if (limpio.startsWith("00")) return limpio.drop(2).filter { it.isDigit() }
-        val soloDigitos = limpio.filter { it.isDigit() }
+        val d = limpio.filter { it.isDigit() }
         return when {
-            // Ya tiene código de país conocido
-            soloDigitos.startsWith("549")  -> soloDigitos               // Argentina móvil
-            soloDigitos.startsWith("5411") -> soloDigitos               // Argentina fijo BsAs
-            soloDigitos.startsWith("54")   -> "549${soloDigitos.drop(2)}" // Argentina sin 9
-            soloDigitos.startsWith("598")  -> soloDigitos               // Uruguay
-            soloDigitos.startsWith("56")   -> soloDigitos               // Chile
-            soloDigitos.startsWith("595")  -> soloDigitos               // Paraguay
-            soloDigitos.startsWith("591")  -> soloDigitos               // Bolivia
-            soloDigitos.startsWith("51")   -> soloDigitos               // Perú
-            soloDigitos.startsWith("57")   -> soloDigitos               // Colombia
-            soloDigitos.startsWith("58")   -> soloDigitos               // Venezuela
-            // Formato local Argentina (sin código de país)
-            soloDigitos.startsWith("0")    -> "549${soloDigitos.drop(1)}"
-            soloDigitos.startsWith("15")   -> "549${soloDigitos.drop(2)}"
-            soloDigitos.length == 10       -> "549$soloDigitos"
-            // Fallback: asumir Argentina
-            else                           -> "549$soloDigitos"
+            d.startsWith("54")  -> if (d.startsWith("549") || d.startsWith("5411")) d else "549${d.drop(2)}"
+            d.startsWith("598") || d.startsWith("56") || d.startsWith("595") ||
+            d.startsWith("591") || d.startsWith("51") || d.startsWith("57") ||
+            d.startsWith("58")  -> d
+            d.startsWith("15")  -> "549${d.drop(2)}"
+            d.startsWith("0")   -> "549${d.drop(1)}"
+            d.length == 10      -> "549$d"
+            else                -> "549$d"
         }
     }
 }

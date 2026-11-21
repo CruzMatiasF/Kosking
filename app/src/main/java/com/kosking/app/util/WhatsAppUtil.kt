@@ -101,7 +101,7 @@ object WhatsAppUtil {
         val url = "https://wa.me/$numero?text=${Uri.encode(mensaje)}"
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        context.startActivity(intent)
+        try { context.startActivity(intent) } catch (_: Exception) {}
     }
 
     private fun limpiarTelefono(telefono: String): String {

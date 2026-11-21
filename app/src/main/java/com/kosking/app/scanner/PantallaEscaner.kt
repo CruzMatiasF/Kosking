@@ -105,7 +105,6 @@ fun PantallaEscaner(
     val yaDetecto = remember { mutableStateOf(false) }
     val ultimoCodigo = remember { mutableStateOf("") }
     val ultimoCodigoTs = remember { mutableStateOf(0L) }
-    val focusBusqueda = remember { FocusRequester() }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -347,6 +346,58 @@ fun PantallaEscaner(
                         CircularProgressIndicator(color = Color.White)
                     }
                 }
+
+                // ── Chip de cliente superpuesto en la cámara (esquina inferior) ──
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Surface(
+                        onClick = { mostrarBuscarCliente = true },
+                        shape = RoundedCornerShape(50),
+                        color = if (clienteSeleccionado != null)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.92f)
+                        else Color.Black.copy(alpha = 0.55f),
+                        tonalElevation = 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                null,
+                                modifier = Modifier.size(15.dp),
+                                tint = Color.White
+                            )
+                            if (clienteSeleccionado != null) {
+                                Text(
+                                    clienteSeleccionado!!.nombre,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                                Spacer(Modifier.width(2.dp))
+                                Icon(
+                                    Icons.Default.Close,
+                                    null,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable { clienteSeleccionado = null },
+                                    tint = Color.White.copy(alpha = 0.8f)
+                                )
+                            } else {
+                                Text(
+                                    "Cliente (opcional)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.85f)
+                                )
+                            }
+                        }
+                    }
+                }
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
@@ -417,7 +468,7 @@ fun PantallaEscaner(
                                 value = queryBusqueda,
                                 onValueChange = { queryBusqueda = it },
                                 placeholder = { Text("Sin código? Escribí el nombre") },
-                                modifier = Modifier.weight(1f).focusRequester(focusBusqueda),
+                                modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 textStyle = MaterialTheme.typography.bodySmall,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -493,51 +544,6 @@ fun PantallaEscaner(
                                     )
                                     HorizontalDivider()
                                 }
-                            }
-                        }
-
-                        // ── Sección cliente (fija al fondo, antes del botón) ──
-                        HorizontalDivider()
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { mostrarBuscarCliente = true }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (clienteSeleccionado != null) MaterialTheme.colorScheme.primary
-                                           else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (clienteSeleccionado != null) {
-                                    Text(
-                                        clienteSeleccionado!!.nombre,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    Text(
-                                        "Cliente (opcional) — escaneá QR o buscá",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            if (clienteSeleccionado != null) {
-                                IconButton(
-                                    onClick = { clienteSeleccionado = null },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            } else {
-                                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
 
@@ -622,20 +628,15 @@ fun PantallaEscaner(
     }
 
     // ── Bottom sheet buscar cliente ──
+    val focusCliente = remember { FocusRequester() }
     if (mostrarBuscarCliente) {
         ModalBottomSheet(onDismissRequest = { mostrarBuscarCliente = false; busquedaCliente = "" }) {
             Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-                Text(
-                    "¿Para quién?",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
                 OutlinedTextField(
                     value = busquedaCliente,
                     onValueChange = { busquedaCliente = it },
                     placeholder = { Text("Buscar cliente...") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).focusRequester(focusCliente),
                     singleLine = true,
                     leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
                     trailingIcon = {
@@ -646,6 +647,10 @@ fun PantallaEscaner(
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     textStyle = MaterialTheme.typography.bodySmall
                 )
+                LaunchedEffect(Unit) {
+                    delay(150)
+                    focusCliente.requestFocus()
+                }
                 // Crear nuevo si no hay resultados
                 if (busquedaCliente.isNotBlank() && filtradosCliente.isEmpty()) {
                     ListItem(

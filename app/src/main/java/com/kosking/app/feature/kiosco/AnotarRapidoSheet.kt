@@ -324,7 +324,7 @@ fun AnotarRapidoSheet(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        Icon(Icons.Default.Store, null, Modifier.size(18.dp),
+                                        Icon(Icons.Default.ShoppingCart, null, Modifier.size(18.dp),
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer)
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text("Sin productos cargados",

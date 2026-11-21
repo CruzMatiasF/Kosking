@@ -110,8 +110,7 @@ internal fun BarraFiltrosClientes(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
     ) {
-        items(chips.size) { i ->
-            val chip = chips[i]
+        items(chips) { chip ->
             val selected = filtro == chip.key
             FilterChip(
                 selected = selected,

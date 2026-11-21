@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+private val fmtDetalleMovimiento = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaDetalleMovimiento(
@@ -67,7 +69,6 @@ fun PantallaDetalleMovimiento(
             return@Scaffold
         }
 
-        val fmt = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         val esCargo = movActual.tipo == "cargo"
 
         Column(
@@ -137,7 +138,7 @@ fun PantallaDetalleMovimiento(
                     FilaDetalle("Cliente", cliente?.nombre ?: "—")
                     if (movActual.producto.isNotBlank()) FilaDetalle("Descripción", movActual.producto)
                     HorizontalDivider()
-                    FilaDetalle("Fecha", fmt.format(movActual.fecha.toDate()))
+                    FilaDetalle("Fecha", fmtDetalleMovimiento.format(movActual.fecha.toDate()))
                     if (movActual.anotadoPorNombre.isNotBlank()) {
                         FilaDetalle("Registrado por", movActual.anotadoPorNombre)
                     }

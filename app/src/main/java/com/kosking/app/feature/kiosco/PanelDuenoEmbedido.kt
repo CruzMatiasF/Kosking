@@ -21,6 +21,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private val fmtHoraWA = SimpleDateFormat("HH:mm", Locale.getDefault())
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelDuenoEmbedido(
@@ -184,9 +186,7 @@ fun PanelDuenoEmbedido(
                                 )
                                 if (resultado == SnackbarResult.ActionPerformed) {
                                     ultimoAnotado?.let { ua ->
-                                        val hora = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
-                                            Date()
-                                        )
+                                        val hora = fmtHoraWA.format(Date())
                                         WhatsAppUtil.abrirWhatsApp(
                                             context = context,
                                             telefono = ua.cliente.telefono,

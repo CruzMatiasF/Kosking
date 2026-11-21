@@ -50,8 +50,8 @@ class ResumenDiaWorker(
             val movimientos = snap.toObjects(Movimiento::class.java)
             if (movimientos.isEmpty()) return Result.success()
 
-            val totalFiado = movimientos.filter { it.tipo == "cargo" }.sumOf { it.monto }
-            val totalCobrado = movimientos.filter { it.tipo == "pago" }.sumOf { it.monto }
+            var totalFiado = 0.0; var totalCobrado = 0.0
+            movimientos.forEach { if (it.tipo == "cargo") totalFiado += it.monto else totalCobrado += it.monto }
             val totalDeuda = prefs.getFloat("total_deuda", 0f).toDouble()
             val clientesConDeuda = prefs.getInt("clientes_con_deuda", 0)
 

@@ -33,6 +33,7 @@ class NotificacionAcuerdosWorker(
             val snap = FirebaseFirestore.getInstance()
                 .collection("clientes")
                 .whereEqualTo("localId", localId)
+                .limit(500)
                 .get()
                 .await()
 

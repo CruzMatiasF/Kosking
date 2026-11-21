@@ -1,5 +1,6 @@
 ﻿package com.kosking.app.ajustes
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -53,7 +54,8 @@ fun PantallaSoporte(onVolver: () -> Unit) {
                 descripcion = "Escribinos directo, respondemos rápido",
                 onClick = {
                     val url = "https://wa.me/$WHATSAPP_NUMERO?text=Hola, necesito ayuda con Kosking"
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    try { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                    catch (_: ActivityNotFoundException) {}
                 }
             )
 
@@ -66,7 +68,8 @@ fun PantallaSoporte(onVolver: () -> Unit) {
                         data = Uri.parse("mailto:$EMAIL_SOPORTE")
                         putExtra(Intent.EXTRA_SUBJECT, "Soporte Kosking")
                     }
-                    context.startActivity(Intent.createChooser(intent, "Enviar correo"))
+                    try { context.startActivity(Intent.createChooser(intent, "Enviar correo")) }
+                    catch (_: ActivityNotFoundException) {}
                 }
             )
 

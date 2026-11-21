@@ -14,6 +14,7 @@ import com.kosking.app.MainActivity
 import com.kosking.app.R
 import com.kosking.app.modelo.Movimiento
 import java.util.Calendar
+import kotlinx.coroutines.tasks.await
 
 class ResumenDiaWorker(
     private val ctx: Context,

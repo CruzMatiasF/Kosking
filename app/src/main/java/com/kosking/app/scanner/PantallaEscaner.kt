@@ -137,7 +137,7 @@ fun PantallaEscaner(
 
             IconButton(
                 onClick = onCerrar,
-                modifier = Modifier.statusBarsPadding().padding(4.dp)
+                modifier = Modifier.padding(4.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
             }

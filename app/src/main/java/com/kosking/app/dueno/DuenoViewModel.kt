@@ -147,7 +147,7 @@ class DuenoViewModel : ViewModel() {
 
     companion object { const val LIMITE_CLIENTES_GRATIS = 150 }
 
-    fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, onExito: () -> Unit) {
+    fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, deudaInicial: Double = 0.0, onExito: () -> Unit) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
@@ -163,7 +163,21 @@ class DuenoViewModel : ViewModel() {
                     domicilio = domicilio,
                     limiteCredito = limiteCredito
                 )
-                FiadoRepository.agregarCliente(cliente)
+                val clienteId = FiadoRepository.agregarCliente(cliente)
+                if (deudaInicial > 0) {
+                    val uid = auth.currentUser?.uid ?: ""
+                    val mov = Movimiento(
+                        localId = _localId.value,
+                        clienteId = clienteId,
+                        tipo = "cargo",
+                        producto = "Deuda inicial",
+                        monto = deudaInicial,
+                        cantidad = 1,
+                        anotadoPorUid = uid,
+                        anotadoPorNombre = _nombreDueno.value
+                    )
+                    FiadoRepository.agregarMovimientos(listOf(mov))
+                }
                 onExito()
             } catch (e: Exception) {
                 CrashLogger.log(e, "agregarCliente")

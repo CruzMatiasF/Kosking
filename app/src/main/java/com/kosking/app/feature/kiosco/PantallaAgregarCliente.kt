@@ -31,6 +31,7 @@ fun PantallaAgregarCliente(
     var telefono by remember { mutableStateOf("") }
     var limiteTexto by remember { mutableStateOf("") }
     var usarLimite by remember { mutableStateOf(false) }
+    var deudaInicialTexto by remember { mutableStateOf("") }
     var mostrarUpgrade by remember { mutableStateOf(false) }
 
     if (mostrarUpgrade) {
@@ -147,6 +148,24 @@ fun PantallaAgregarCliente(
                 }
             }
 
+            // Deuda inicial
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            Text(
+                "¿Ya te debe algo?",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = deudaInicialTexto,
+                onValueChange = { deudaInicialTexto = it },
+                label = { Text("Deuda actual $ (opcional)") },
+                leadingIcon = { Icon(Icons.Default.AttachMoney, null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                supportingText = { Text("Se registra como cargo inicial en el historial") }
+            )
+
             // El error de límite se muestra como dialog; otros errores como texto
             LaunchedEffect(error) {
                 if (error?.contains("Límite") == true) mostrarUpgrade = true
@@ -157,7 +176,8 @@ fun PantallaAgregarCliente(
             Button(
                 onClick = {
                     val limite = if (usarLimite) limiteTexto.toDoubleOrNull() ?: 0.0 else 0.0
-                    vm.agregarCliente(nombre, telefono, "", limiteCredito = limite) { onVolver() }
+                    val deudaInicial = deudaInicialTexto.toDoubleOrNull() ?: 0.0
+                    vm.agregarCliente(nombre, telefono, "", limiteCredito = limite, deudaInicial = deudaInicial) { onVolver() }
                 },
                 enabled = !cargando && nombre.isNotBlank() && telefonoValido,
                 modifier = Modifier.fillMaxWidth().height(52.dp)

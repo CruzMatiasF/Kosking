@@ -73,7 +73,6 @@ fun KoskingNavHost(
     }
 
     val estaLogueado = authUser != null
-    val emailUsuario = authUser?.email ?: ""
 
     var nombreUsuario by remember { mutableStateOf("") }
     var usuarioCompleto by remember { mutableStateOf<com.kosking.app.modelo.Usuario?>(null) }
@@ -117,8 +116,6 @@ fun KoskingNavHost(
         }
 
         composable(Rutas.EXPLORAR) {
-            val empleadoTieneSession by empleadoVm.tieneSession.collectAsState()
-            val duenoTieneSession by duenoVm.tieneSession.collectAsState()
             val ctx = LocalContext.current
             var startupResuelto by rememberSaveable { mutableStateOf(false) }
 
@@ -162,7 +159,7 @@ fun KoskingNavHost(
                             destinoPostLogin = DestinoPostLogin.CrearLocal
                             nav.navigate(Rutas.LOGIN)
                         }
-                        duenoTieneSession -> mostrarPanelDueno = true
+                        esDueno.isNotBlank() -> mostrarPanelDueno = true
                         else -> nav.navigate(Rutas.ELEGIR_RUBRO)
                     }
                 },
@@ -172,7 +169,7 @@ fun KoskingNavHost(
                             destinoPostLogin = DestinoPostLogin.IngresarCodigo
                             nav.navigate(Rutas.LOGIN)
                         }
-                        empleadoTieneSession -> nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
+                        esEmpleado -> nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
                         else -> nav.navigate(Rutas.INGRESAR_CODIGO)
                     }
                 },

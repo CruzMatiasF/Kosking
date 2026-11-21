@@ -48,9 +48,6 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _codigoLocal = MutableStateFlow("")
-    val codigoLocal: StateFlow<String> = _codigoLocal
-
     private val _nombreDueno = MutableStateFlow("")
 
     private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
@@ -69,6 +66,13 @@ class DuenoViewModel : ViewModel() {
 
     init {
         auth.addAuthStateListener(authListener)
+        viewModelScope.launch {
+            val lista = productos.first { it.isNotEmpty() }
+            launch {
+                try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
+                catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -82,7 +86,6 @@ class DuenoViewModel : ViewModel() {
             _localId.value = usuario.localId
             val local = FiadoRepository.obtenerLocal(usuario.localId)
             _nombreLocal.value = local?.nombre ?: ""
-            _codigoLocal.value = ""
         }
     }
 
@@ -433,16 +436,6 @@ class DuenoViewModel : ViewModel() {
     suspend fun buscarProductosGlobales(query: String): List<String> =
         FiadoRepository.buscarProductosGlobales(query)
 
-    init {
-        viewModelScope.launch {
-            val lista = productos.first { it.isNotEmpty() }
-            launch {
-                try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
-                catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
-            }
-        }
-    }
-
     private suspend fun resolverLocalId(): String? {
         val existing = _localId.value
         if (existing.isNotBlank()) return existing
@@ -549,7 +542,6 @@ class DuenoViewModel : ViewModel() {
     fun cerrarSesion() {
         _localId.value = ""
         _nombreLocal.value = ""
-        _codigoLocal.value = ""
         _nombreDueno.value = ""
         _movimientoSeleccionado.value = null
         _detalleClienteId.value = ""

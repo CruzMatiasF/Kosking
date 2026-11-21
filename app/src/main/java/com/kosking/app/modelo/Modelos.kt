@@ -3,6 +3,7 @@ package com.kosking.app.modelo
 import androidx.compose.runtime.Immutable
 import com.google.firebase.Timestamp
 
+@Immutable
 data class ItemAnotado(
     val nombre: String,
     val precio: Double,

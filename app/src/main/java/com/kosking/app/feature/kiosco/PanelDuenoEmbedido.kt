@@ -148,18 +148,7 @@ fun PanelDuenoEmbedido(
                 esEmpleado = esEmpleado,
                 onAbrirPerfil = onAbrirPerfil,
                 onAbrirNotificaciones = onAbrirNotificaciones,
-                onAgregarCliente = onAbrirAgregarCliente,
-                onGuardarNombreNegocio = { nombre ->
-                    val local = localData
-                    if (local != null) {
-                        vm.actualizarLocalCompleto(
-                            nombre = nombre,
-                            direccion = local.direccion,
-                            telefono = local.telefono,
-                            horarios = local.horarios
-                        )
-                    }
-                }
+                onAgregarCliente = onAbrirAgregarCliente
             )
         }
     }

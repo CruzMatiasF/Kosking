@@ -45,8 +45,7 @@ internal fun TabPanelDueno(
     puedeVerDeuda: Boolean = true,
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
-    onAgregarCliente: () -> Unit = {},
-    onGuardarNombreNegocio: ((nombre: String) -> Unit)? = null
+    onAgregarCliente: () -> Unit = {}
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -168,69 +167,26 @@ internal fun TabPanelDueno(
         // Checklist de inicio para usuarios nuevos
         if (!esEmpleado && clientes.isEmpty()) {
             item {
-                val nombreOk = !localData?.nombre.isNullOrBlank()
-                var mostrarDialogoNombre by remember { mutableStateOf(false) }
-                var nombreTexto by remember { mutableStateOf(localData?.nombre ?: "") }
-
-                if (mostrarDialogoNombre && onGuardarNombreNegocio != null) {
-                    AlertDialog(
-                        onDismissRequest = { mostrarDialogoNombre = false },
-                        title = { Text("Nombre de tu negocio") },
-                        text = {
-                            OutlinedTextField(
-                                value = nombreTexto,
-                                onValueChange = { nombreTexto = it },
-                                placeholder = { Text("Ej: Kiosco Don Juan") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    if (nombreTexto.isNotBlank()) {
-                                        onGuardarNombreNegocio(nombreTexto.trim())
-                                        mostrarDialogoNombre = false
-                                    }
-                                },
-                                enabled = nombreTexto.isNotBlank()
-                            ) { Text("Guardar") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { mostrarDialogoNombre = false }) { Text("Cancelar") }
-                        }
-                    )
-                }
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Text(
-                        "Primeros pasos",
+                        "Para empezar",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(bottom = 10.dp)
                     )
                     PasoInicio(
                         numero = "1",
-                        texto = if (nombreOk) "Negocio: ${localData?.nombre}" else "Ponele nombre a tu negocio",
-                        hecho = nombreOk,
-                        onClick = {
-                            nombreTexto = localData?.nombre ?: ""
-                            mostrarDialogoNombre = true
-                        }
-                    )
-                    PasoInicio(
-                        numero = "2",
                         texto = "Agregá tus clientes",
                         hecho = false,
                         onClick = onAgregarCliente
                     )
                     PasoInicio(
-                        numero = "3",
-                        texto = "Cargá tus productos",
+                        numero = "2",
+                        texto = "Cargá los productos de tu local",
                         hecho = false,
                         onClick = onAbrirProductos
                     )

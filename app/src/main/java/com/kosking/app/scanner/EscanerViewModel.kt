@@ -52,7 +52,12 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     private var ultimoCodigoTs = 0L
 
     fun agregarALista(item: ItemAnotado) {
-        val idx = itemsAnotados.indexOfFirst { it.productoId != null && it.productoId == item.productoId }
+        val idx = itemsAnotados.indexOfFirst {
+            if (it.productoId != null && item.productoId != null)
+                it.productoId == item.productoId
+            else
+                it.nombre.lowercase() == item.nombre.lowercase()
+        }
         itemsAnotados = if (idx >= 0)
             itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
         else itemsAnotados + item

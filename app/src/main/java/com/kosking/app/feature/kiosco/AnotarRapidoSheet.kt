@@ -145,7 +145,7 @@ fun AnotarRapidoSheet(
     if (pedirConfirmCambio) {
         AlertDialog(
             onDismissRequest = { pedirConfirmCambio = false },
-            title = { Text("¿Cambiar a Pago?") },
+            title = { Text("¿Cambiar a Cobrar?") },
             text = { Text("Vas a perder los items que ya cargaste. ¿Continuás?") },
             confirmButton = {
                 TextButton(onClick = { limpiarCarrito(); esCargo = false; pedirConfirmCambio = false }) {
@@ -282,7 +282,7 @@ fun AnotarRapidoSheet(
                                     selected = esCargo,
                                     onClick = { esCargo = true; limpiarCarrito() },
                                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                                    label = { Text("Cargo") }
+                                    label = { Text("Anotar") }
                                 )
                                 SegmentedButton(
                                     selected = !esCargo,
@@ -292,7 +292,7 @@ fun AnotarRapidoSheet(
                                         else { montoUnicoTexto = ""; esCargo = false }
                                     },
                                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                                    label = { Text("Pago") }
+                                    label = { Text("Cobrar") }
                                 )
                             }
                         }

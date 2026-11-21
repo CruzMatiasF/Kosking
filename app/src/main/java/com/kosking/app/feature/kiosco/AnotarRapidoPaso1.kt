@@ -60,13 +60,13 @@ internal fun Paso1ElegirCliente(
                     selected = esCargo,
                     onClick = { onEsCargoChange(true); onLimpiarCarrito() },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    label = { Text("Cargo") }
+                    label = { Text("Anotar") }
                 )
                 SegmentedButton(
                     selected = !esCargo,
                     onClick = { onEsCargoChange(false) },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    label = { Text("Pago") }
+                    label = { Text("Cobrar") }
                 )
             }
         }

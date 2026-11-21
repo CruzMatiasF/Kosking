@@ -40,7 +40,6 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.kosking.app.datos.OpenFoodFactsRepository
 import com.kosking.app.modelo.ItemAnotado
-import com.kosking.app.modelo.Movimiento
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.util.WhatsAppUtil
@@ -167,7 +166,11 @@ fun PantallaEscaner(
         if (codigo.startsWith(PREFIJO_CLIENTE_QR)) {
             val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
             val cliente = clientes.find { it.id == clienteId }
-            if (cliente != null) clienteSeleccionado = cliente
+            if (cliente != null) {
+                clienteSeleccionado = cliente
+                mostrarBuscarCliente = false
+                busquedaCliente = ""
+            }
             yaDetecto.value = false
             return
         }
@@ -413,9 +416,9 @@ fun PantallaEscaner(
 
                 // Campo / chip
                 if (clienteSeleccionado != null && !mostrarBuscarCliente) {
-                    // Cliente ya elegido: mostrar como chip
+                    // Cliente ya elegido: tocar nombre → cambiar, tocar X → limpiar
                     Surface(
-                        onClick = { clienteSeleccionado = null },
+                        onClick = { busquedaCliente = ""; mostrarBuscarCliente = true },
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
                         tonalElevation = 0.dp
@@ -427,7 +430,12 @@ fun PantallaEscaner(
                         ) {
                             Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
                             Text(clienteSeleccionado!!.nombre, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
-                            Icon(Icons.Default.Close, null, modifier = Modifier.size(13.dp), tint = Color.White.copy(alpha = 0.8f))
+                            Icon(
+                                Icons.Default.Close,
+                                null,
+                                modifier = Modifier.size(13.dp).clickable { clienteSeleccionado = null },
+                                tint = Color.White.copy(alpha = 0.8f)
+                            )
                         }
                     }
                 } else {

@@ -13,6 +13,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.MainActivity
 import com.kosking.app.R
 import com.kosking.app.modelo.Cliente
+import kotlinx.coroutines.tasks.await
 
 class NotificacionAcuerdosWorker(
     private val ctx: Context,

@@ -1,14 +1,19 @@
 package com.kosking.app.feature.kiosco.tabs
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
@@ -39,7 +44,8 @@ internal fun TabPanelDueno(
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
     onAbrirPerfil: () -> Unit = {},
-    onAbrirNotificaciones: () -> Unit = {}
+    onAbrirNotificaciones: () -> Unit = {},
+    onAgregarCliente: () -> Unit = {}
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -158,6 +164,44 @@ internal fun TabPanelDueno(
             }
         }
 
+        // Checklist de inicio para usuarios nuevos
+        if (!esEmpleado && clientes.isEmpty()) {
+            item {
+                val nombreOk = !localData?.nombre.isNullOrBlank()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        "Primeros pasos",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+                    PasoInicio(
+                        numero = "1",
+                        texto = "Ponele nombre a tu negocio",
+                        hecho = nombreOk,
+                        onClick = onAbrirPerfil
+                    )
+                    PasoInicio(
+                        numero = "2",
+                        texto = "Agregá tus clientes",
+                        hecho = false,
+                        onClick = onAgregarCliente
+                    )
+                    PasoInicio(
+                        numero = "3",
+                        texto = "Cargá tus productos",
+                        hecho = false,
+                        onClick = onAbrirProductos
+                    )
+                }
+                HorizontalDivider()
+            }
+        }
+
         seccionHoy(
             clientes = clientes,
             movimientosHoy = movimientosHoy,
@@ -228,5 +272,43 @@ internal fun TabPanelDueno(
         DetalleVisitaSheet(visita = visita, onDismiss = { visitaDetalle = null })
     }
 
+}
+
+@Composable
+private fun PasoInicio(numero: String, texto: String, hecho: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(
+                    if (hecho) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (hecho) {
+                Icon(Icons.Default.Check, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            } else {
+                Text(numero, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Text(
+            texto,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (hecho) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(Icons.Default.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+    }
 }
 

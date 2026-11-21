@@ -147,7 +147,8 @@ fun PanelDuenoEmbedido(
                 onAbrirProductos = onAbrirProductos,
                 esEmpleado = esEmpleado,
                 onAbrirPerfil = onAbrirPerfil,
-                onAbrirNotificaciones = onAbrirNotificaciones
+                onAbrirNotificaciones = onAbrirNotificaciones,
+                onAgregarCliente = onAbrirAgregarCliente
             )
         }
     }
@@ -207,7 +208,8 @@ fun PanelDuenoEmbedido(
                 )
             },
             onDismiss = { mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo" },
-            onAgregarCliente = if (!esEmpleado) {{ mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo"; onAbrirAgregarCliente() }} else null
+            onAgregarCliente = if (!esEmpleado) {{ mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo"; onAbrirAgregarCliente() }} else null,
+            onAbrirProductos = if (!esEmpleado) {{ mostrarAnotar = false; onAbrirProductos() }} else null
         )
     }
 

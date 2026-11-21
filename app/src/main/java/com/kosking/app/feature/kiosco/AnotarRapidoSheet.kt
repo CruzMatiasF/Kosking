@@ -35,7 +35,8 @@ fun AnotarRapidoSheet(
     onGuardarProducto: (nombre: String, precio: Double, onExito: () -> Unit) -> Unit = { _, _, cb -> cb() },
     onGuardar: (clienteId: String, items: List<Triple<String, Double, Int>>, tipo: String) -> Unit,
     onDismiss: () -> Unit,
-    onAgregarCliente: (() -> Unit)? = null
+    onAgregarCliente: (() -> Unit)? = null,
+    onAbrirProductos: (() -> Unit)? = null
 ) {
     // ── Estado ───────────────────────────────────────────────────────────────
     val clientesOrdenados = remember(clientes) { clientes.sortedByDescending { it.deudaTotal } }
@@ -312,6 +313,37 @@ fun AnotarRapidoSheet(
                                 onGuardar = { clienteSeleccionado?.let { onGuardar(it.id, armarItems(), "pago") } }
                             )
                         } else {
+                            if (productos.isEmpty() && onAbrirProductos != null) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(Icons.Default.Storefront, null, Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("Sin productos cargados",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                            Text("Cargá los productos de tu local para anotar más rápido.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
+                                        }
+                                        TextButton(
+                                            onClick = { onDismiss(); onAbrirProductos() },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("Ir", style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                        }
+                                    }
+                                }
+                            }
                             ZonaProductos(
                                 productos = productos,
                                 busquedaProducto = busquedaProducto,

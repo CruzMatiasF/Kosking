@@ -55,15 +55,17 @@ internal fun Paso1ElegirCliente(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
+            SingleChoiceSegmentedButtonRow {
+                SegmentedButton(
                     selected = esCargo,
                     onClick = { onEsCargoChange(true); onLimpiarCarrito() },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     label = { Text("Cargo") }
                 )
-                FilterChip(
+                SegmentedButton(
                     selected = !esCargo,
                     onClick = { onEsCargoChange(false) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     label = { Text("Pago") }
                 )
             }

@@ -277,22 +277,21 @@ fun AnotarRapidoSheet(
                                     )
                                 }
                             }
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.padding(end = 12.dp)
-                            ) {
-                                FilterChip(
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(end = 12.dp)) {
+                                SegmentedButton(
                                     selected = esCargo,
                                     onClick = { esCargo = true; limpiarCarrito() },
+                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                                     label = { Text("Cargo") }
                                 )
-                                FilterChip(
+                                SegmentedButton(
                                     selected = !esCargo,
                                     onClick = {
                                         if (carrito.isNotEmpty() || (mostrarOtro && montoOtroTexto.isNotBlank()))
                                             pedirConfirmCambio = true
                                         else { montoUnicoTexto = ""; esCargo = false }
                                     },
+                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                                     label = { Text("Pago") }
                                 )
                             }

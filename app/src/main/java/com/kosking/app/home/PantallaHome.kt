@@ -31,6 +31,7 @@ import com.kosking.app.ajustes.PantallaSeguridad
 import com.kosking.app.ajustes.PantallaConfiguracion
 import com.kosking.app.ajustes.PantallaAcercaDe
 import com.kosking.app.ajustes.PantallaNotificaciones
+import com.kosking.app.ajustes.PantallaAlertas
 import com.kosking.app.ajustes.PantallaApariencia
 import com.kosking.app.ajustes.PantallaExportar
 import com.kosking.app.ajustes.PantallaEstadisticas
@@ -51,6 +52,7 @@ private sealed class VistaExtra {
     object MiEquipo : VistaExtra()
     object Soporte : VistaExtra()
     object AcercaDe : VistaExtra()
+    object Alertas : VistaExtra()
 }
 
 // Tabs de la barra inferior — siempre los mismos para todos los rubros
@@ -312,7 +314,7 @@ fun PantallaHome(
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },
                             onAbrirProductos = { vistaDueno = NavDueno.Productos },
                             onAbrirPerfil = { mostrarPerfilSheet = true },
-                            onAbrirNotificaciones = { vistaExtra = VistaExtra.Notificaciones }
+                            onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas }
                         )
                         esEmpleado -> {
                             // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion
@@ -470,6 +472,10 @@ fun PantallaHome(
                 )
                 is VistaExtra.Notificaciones -> PantallaNotificaciones(
                     esDueno = esDueno,
+                    onVolver = { vistaExtra = VistaExtra.Ninguna }
+                )
+                is VistaExtra.Alertas -> PantallaAlertas(
+                    clientes = clientes,
                     onVolver = { vistaExtra = VistaExtra.Ninguna }
                 )
                 is VistaExtra.Apariencia -> PantallaApariencia(

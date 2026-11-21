@@ -185,11 +185,7 @@ fun KoskingNavHost(
                     mostrarPanelDueno = false
                     nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
                 },
-                onConfigurarPerfil = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
-                onAbrirPerfil = { nav.navigate(Rutas.PERFIL) },
-                onConfiguracion = { nav.navigate(Rutas.CONFIGURACION) },
                 onMiLocal = { nav.navigate(Rutas.CONFIGURAR_LOCAL) },
-                onAcercaDe = { nav.navigate(Rutas.ACERCA_DE) },
             )
         }
 

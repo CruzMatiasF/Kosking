@@ -78,11 +78,7 @@ fun PantallaHome(
     onIniciarSesion: () -> Unit,
     onRegistrarse: () -> Unit = {},
     onCerrarSesionCuenta: () -> Unit,
-    onConfigurarPerfil: () -> Unit,
-    onAbrirPerfil: () -> Unit = {},
-    onConfiguracion: () -> Unit = {},
     onMiLocal: () -> Unit = {},
-    onAcercaDe: () -> Unit = {},
     onTemaChanged: (String) -> Unit = {},
 ) {
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }

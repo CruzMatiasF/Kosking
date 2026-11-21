@@ -641,10 +641,6 @@ fun PantallaEscaner(
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     textStyle = MaterialTheme.typography.bodySmall
                 )
-                LaunchedEffect(Unit) {
-                    delay(150)
-                    focusCliente.requestFocus()
-                }
                 // Crear nuevo si no hay resultados
                 if (busquedaCliente.isNotBlank() && filtradosCliente.isEmpty()) {
                     ListItem(

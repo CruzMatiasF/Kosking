@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -91,6 +92,7 @@ fun PantallaEscaner(
     var clienteSeleccionado by remember { mutableStateOf<Cliente?>(null) }
     var mostrarBuscarCliente by remember { mutableStateOf(false) }
     var busquedaCliente by remember { mutableStateOf("") }
+    val focusCliente = remember { FocusRequester() }
 
     var itemsAnotados by remember { mutableStateOf(listOf<ItemAnotado>()) }
     var productoParaCargar by remember { mutableStateOf<ProductoDetectado?>(null) }
@@ -359,48 +361,113 @@ fun PantallaEscaner(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
             }
 
-            // ── Chip de cliente superpuesto sobre la cámara ──
-            Box(
+            // ── Campo inline de cliente superpuesto sobre la cámara ──
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp)
+                    .padding(horizontal = 24.dp, vertical = 10.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Surface(
-                    onClick = { mostrarBuscarCliente = true },
-                    shape = RoundedCornerShape(50),
-                    color = if (clienteSeleccionado != null)
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.92f)
-                    else Color.Black.copy(alpha = 0.55f),
-                    tonalElevation = 0.dp
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Sugerencias encima del campo cuando están escribiendo
+                if (mostrarBuscarCliente && busquedaCliente.isNotBlank()) {
+                    val sugs = filtradosCliente.take(4)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                        tonalElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     ) {
-                        Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
-                        if (clienteSeleccionado != null) {
-                            Text(
-                                clienteSeleccionado!!.nombre,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                            Spacer(Modifier.width(2.dp))
-                            Icon(
-                                Icons.Default.Close,
-                                null,
-                                modifier = Modifier.size(14.dp).clickable { clienteSeleccionado = null },
-                                tint = Color.White.copy(alpha = 0.8f)
-                            )
-                        } else {
-                            Text(
-                                "Cliente (opcional)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
+                        Column {
+                            if (sugs.isEmpty()) {
+                                ListItem(
+                                    headlineContent = { Text("Crear \"${busquedaCliente.trim()}\"", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) },
+                                    leadingContent = { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp)) },
+                                    modifier = Modifier.clickable {
+                                        vm.agregarClienteYObtener(nombre = busquedaCliente.trim()) { nuevo ->
+                                            clienteSeleccionado = nuevo
+                                            mostrarBuscarCliente = false
+                                            busquedaCliente = ""
+                                        }
+                                    }
+                                )
+                            } else {
+                                sugs.forEach { c ->
+                                    ListItem(
+                                        headlineContent = { Text(c.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium) },
+                                        supportingContent = if (c.deudaTotal > 0) ({
+                                            Text("Debe $${c.deudaTotal.toInt()}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                                        }) else null,
+                                        modifier = Modifier.clickable {
+                                            clienteSeleccionado = c
+                                            mostrarBuscarCliente = false
+                                            busquedaCliente = ""
+                                        }
+                                    )
+                                    if (c != sugs.last()) HorizontalDivider()
+                                }
+                            }
                         }
                     }
+                }
+
+                // Campo / chip
+                if (clienteSeleccionado != null && !mostrarBuscarCliente) {
+                    // Cliente ya elegido: mostrar como chip
+                    Surface(
+                        onClick = { clienteSeleccionado = null },
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
+                        tonalElevation = 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
+                            Text(clienteSeleccionado!!.nombre, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
+                            Icon(Icons.Default.Close, null, modifier = Modifier.size(13.dp), tint = Color.White.copy(alpha = 0.8f))
+                        }
+                    }
+                } else {
+                    // Campo de búsqueda inline
+                    BasicTextField(
+                        value = busquedaCliente,
+                        onValueChange = { busquedaCliente = it; mostrarBuscarCliente = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusCliente),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                        decorationBox = { inner ->
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = Color.Black.copy(alpha = 0.55f),
+                                tonalElevation = 0.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        if (busquedaCliente.isEmpty()) {
+                                            Text("Cliente (opcional)", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                                        }
+                                        inner()
+                                    }
+                                    if (busquedaCliente.isNotEmpty()) {
+                                        Icon(Icons.Default.Close, null,
+                                            modifier = Modifier.size(14.dp).clickable { busquedaCliente = ""; mostrarBuscarCliente = false },
+                                            tint = Color.White.copy(alpha = 0.7f))
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -617,62 +684,6 @@ fun PantallaEscaner(
                     }
                 }
                 } // end when
-            }
-        }
-    }
-
-    // ── Bottom sheet buscar cliente ──
-    val focusCliente = remember { FocusRequester() }
-    if (mostrarBuscarCliente) {
-        ModalBottomSheet(onDismissRequest = { mostrarBuscarCliente = false; busquedaCliente = "" }) {
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-                OutlinedTextField(
-                    value = busquedaCliente,
-                    onValueChange = { busquedaCliente = it },
-                    placeholder = { Text("Buscar cliente...") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).focusRequester(focusCliente),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
-                    trailingIcon = {
-                        if (busquedaCliente.isNotEmpty()) {
-                            IconButton(onClick = { busquedaCliente = "" }) { Icon(Icons.Default.Close, null) }
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    textStyle = MaterialTheme.typography.bodySmall
-                )
-                // Crear nuevo si no hay resultados
-                if (busquedaCliente.isNotBlank() && filtradosCliente.isEmpty()) {
-                    ListItem(
-                        headlineContent = { Text("Crear \"${busquedaCliente.trim()}\"", fontWeight = FontWeight.SemiBold) },
-                        leadingContent = { Icon(Icons.Default.PersonAdd, null) },
-                        modifier = Modifier.clickable {
-                            vm.agregarClienteYObtener(nombre = busquedaCliente.trim()) { nuevoCliente ->
-                                clienteSeleccionado = nuevoCliente
-                                mostrarBuscarCliente = false
-                                busquedaCliente = ""
-                            }
-                        }
-                    )
-                    HorizontalDivider()
-                }
-                LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
-                    items(filtradosCliente) { cliente ->
-                        ListItem(
-                            headlineContent = { Text(cliente.nombre, fontWeight = FontWeight.Medium) },
-                            supportingContent = if (cliente.deudaTotal > 0) ({
-                                Text("Debe $${cliente.deudaTotal.toInt()}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                            }) else null,
-                            trailingContent = { Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            modifier = Modifier.clickable {
-                                clienteSeleccionado = cliente
-                                mostrarBuscarCliente = false
-                                busquedaCliente = ""
-                            }
-                        )
-                        HorizontalDivider()
-                    }
-                }
             }
         }
     }

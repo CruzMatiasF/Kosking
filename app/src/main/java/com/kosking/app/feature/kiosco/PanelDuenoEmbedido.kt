@@ -206,7 +206,8 @@ fun PanelDuenoEmbedido(
                     }
                 )
             },
-            onDismiss = { mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo" }
+            onDismiss = { mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo" },
+            onAgregarCliente = if (!esEmpleado) {{ mostrarAnotar = false; clientePreseleccionado = null; tipoAnotar = "cargo"; onAbrirAgregarCliente() }} else null
         )
     }
 

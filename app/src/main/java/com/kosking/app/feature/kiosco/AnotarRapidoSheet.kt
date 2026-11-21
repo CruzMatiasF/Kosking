@@ -34,7 +34,8 @@ fun AnotarRapidoSheet(
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardarProducto: (nombre: String, precio: Double, onExito: () -> Unit) -> Unit = { _, _, cb -> cb() },
     onGuardar: (clienteId: String, items: List<Triple<String, Double, Int>>, tipo: String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onAgregarCliente: (() -> Unit)? = null
 ) {
     // ── Estado ───────────────────────────────────────────────────────────────
     val clientesOrdenados = remember(clientes) { clientes.sortedByDescending { it.deudaTotal } }
@@ -243,7 +244,8 @@ fun AnotarRapidoSheet(
                         },
                         onDismiss = onDismiss,
                         onEsCargoChange = { esCargo = it },
-                        onLimpiarCarrito = ::limpiarCarrito
+                        onLimpiarCarrito = ::limpiarCarrito,
+                        onAgregarCliente = onAgregarCliente?.let { cb -> { onDismiss(); cb() } }
                     )
                 } else {
                     // ── Paso 2: cargar productos / monto ───────────────────────

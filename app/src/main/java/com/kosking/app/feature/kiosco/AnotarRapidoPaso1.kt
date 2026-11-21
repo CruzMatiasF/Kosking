@@ -37,7 +37,8 @@ internal fun Paso1ElegirCliente(
     onClienteSeleccionado: (Cliente) -> Unit,
     onDismiss: () -> Unit,
     onEsCargoChange: (Boolean) -> Unit,
-    onLimpiarCarrito: () -> Unit
+    onLimpiarCarrito: () -> Unit,
+    onAgregarCliente: (() -> Unit)? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
         Row(
@@ -165,12 +166,26 @@ internal fun Paso1ElegirCliente(
                         Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
-                    Text(
-                        if (busquedaCliente.isBlank()) "Todavía no hay clientes"
-                        else "No encontramos \"$busquedaCliente\"",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (busquedaCliente.isBlank()) {
+                        Text(
+                            "Todavía no hay clientes",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (onAgregarCliente != null) {
+                            Button(onClick = onAgregarCliente) {
+                                Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Agregar cliente")
+                            }
+                        }
+                    } else {
+                        Text(
+                            "No encontramos \"$busquedaCliente\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else {

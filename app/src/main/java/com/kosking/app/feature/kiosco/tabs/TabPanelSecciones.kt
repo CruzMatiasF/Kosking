@@ -67,8 +67,16 @@ internal fun LazyListScope.seccionHoy(
                 }
             }
         } else if (movimientosHoy.isEmpty()) {
-            Box(Modifier.fillMaxWidth().padding(vertical = 14.dp), contentAlignment = Alignment.Center) {
-                Text("Todavía nada hoy", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.EditNote, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                Text("Todavía nada hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Tocá el botón + para anotar o cobrar.", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             }
         } else {
             visitasHoy.take(5).forEach { visita ->

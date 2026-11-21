@@ -66,13 +66,6 @@ class DuenoViewModel : ViewModel() {
 
     init {
         auth.addAuthStateListener(authListener)
-        viewModelScope.launch {
-            val lista = productos.first { it.isNotEmpty() }
-            launch {
-                try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
-                catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
-            }
-        }
     }
 
     override fun onCleared() {
@@ -432,6 +425,16 @@ class DuenoViewModel : ViewModel() {
             if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            val lista = productos.first { it.isNotEmpty() }
+            launch {
+                try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
+                catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
+            }
+        }
+    }
 
     suspend fun buscarProductosGlobales(query: String): List<String> =
         FiadoRepository.buscarProductosGlobales(query)

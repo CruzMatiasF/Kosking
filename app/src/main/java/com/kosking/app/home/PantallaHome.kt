@@ -440,7 +440,8 @@ fun PantallaHome(
                     onVolver = { vistaExtra = VistaExtra.Ninguna },
                     onInformacionPersonal = { vistaExtra = VistaExtra.ConfigurarPerfil },
                     onSeguridad = { vistaExtra = VistaExtra.Seguridad },
-                    onPrivacidad = { vistaExtra = VistaExtra.Privacidad }
+                    onPrivacidad = { vistaExtra = VistaExtra.Privacidad },
+                    onNotificaciones = { vistaExtra = VistaExtra.Notificaciones }
                 )
                 is VistaExtra.ConfigurarPerfil -> PantallaConfigurarPerfil(
                     nombreActual = nombreUsuario,

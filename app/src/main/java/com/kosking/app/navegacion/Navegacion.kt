@@ -333,39 +333,6 @@ fun KoskingNavHost(
             )
         }
 
-        composable(Rutas.PERFIL) {
-            val esDuenoVal by duenoVm.localId.collectAsState()
-            val esEmpleadoVal by empleadoVm.tieneSession.collectAsState()
-            val nombreLocal by empleadoVm.nombreLocal.collectAsState()
-            PantallaPerfil(
-                nombreUsuario = nombreUsuario,
-                rol = when {
-                    esDuenoVal.isNotBlank() -> "Dueño de local"
-                    esEmpleadoVal -> if (nombreLocal.isNotBlank()) "Empleado en $nombreLocal" else "Empleado"
-                    else -> "Cuenta personal"
-                },
-                esDueno = esDuenoVal.isNotBlank(),
-                onVolver = { nav.popBackStack() },
-                onInformacionPersonal = { nav.navigate(Rutas.CONFIGURAR_PERFIL) },
-                onSeguridad = { nav.navigate(Rutas.SEGURIDAD) },
-                onPrivacidad = { nav.navigate(Rutas.PRIVACIDAD) },
-                onNotificaciones = { nav.navigate(Rutas.NOTIFICACIONES) }
-            )
-        }
-
-        composable(Rutas.SEGURIDAD) {
-            PantallaSeguridad(onVolver = { nav.popBackStack() })
-        }
-
-        composable(Rutas.CONFIGURAR_PERFIL) {
-            PantallaConfigurarPerfil(
-                nombreActual = nombreUsuario,
-                emailActual = emailUsuario,
-                usuario = usuarioCompleto,
-                onVolver = { nav.popBackStack() }
-            )
-        }
-
         composable(Rutas.CONFIGURAR_LOCAL) {
             val localData by duenoVm.localData.collectAsState()
             val cargando by duenoVm.cargando.collectAsState()
@@ -382,69 +349,5 @@ fun KoskingNavHost(
             )
         }
 
-        composable(Rutas.CONFIGURACION) {
-            val esDuenoVal by duenoVm.localId.collectAsState()
-            val esEmpleadoVal by empleadoVm.tieneSession.collectAsState()
-            PantallaConfiguracion(
-                esDueno = esDuenoVal.isNotBlank(),
-                esEmpleado = esEmpleadoVal,
-                onVolver = { nav.popBackStack() },
-                onApariencia = { nav.navigate(Rutas.APARIENCIA) },
-                onSoporte = { nav.navigate(Rutas.SOPORTE) },
-                onMiLocal = {
-                    when {
-                        esDuenoVal.isNotBlank() -> nav.navigate(Rutas.CONFIGURAR_LOCAL)
-                        esEmpleadoVal -> nav.navigate(Rutas.INGRESAR_CODIGO)
-                        else -> nav.navigate(Rutas.ELEGIR_RUBRO)
-                    }
-                },
-                onCerrarSesion = {
-                    empleadoVm.cerrarSesion()
-                    duenoVm.cerrarSesion()
-                    mostrarPanelDueno = false
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
-                }
-            )
-        }
-
-        composable(Rutas.ACERCA_DE) {
-            PantallaAcercaDe(
-                onVolver = { nav.popBackStack() },
-                onPrivacidad = { nav.navigate(Rutas.POLITICA_PRIVACIDAD) }
-            )
-        }
-
-        composable(Rutas.APARIENCIA) {
-            PantallaApariencia(
-                onVolver = { nav.popBackStack() },
-                onTemaChanged = onTemaChanged
-            )
-        }
-
-        composable(Rutas.SOPORTE) {
-            PantallaSoporte(onVolver = { nav.popBackStack() })
-        }
-
-        composable(Rutas.PRIVACIDAD) {
-            com.kosking.app.perfil.PantallaPrivacidad(
-                onVolver = { nav.popBackStack() },
-                onPoliticaPrivacidad = { nav.navigate(Rutas.POLITICA_PRIVACIDAD) },
-                onCuentaEliminada = {
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
-                }
-            )
-        }
-
-        composable(Rutas.POLITICA_PRIVACIDAD) {
-            com.kosking.app.perfil.PantallaPoliticaPrivacidad(onVolver = { nav.popBackStack() })
-        }
-
-        composable(Rutas.NOTIFICACIONES) {
-            val esDuenoVal by duenoVm.localId.collectAsState()
-            PantallaNotificaciones(
-                esDueno = esDuenoVal.isNotBlank(),
-                onVolver = { nav.popBackStack() }
-            )
-        }
     }
 }

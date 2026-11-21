@@ -67,11 +67,14 @@ internal fun TabHistorial(
             }
     }
 
-    val totalMesAnotado = remember(movimientosLocal) {
-        movimientosLocal.filter { !it.anulado && it.fecha.toDate().time >= inicioMes && it.tipo == "cargo" }.sumOf { it.monto }
-    }
-    val totalMesCobrado = remember(movimientosLocal) {
-        movimientosLocal.filter { !it.anulado && it.fecha.toDate().time >= inicioMes && it.tipo == "pago" }.sumOf { it.monto }
+    val (totalMesAnotado, totalMesCobrado) = remember(movimientosLocal) {
+        var anotado = 0.0; var cobrado = 0.0
+        movimientosLocal.forEach { mov ->
+            if (!mov.anulado && mov.fecha.toDate().time >= inicioMes) {
+                if (mov.tipo == "cargo") anotado += mov.monto else cobrado += mov.monto
+            }
+        }
+        anotado to cobrado
     }
 
     if (paginas.isEmpty()) {

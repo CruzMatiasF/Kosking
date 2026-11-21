@@ -80,8 +80,7 @@ private fun CardDeudaTotal(
     puedeVerDeuda: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val totalClientes = clientesConDeuda.size
-    val alDia = remember(totalClientes) { clientesConDeuda.count { it.deudaTotal <= 0 } }
+    val alDia = remember(clientesConDeuda) { clientesConDeuda.count { it.deudaTotal <= 0 } }
     var montoVisible by rememberSaveable { mutableStateOf(!esEmpleado) }
 
     Card(

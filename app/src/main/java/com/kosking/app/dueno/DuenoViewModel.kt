@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -60,7 +61,7 @@ class DuenoViewModel : ViewModel() {
             viewModelScope.launch {
                 val usuario = try { FiadoRepository.obtenerUsuario(uid) } catch (_: Exception) { null }
                 if (usuario?.localId?.isNotBlank() == true) {
-                    cargarDatos(uid)
+                    cargarDatos(usuario)
                 }
             }
         }
@@ -75,8 +76,7 @@ class DuenoViewModel : ViewModel() {
         super.onCleared()
     }
 
-    private suspend fun cargarDatos(uid: String) {
-        val usuario = FiadoRepository.obtenerUsuario(uid) ?: return
+    private suspend fun cargarDatos(usuario: com.kosking.app.modelo.Usuario) {
         _nombreDueno.value = usuario.nombre
         if (usuario.localId.isNotBlank()) {
             _localId.value = usuario.localId
@@ -433,17 +433,12 @@ class DuenoViewModel : ViewModel() {
     suspend fun buscarProductosGlobales(query: String): List<String> =
         FiadoRepository.buscarProductosGlobales(query)
 
-    private var syncGlobalHecho = false
     init {
         viewModelScope.launch {
-            productos.collect { lista ->
-                if (!syncGlobalHecho && lista.isNotEmpty()) {
-                    syncGlobalHecho = true
-                    launch {
-                        try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
-                        catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
-                    }
-                }
+            val lista = productos.first { it.isNotEmpty() }
+            launch {
+                try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
+                catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
             }
         }
     }

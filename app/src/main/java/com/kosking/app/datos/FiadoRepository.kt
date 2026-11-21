@@ -154,11 +154,11 @@ object FiadoRepository {
     fun movimientosClienteFlow(clienteId: String): Flow<List<Movimiento>> = callbackFlow {
         val sub = db.collection("movimientos")
             .whereEqualTo("clienteId", clienteId)
+            .orderBy("fecha", Query.Direction.DESCENDING)
             .limit(1000)
             .addSnapshotListener { snap, error ->
                 if (error != null) { trySend(emptyList()); return@addSnapshotListener }
-                val lista = snap?.toObjects(Movimiento::class.java) ?: emptyList()
-                trySend(lista.sortedByDescending { it.fecha.toDate().time })
+                trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
             }
         awaitClose { sub.remove() }
     }
@@ -302,10 +302,10 @@ object FiadoRepository {
     fun productosFlow(localId: String): Flow<List<Producto>> = callbackFlow {
         val sub = db.collection("productos")
             .whereEqualTo("localId", localId)
+            .orderBy("vecesUsado", Query.Direction.DESCENDING)
             .addSnapshotListener { snap, error ->
                 if (error != null) { trySend(emptyList()); return@addSnapshotListener }
-                val lista = snap?.toObjects(Producto::class.java) ?: emptyList()
-                trySend(lista.sortedByDescending { it.vecesUsado })
+                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
             }
         awaitClose { sub.remove() }
     }

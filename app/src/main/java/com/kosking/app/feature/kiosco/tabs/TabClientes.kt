@@ -60,8 +60,8 @@ fun TabClientes(
         movimientos
             .filter { !it.anulado && it.tipo == "pago" }
             .filter {
-                val c = Calendar.getInstance().apply { time = it.fecha.toDate() }
-                c.get(Calendar.MONTH) == mesActual && c.get(Calendar.YEAR) == anioActual
+                cal.time = it.fecha.toDate()
+                cal.get(Calendar.MONTH) == mesActual && cal.get(Calendar.YEAR) == anioActual
             }
             .map { it.clienteId }
             .toSet()

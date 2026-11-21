@@ -22,6 +22,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+private val fmtHora  = SimpleDateFormat("HH:mm", Locale.getDefault())
+private val fmtCorto = SimpleDateFormat("d MMM", Locale.getDefault())
+private val fmtLargo = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+
 data class VisitaExtracto(
     val fecha: Date,
     val tipo: String,
@@ -80,14 +84,10 @@ private fun formatearFechaExtracto(fecha: Date): String {
     val anioFecha = Calendar.getInstance().apply { time = fecha }.get(Calendar.YEAR)
 
     return when {
-        fecha.time >= hoy.timeInMillis ->
-            "Hoy · ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(fecha)}"
-        fecha.time >= ayer.timeInMillis ->
-            "Ayer · ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(fecha)}"
-        anioFecha < anioActual ->
-            SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(fecha)
-        else ->
-            SimpleDateFormat("d MMM", Locale.getDefault()).format(fecha)
+        fecha.time >= hoy.timeInMillis  -> "Hoy · ${fmtHora.format(fecha)}"
+        fecha.time >= ayer.timeInMillis -> "Ayer · ${fmtHora.format(fecha)}"
+        anioFecha < anioActual          -> fmtLargo.format(fecha)
+        else                            -> fmtCorto.format(fecha)
     }
 }
 

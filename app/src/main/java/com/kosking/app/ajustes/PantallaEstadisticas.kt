@@ -29,7 +29,7 @@ fun PantallaEstadisticas(
     val totalDeuda by vm.totalDeuda.collectAsState()
 
     // ── Métricas calculadas ──────────────────────────────────────────────────
-    val ars = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
+    val ars = remember { NumberFormat.getCurrencyInstance(Locale("es", "AR")) }
 
     val clientesActivos = clientes.count { it.deudaTotal > 0 }
     val clienteTopDeudor = clientes.filter { it.deudaTotal > 0 }.maxByOrNull { it.deudaTotal }

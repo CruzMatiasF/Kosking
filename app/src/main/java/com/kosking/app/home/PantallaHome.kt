@@ -274,8 +274,6 @@ fun PantallaHome(
                         vm = duenoVm
                     )
                     is NavDueno.Clientes -> {
-                        val clientes by duenoVm.clientes.collectAsState()
-                        val movimientos by duenoVm.movimientosLocal.collectAsState()
                         TabClientes(
                             clientes = clientes,
                             movimientos = movimientos,

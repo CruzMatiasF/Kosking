@@ -92,6 +92,7 @@ fun PantallaEscaner(
     var productoParaCargar by remember { mutableStateOf<ProductoDetectado?>(null) }
     var buscandoProducto by remember { mutableStateOf(false) }
     var cargandoAnotacion by remember { mutableStateOf(false) }
+    var mostrarConfirmar by remember { mutableStateOf(false) }
     var queryBusqueda by remember { mutableStateOf("") }
     var precioCarga by remember { mutableStateOf("") }
     var nombreCarga by remember { mutableStateOf("") }
@@ -177,20 +178,22 @@ fun PantallaEscaner(
         ultimoCodigoTs.value = ahora
 
         // QR de cliente: ksk_c_{clienteId}
-        if (codigo.startsWith(PREFIJO_CLIENTE_QR) && modo == ModoEscaner.ELEGIR_CLIENTE) {
+        if (codigo.startsWith(PREFIJO_CLIENTE_QR)) {
             val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
             val cliente = clientes.find { it.id == clienteId }
             if (cliente != null) {
-                seleccionarCliente(cliente)
+                clienteSeleccionado = cliente
+                busquedaCliente = ""
             }
+            if (modo == ModoEscaner.ELEGIR_CLIENTE) modo = ModoEscaner.ANOTAR
             yaDetecto.value = false
             return
         }
 
+        // En paso elegir cliente, un código de producto también arranca el flujo
         if (modo == ModoEscaner.ELEGIR_CLIENTE) {
-            // Código desconocido en paso de cliente → ignorar
-            scope.launch { delay(500); yaDetecto.value = false }
-            return
+            modo = ModoEscaner.ANOTAR
+            // seguimos para procesar el producto normalmente
         }
 
         buscandoProducto = true
@@ -229,6 +232,37 @@ fun PantallaEscaner(
                 yaDetecto.value = false
             }
         }
+    }
+
+    // Elegir cliente al final (flujo sin QR / sin selección previa)
+    if (mostrarConfirmar) {
+        PantallaConfirmarAnotacion(
+            items = itemsAnotados,
+            clientes = clientesOrdenados,
+            movimientos = movimientos,
+            cargando = cargandoVm,
+            onConfirmar = { cliente ->
+                val itemsSnap = itemsAnotados.toList()
+                vm.agregarMovimientos(
+                    clienteId = cliente.id,
+                    items = itemsSnap.map { Triple(it.nombre, it.precio, it.cantidad) },
+                    tipo = "cargo",
+                    onExito = {
+                        mostrarConfirmar = false
+                        if (cliente.telefono.isNotBlank()) {
+                            anotacionExitosa = Pair(cliente, itemsSnap)
+                        } else {
+                            onCerrar()
+                        }
+                    }
+                )
+            },
+            onCrearYConfirmar = { nombre, onClienteCreado ->
+                vm.agregarClienteYObtener(nombre = nombre, onExito = onClienteCreado)
+            },
+            onVolver = { mostrarConfirmar = false }
+        )
+        return
     }
 
     // Pantalla de éxito con opción de enviar WhatsApp
@@ -357,10 +391,9 @@ fun PantallaEscaner(
                         }
                     }
 
-                    // Hint según el paso actual
                     val hintText = when (modo) {
-                        ModoEscaner.ELEGIR_CLIENTE -> "Escaneá el QR del cliente"
-                        ModoEscaner.ANOTAR -> "Escaneá los productos"
+                        ModoEscaner.ELEGIR_CLIENTE -> "Escaneá el QR del cliente o un producto"
+                        ModoEscaner.ANOTAR -> if (clienteSeleccionado != null) "Escaneá los productos" else "Escaneá productos · elegí cliente al final"
                         ModoEscaner.CARGAR_NUEVO -> "Escaneá el código del producto"
                     }
                     Box(
@@ -448,32 +481,43 @@ fun PantallaEscaner(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Chip de cliente seleccionado (clickeable para cambiar)
-                            Surface(
-                                onClick = {
-                                    clienteSeleccionado = null
-                                    itemsAnotados = emptyList()
-                                    modo = ModoEscaner.ELEGIR_CLIENTE
-                                },
-                                shape = RoundedCornerShape(50),
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.height(36.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            val cliente = clienteSeleccionado
+                            if (cliente != null) {
+                                // Chip cliente seleccionado — tocar para cambiar
+                                Surface(
+                                    onClick = { clienteSeleccionado = null; modo = ModoEscaner.ELEGIR_CLIENTE },
+                                    shape = RoundedCornerShape(50),
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    modifier = Modifier.height(36.dp)
                                 ) {
-                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(14.dp),
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                                    Text(
-                                        clienteSeleccionado?.nombre ?: "",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                    Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f))
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Person, null, modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                        Text(
+                                            cliente.nombre,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                        Icon(Icons.Default.Close, null, modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f))
+                                    }
+                                }
+                            } else {
+                                // Sin cliente todavía — tocar para elegir
+                                OutlinedButton(
+                                    onClick = { modo = ModoEscaner.ELEGIR_CLIENTE },
+                                    modifier = Modifier.height(36.dp),
+                                    shape = RoundedCornerShape(50),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Elegir cliente", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             OutlinedButton(
@@ -531,13 +575,28 @@ fun PantallaEscaner(
                 // ── Paso: Elegir cliente ──
                 ModoEscaner.ELEGIR_CLIENTE -> {
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Saltar selección de cliente
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(
+                                onClick = { modo = ModoEscaner.ANOTAR },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("Escanear primero", style = MaterialTheme.typography.labelMedium)
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+
                         OutlinedTextField(
                             value = busquedaCliente,
                             onValueChange = { busquedaCliente = it },
                             placeholder = { Text("Buscar cliente...") },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
                                 .focusRequester(focusBusqueda),
                             singleLine = true,
                             leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(18.dp)) },
@@ -764,7 +823,10 @@ fun PantallaEscaner(
                         if (itemsAnotados.isNotEmpty()) {
                             val total = itemsAnotados.sumOf { it.precio * it.cantidad }
                             Button(
-                                onClick = { confirmarAnotacion() },
+                                onClick = {
+                                    if (clienteSeleccionado != null) confirmarAnotacion()
+                                    else mostrarConfirmar = true
+                                },
                                 enabled = !cargandoAnotacion,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -775,10 +837,11 @@ fun PantallaEscaner(
                                 if (cargandoAnotacion) {
                                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                                 } else {
-                                    Text(
-                                        "Confirmar para ${clienteSeleccionado?.nombre ?: ""}  ·  $${total.toInt()}",
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    val texto = if (clienteSeleccionado != null)
+                                        "Confirmar para ${clienteSeleccionado!!.nombre}  ·  $${total.toInt()}"
+                                    else
+                                        "Elegir cliente  ·  $${total.toInt()}"
+                                    Text(texto, fontWeight = FontWeight.Bold)
                                 }
                             }
                         } else {

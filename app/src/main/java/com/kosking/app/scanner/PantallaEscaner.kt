@@ -3,67 +3,31 @@ package com.kosking.app.scanner
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
-import com.kosking.app.datos.OpenFoodFactsRepository
-import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.modelo.Cliente
+import com.kosking.app.modelo.ItemAnotado
+import com.kosking.app.scanner.components.*
 import com.kosking.app.util.WhatsAppUtil
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.Executors
-
-// ksk_c_{clienteId} → QR de identificación de cliente
-private const val PREFIJO_CLIENTE_QR = "ksk_c_"
-
-// Solo dos modos: anotar (flujo principal) y cargar nuevo producto al catálogo
-private enum class ModoEscaner { ANOTAR, CARGAR_NUEVO }
-
-private data class ProductoDetectado(
-    val nombre: String,
-    val precio: Double,
-    val productoId: String? = null,
-    val codigoBarras: String = ""
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,8 +36,8 @@ fun PantallaEscaner(
     onCerrar: () -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
+    val escanerVm: EscanerViewModel = viewModel(factory = EscanerViewModel.factory(vm))
+
     val productos by vm.productos.collectAsState()
     val clientes by vm.clientes.collectAsState()
     val movimientos by vm.movimientosLocal.collectAsState()
@@ -85,37 +49,18 @@ fun PantallaEscaner(
             movimientos.filter { it.clienteId == c.id }.maxOfOrNull { it.fecha.seconds } ?: 0L
         }
     }
+    val filtradosCliente = remember(escanerVm.busquedaCliente, clientesOrdenados) {
+        if (escanerVm.busquedaCliente.isBlank()) clientesOrdenados
+        else clientesOrdenados.filter { it.nombre.contains(escanerVm.busquedaCliente, ignoreCase = true) }
+    }
+    val sugerencias = remember(escanerVm.queryBusqueda, productos) {
+        if (escanerVm.queryBusqueda.isBlank()) emptyList()
+        else productos.filter { it.nombre.contains(escanerVm.queryBusqueda, ignoreCase = true) }.take(3)
+    }
 
     var permiso by remember { mutableStateOf(false) }
-    var modo by remember { mutableStateOf(ModoEscaner.ANOTAR) }
-
-    // Cliente: se setea al escanear el QR o buscando manualmente — siempre opcional
-    var clienteSeleccionado by remember { mutableStateOf<Cliente?>(null) }
-    var mostrarBuscarCliente by remember { mutableStateOf(false) }
-    var busquedaCliente by remember { mutableStateOf("") }
     val focusCliente = remember { FocusRequester() }
-    var mostrarRegistroCliente by remember { mutableStateOf(false) }
-    var nombreNuevoCliente by remember { mutableStateOf("") }
-    var telefonoNuevoCliente by remember { mutableStateOf("") }
-
-    var itemsAnotados by remember { mutableStateOf(listOf<ItemAnotado>()) }
-    var productoParaCargar by remember { mutableStateOf<ProductoDetectado?>(null) }
-    var buscandoProducto by remember { mutableStateOf(false) }
-    var cargandoAnotacion by remember { mutableStateOf(false) }
-    var queryBusqueda by remember { mutableStateOf("") }
-    var precioCarga by remember { mutableStateOf("") }
-    var nombreCarga by remember { mutableStateOf("") }
-    var mostrarConfirmar by remember { mutableStateOf(false) }
-    var anotacionExitosa by remember { mutableStateOf<Pair<Cliente, List<ItemAnotado>>?>(null) }
-    var mostrarDialogoCambioModo by remember { mutableStateOf(false) }
-    val yaDetecto = remember { mutableStateOf(false) }
-    val ultimoCodigo = remember { mutableStateOf("") }
-    val ultimoCodigoTs = remember { mutableStateOf(0L) }
-    var escaneoExitoso by remember { mutableStateOf(false) }
-
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> permiso = granted }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> permiso = granted }
 
     LaunchedEffect(Unit) {
         permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -123,248 +68,65 @@ fun PantallaEscaner(
         if (!permiso) launcher.launch(Manifest.permission.CAMERA)
     }
 
-    val sugerencias = remember(queryBusqueda, productos) {
-        if (queryBusqueda.isBlank()) emptyList()
-        else productos.filter { it.nombre.contains(queryBusqueda, ignoreCase = true) }.take(3)
-    }
-
-    val filtradosCliente = remember(busquedaCliente, clientesOrdenados) {
-        if (busquedaCliente.isBlank()) clientesOrdenados
-        else clientesOrdenados.filter { it.nombre.contains(busquedaCliente, ignoreCase = true) }
-    }
-
-    fun agregarALista(item: ItemAnotado) {
-        val idx = itemsAnotados.indexOfFirst { it.productoId != null && it.productoId == item.productoId }
-        itemsAnotados = if (idx >= 0)
-            itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
-        else itemsAnotados + item
-        queryBusqueda = ""
-    }
-
-    fun confirmarAnotacion(cliente: Cliente) {
-        val itemsSnap = itemsAnotados.toList()
-        cargandoAnotacion = true
-        vm.agregarMovimientos(
-            clienteId = cliente.id,
-            items = itemsSnap.map { Triple(it.nombre, it.precio, it.cantidad) },
-            tipo = "cargo",
-            onExito = {
-                cargandoAnotacion = false
-                mostrarConfirmar = false
-                if (cliente.telefono.isNotBlank()) {
-                    anotacionExitosa = Pair(cliente, itemsSnap)
-                } else {
-                    onCerrar()
-                }
-            }
-        )
-    }
-
-    fun onCodigo(codigo: String) {
-        val ahora = System.currentTimeMillis()
-        if (codigo == ultimoCodigo.value && ahora - ultimoCodigoTs.value < 1500L) return
-        if (yaDetecto.value) return
-        yaDetecto.value = true
-        ultimoCodigo.value = codigo
-        ultimoCodigoTs.value = ahora
-
-        // QR de cliente: lo setea silenciosamente sin interrumpir el escaneo
-        if (codigo.startsWith(PREFIJO_CLIENTE_QR)) {
-            val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
-            val cliente = clientes.find { it.id == clienteId }
-            if (cliente != null) {
-                clienteSeleccionado = cliente
-                mostrarBuscarCliente = false
-                busquedaCliente = ""
-            }
-            yaDetecto.value = false
-            return
-        }
-
-        // En modo cargar nuevo, el cliente no aplica
-        buscandoProducto = true
-        scope.launch {
-            try {
-                val enLocal = productos.firstOrNull { it.codigoBarras == codigo }
-                val nombre: String
-                val precio: Double
-                val productoId: String?
-                if (enLocal != null) {
-                    nombre = enLocal.nombre; precio = enLocal.ultimoPrecio; productoId = enLocal.id
-                } else {
-                    val ext = OpenFoodFactsRepository.buscarPorCodigo(codigo)
-                    nombre = ext?.nombre ?: ""; precio = 0.0; productoId = null
-                }
-                buscandoProducto = false
-                when (modo) {
-                    ModoEscaner.ANOTAR -> {
-                        val item = ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId)
-                        val idx = itemsAnotados.indexOfFirst { it.productoId != null && it.productoId == productoId }
-                        itemsAnotados = if (idx >= 0)
-                            itemsAnotados.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it }
-                        else itemsAnotados + item
-                        queryBusqueda = ""
-                        escaneoExitoso = true
-                        delay(400)
-                        escaneoExitoso = false
-                        yaDetecto.value = false
-                    }
-                    ModoEscaner.CARGAR_NUEVO -> {
-                        productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
-                        nombreCarga = nombre
-                        precioCarga = if (precio > 0) precio.toInt().toString() else ""
-                    }
-                }
-            } catch (_: Exception) {
-                buscandoProducto = false
-                yaDetecto.value = false
-            }
-        }
-    }
-
-    // ── Pantalla confirmar (sin cliente preseleccionado → elige al final) ──
-    if (mostrarConfirmar) {
+    // ── Pantalla confirmar (elige cliente al final) ──
+    if (escanerVm.mostrarConfirmar) {
         PantallaConfirmarAnotacion(
-            items = itemsAnotados,
+            items = escanerVm.itemsAnotados,
             clientes = clientesOrdenados,
             movimientos = movimientos,
             cargando = cargandoVm,
-            onConfirmar = { confirmarAnotacion(it) },
+            onConfirmar = { escanerVm.confirmarAnotacion(it, onCerrar) },
             onCrearYConfirmar = { nombre, onClienteCreado ->
                 vm.agregarClienteYObtener(nombre = nombre, onExito = onClienteCreado)
             },
-            onVolver = { mostrarConfirmar = false }
+            onVolver = { escanerVm.mostrarConfirmar = false }
         )
         return
     }
 
     // ── Pantalla éxito ──
-    anotacionExitosa?.let { (cliente, items) ->
+    escanerVm.anotacionExitosa?.let { (cliente, items) ->
         val hora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
-        val ctx = LocalContext.current
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(32.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp))
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Anotado para ${cliente.nombre}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "${items.sumOf { it.cantidad }} producto${if (items.sumOf { it.cantidad } != 1) "s" else ""}  ·  $${items.sumOf { it.precio * it.cantidad }.toInt()}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(32.dp))
-            Button(
-                onClick = {
-                    WhatsAppUtil.abrirWhatsApp(
-                        ctx, cliente.telefono,
-                        WhatsAppUtil.ticketVisita(
-                            nombreCliente = cliente.nombre,
-                            nombreLocal = nombreLocal,
-                            items = items.map { Triple(it.nombre, it.precio, it.cantidad) },
-                            tipo = "cargo",
-                            hora = hora
-                        )
+        AnotacionExitosaScreen(
+            cliente = cliente,
+            items = items,
+            onEnviarWhatsApp = {
+                WhatsAppUtil.abrirWhatsApp(
+                    context, cliente.telefono,
+                    WhatsAppUtil.ticketVisita(
+                        nombreCliente = cliente.nombre,
+                        nombreLocal = nombreLocal,
+                        items = items.map { Triple(it.nombre, it.precio, it.cantidad) },
+                        tipo = "cargo",
+                        hora = hora
                     )
-                    anotacionExitosa = null
-                    onCerrar()
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp)
-            ) {
-                Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Enviar ticket por WhatsApp", fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = { anotacionExitosa = null; onCerrar() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Listo, sin enviar")
-            }
-        }
+                )
+                escanerVm.anotacionExitosa = null
+                onCerrar()
+            },
+            onCerrar = { escanerVm.anotacionExitosa = null; onCerrar() }
+        )
         return
     }
 
-    // ── Pantalla principal del escáner ──
+    // ── Pantalla principal ──
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
 
-        // ── Cámara ──
+        // Área de cámara
         Box(modifier = Modifier.fillMaxWidth().weight(0.45f)) {
             if (permiso) {
-                AndroidView(
-                    factory = { ctx ->
-                        val pv = PreviewView(ctx)
-                        val exec = Executors.newSingleThreadExecutor()
-                        val future = ProcessCameraProvider.getInstance(ctx)
-                        future.addListener({
-                            val provider = future.get()
-                            val preview = Preview.Builder().build().also { it.setSurfaceProvider(pv.surfaceProvider) }
-                            val scanner = BarcodeScanning.getClient()
-                            val analysis = ImageAnalysis.Builder()
-                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .build().also { ia ->
-                                    ia.setAnalyzer(exec) { proxy ->
-                                        @androidx.camera.core.ExperimentalGetImage
-                                        val media = proxy.image
-                                        if (media != null && !yaDetecto.value) {
-                                            val img = InputImage.fromMediaImage(media, proxy.imageInfo.rotationDegrees)
-                                            scanner.process(img)
-                                                .addOnSuccessListener { codes ->
-                                                    codes.firstOrNull { it.rawValue != null }
-                                                        ?.rawValue?.let { onCodigo(it) }
-                                                }
-                                                .addOnCompleteListener { proxy.close() }
-                                        } else proxy.close()
-                                    }
-                                }
-                            try {
-                                provider.unbindAll()
-                                provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
-                            } catch (_: Exception) {}
-                        }, ContextCompat.getMainExecutor(ctx))
-                        pv
-                    },
+                CamaraEscaner(
+                    onCodigo = { escanerVm.onCodigo(it) },
+                    isYaDetecto = { escanerVm.yaDetecto.get() },
+                    buscandoProducto = escanerVm.buscandoProducto,
                     modifier = Modifier.fillMaxSize()
                 )
-
-                // Marco de escaneo — flash verde al detectar
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    val colorMarco by animateColorAsState(
-                        targetValue = if (escaneoExitoso) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
-                        animationSpec = tween(durationMillis = 200),
-                        label = "marcoColor"
+                    MarcaEscaner(
+                        escaneoExitoso = escanerVm.escaneoExitoso,
+                        modifier = Modifier.size(220.dp)
                     )
-                    Canvas(Modifier.size(220.dp)) {
-                        val s = 28.dp.toPx(); val w = 3.5.dp.toPx()
-                        listOf(
-                            androidx.compose.ui.geometry.Offset(0f, 0f),
-                            androidx.compose.ui.geometry.Offset(size.width, 0f),
-                            androidx.compose.ui.geometry.Offset(0f, size.height),
-                            androidx.compose.ui.geometry.Offset(size.width, size.height)
-                        ).forEach { corner ->
-                            val hx = if (corner.x == 0f) corner.x + s else corner.x - s
-                            val vy = if (corner.y == 0f) corner.y + s else corner.y - s
-                            drawLine(colorMarco, corner, androidx.compose.ui.geometry.Offset(hx, corner.y), w)
-                            drawLine(colorMarco, corner, androidx.compose.ui.geometry.Offset(corner.x, vy), w)
-                        }
-                    }
                 }
-
-                if (buscandoProducto) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Color.White)
-                    }
-                }
-
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
@@ -373,155 +135,73 @@ fun PantallaEscaner(
                 }
             }
 
-            IconButton(onClick = onCerrar, modifier = Modifier.statusBarsPadding().padding(4.dp)) {
+            IconButton(
+                onClick = onCerrar,
+                modifier = Modifier.statusBarsPadding().padding(4.dp)
+            ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
             }
 
-            // ── Campo inline de cliente (solo en modo ANOTAR) ──
-            if (modo == ModoEscaner.ANOTAR) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp, vertical = 10.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Sugerencias encima del campo: recientes si campo vacío, filtradas si hay texto
-                if (mostrarBuscarCliente) {
-                    val sugs = if (busquedaCliente.isBlank()) clientesOrdenados.take(4) else filtradosCliente.take(4)
-                    val mostrarCrear = busquedaCliente.isNotBlank() && filtradosCliente.isEmpty()
-                    if (sugs.isNotEmpty() || mostrarCrear) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                            tonalElevation = 4.dp,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                        ) {
-                            Column {
-                                if (mostrarCrear) {
-                                    ListItem(
-                                        headlineContent = { Text("Nuevo cliente: \"${busquedaCliente.trim()}\"", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold) },
-                                        leadingContent = { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp)) },
-                                        modifier = Modifier.clickable {
-                                            nombreNuevoCliente = busquedaCliente.trim()
-                                            telefonoNuevoCliente = ""
-                                            mostrarBuscarCliente = false
-                                            busquedaCliente = ""
-                                            mostrarRegistroCliente = true
-                                        }
-                                    )
-                                } else {
-                                    sugs.forEach { c ->
-                                        ListItem(
-                                            headlineContent = { Text(c.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium) },
-                                            supportingContent = if (c.deudaTotal > 0) ({
-                                                Text("Debe $${c.deudaTotal.toInt()}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
-                                            }) else null,
-                                            modifier = Modifier.clickable {
-                                                clienteSeleccionado = c
-                                                mostrarBuscarCliente = false
-                                                busquedaCliente = ""
-                                            }
-                                        )
-                                        if (c != sugs.last()) HorizontalDivider()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Campo / chip
-                if (clienteSeleccionado != null && !mostrarBuscarCliente) {
-                    // Cliente ya elegido: tocar nombre → cambiar, tocar X → limpiar
-                    Surface(
-                        onClick = { busquedaCliente = ""; mostrarBuscarCliente = true },
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
-                        tonalElevation = 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
-                            Text(clienteSeleccionado!!.nombre, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
-                            Icon(
-                                Icons.Default.Close,
-                                null,
-                                modifier = Modifier.size(13.dp).clickable { clienteSeleccionado = null },
-                                tint = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                } else {
-                    // Campo de búsqueda inline
-                    BasicTextField(
-                        value = busquedaCliente,
-                        onValueChange = { busquedaCliente = it; mostrarBuscarCliente = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusCliente),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                        decorationBox = { inner ->
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Color.Black.copy(alpha = 0.55f),
-                                tonalElevation = 0.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.Default.Person, null, modifier = Modifier.size(15.dp), tint = Color.White)
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        if (busquedaCliente.isEmpty()) {
-                                            Text("Cliente (opcional)", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                                        }
-                                        inner()
-                                    }
-                                    if (busquedaCliente.isNotEmpty()) {
-                                        Icon(Icons.Default.Close, null,
-                                            modifier = Modifier.size(14.dp).clickable { busquedaCliente = ""; mostrarBuscarCliente = false },
-                                            tint = Color.White.copy(alpha = 0.7f))
-                                    }
-                                }
-                            }
-                        }
-                    )
-                }
+            if (escanerVm.modo == ModoEscaner.ANOTAR) {
+                ClienteOverlay(
+                    clienteSeleccionado = escanerVm.clienteSeleccionado,
+                    busquedaCliente = escanerVm.busquedaCliente,
+                    mostrarBuscarCliente = escanerVm.mostrarBuscarCliente,
+                    clientesOrdenados = clientesOrdenados,
+                    filtradosCliente = filtradosCliente,
+                    focusCliente = focusCliente,
+                    onClienteSelected = {
+                        escanerVm.clienteSeleccionado = it
+                        escanerVm.mostrarBuscarCliente = false
+                        escanerVm.busquedaCliente = ""
+                    },
+                    onBusquedaChange = { escanerVm.busquedaCliente = it; escanerVm.mostrarBuscarCliente = true },
+                    onMostrarBuscar = { escanerVm.busquedaCliente = ""; escanerVm.mostrarBuscarCliente = true },
+                    onLimpiarCliente = { escanerVm.clienteSeleccionado = null },
+                    onNuevoCliente = {
+                        escanerVm.nombreNuevoCliente = it
+                        escanerVm.telefonoNuevoCliente = ""
+                        escanerVm.mostrarBuscarCliente = false
+                        escanerVm.busquedaCliente = ""
+                        escanerVm.mostrarRegistroCliente = true
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                        .fillMaxWidth()
+                )
             }
-            } // end if ANOTAR
         }
 
-        // ── Panel inferior ──
+        // Panel inferior
         Surface(modifier = Modifier.fillMaxWidth().weight(0.55f), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                // Tabs: Anotar / Cargar nuevo
+                // Tabs de modo
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (modo == ModoEscaner.ANOTAR) {
-                        Button(onClick = {}, modifier = Modifier.weight(1f).height(36.dp), shape = RoundedCornerShape(50), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)) {
+                    val tabModifier = Modifier.weight(1f).height(36.dp)
+                    val tabShape = RoundedCornerShape(50)
+                    val tabPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+
+                    if (escanerVm.modo == ModoEscaner.ANOTAR) {
+                        Button(onClick = {}, modifier = tabModifier, shape = tabShape, contentPadding = tabPadding) {
                             Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Anotar", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
                         }
                     } else {
-                        OutlinedButton(onClick = { modo = ModoEscaner.ANOTAR; yaDetecto.value = false }, modifier = Modifier.weight(1f).height(36.dp), shape = RoundedCornerShape(50), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)) {
+                        OutlinedButton(onClick = { escanerVm.modo = ModoEscaner.ANOTAR; escanerVm.yaDetecto.set(false) }, modifier = tabModifier, shape = tabShape, contentPadding = tabPadding) {
                             Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Anotar", style = MaterialTheme.typography.labelMedium)
                         }
                     }
-                    if (modo == ModoEscaner.CARGAR_NUEVO) {
-                        Button(onClick = {}, modifier = Modifier.weight(1f).height(36.dp), shape = RoundedCornerShape(50), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)) {
+
+                    if (escanerVm.modo == ModoEscaner.CARGAR_NUEVO) {
+                        Button(onClick = {}, modifier = tabModifier, shape = tabShape, contentPadding = tabPadding) {
                             Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Cargar nuevo", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
@@ -529,10 +209,10 @@ fun PantallaEscaner(
                     } else {
                         OutlinedButton(
                             onClick = {
-                                if (modo == ModoEscaner.ANOTAR && itemsAnotados.isNotEmpty()) mostrarDialogoCambioModo = true
-                                else { modo = ModoEscaner.CARGAR_NUEVO; yaDetecto.value = false }
+                                if (escanerVm.itemsAnotados.isNotEmpty()) escanerVm.mostrarDialogoCambioModo = true
+                                else { escanerVm.modo = ModoEscaner.CARGAR_NUEVO; escanerVm.yaDetecto.set(false) }
                             },
-                            modifier = Modifier.weight(1f).height(36.dp), shape = RoundedCornerShape(50), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                            modifier = tabModifier, shape = tabShape, contentPadding = tabPadding
                         ) {
                             Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
@@ -543,258 +223,88 @@ fun PantallaEscaner(
 
                 HorizontalDivider()
 
-                when (modo) {
-
-                // ── Modo Anotar ──
-                ModoEscaner.ANOTAR -> {
-                    Column(modifier = Modifier.fillMaxSize()) {
-
-                        // Búsqueda manual de producto
-                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(
-                                value = queryBusqueda,
-                                onValueChange = { queryBusqueda = it },
-                                placeholder = { Text("Sin código? Escribí el nombre") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                textStyle = MaterialTheme.typography.bodySmall,
-                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                                trailingIcon = {
-                                    if (queryBusqueda.isNotBlank()) {
-                                        IconButton(onClick = { queryBusqueda = "" }, modifier = Modifier.size(32.dp)) {
-                                            Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
-                                        }
-                                    }
-                                }
-                            )
-                            if (queryBusqueda.isNotBlank() && sugerencias.isEmpty()) {
-                                Spacer(Modifier.width(6.dp))
-                                IconButton(onClick = { agregarALista(ItemAnotado(queryBusqueda.trim(), 0.0)) }, modifier = Modifier.size(40.dp)) {
-                                    Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                when (escanerVm.modo) {
+                    ModoEscaner.ANOTAR -> EscanerAnotarPanel(
+                        itemsAnotados = escanerVm.itemsAnotados,
+                        queryBusqueda = escanerVm.queryBusqueda,
+                        sugerencias = sugerencias,
+                        clienteSeleccionado = escanerVm.clienteSeleccionado,
+                        cargandoAnotacion = escanerVm.cargandoAnotacion,
+                        onQueryChange = { escanerVm.queryBusqueda = it },
+                        onAgregarSugerencia = { escanerVm.agregarALista(it) },
+                        onAgregarManual = { escanerVm.agregarALista(ItemAnotado(it, 0.0)) },
+                        onCambiarCantidad = { item, nueva ->
+                            escanerVm.itemsAnotados = if (nueva <= 0)
+                                escanerVm.itemsAnotados - item
+                            else
+                                escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
+                        },
+                        onConfirmar = {
+                            val cliente = escanerVm.clienteSeleccionado
+                            if (cliente != null) escanerVm.confirmarAnotacion(cliente, onCerrar)
+                            else escanerVm.mostrarConfirmar = true
                         }
-
-                        if (sugerencias.isNotEmpty()) {
-                            LazyRow(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(sugerencias) { prod ->
-                                    ElevatedCard(onClick = { agregarALista(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }, modifier = Modifier.height(56.dp)) {
-                                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
-                                            Text(prod.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1)
-                                            if (prod.ultimoPrecio > 0) Text("$${prod.ultimoPrecio.toInt()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                                        }
-                                    }
-                                }
-                            }
+                    )
+                    ModoEscaner.CARGAR_NUEVO -> EscanerCargarPanel(
+                        productoParaCargar = escanerVm.productoParaCargar,
+                        nombreCarga = escanerVm.nombreCarga,
+                        precioCarga = escanerVm.precioCarga,
+                        cargandoVm = cargandoVm,
+                        onNombreChange = { escanerVm.nombreCarga = it },
+                        onPrecioChange = { escanerVm.precioCarga = it.filter { c -> c.isDigit() || c == '.' } },
+                        onGuardar = { escanerVm.guardarProducto() },
+                        onEscanearOtro = {
+                            escanerVm.productoParaCargar = null
+                            escanerVm.yaDetecto.set(false)
+                            escanerVm.precioCarga = ""
+                            escanerVm.nombreCarga = ""
                         }
-
-                        HorizontalDivider()
-
-                        // Lista de productos escaneados
-                        LazyColumn(modifier = Modifier.weight(1f)) {
-                            if (itemsAnotados.isEmpty()) {
-                                item {
-                                    Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text("Escaneá un producto para empezar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            } else {
-                                items(itemsAnotados) { item ->
-                                    ListItem(
-                                        headlineContent = { Text(item.nombre, style = MaterialTheme.typography.bodyMedium) },
-                                        supportingContent = {
-                                            if (item.precio > 0) {
-                                                Text(
-                                                    "$${(item.precio * item.cantidad).toInt()}" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                            } else {
-                                                Text(
-                                                    "sin precio" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
-                                        },
-                                        trailingContent = {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                IconButton(
-                                                    onClick = {
-                                                        itemsAnotados = if (item.cantidad > 1)
-                                                            itemsAnotados.map { if (it === item) it.copy(cantidad = it.cantidad - 1) else it }
-                                                        else itemsAnotados - item
-                                                    },
-                                                    modifier = Modifier.size(32.dp)
-                                                ) { Icon(Icons.Default.Remove, null, modifier = Modifier.size(16.dp)) }
-                                                Text("${item.cantidad}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                                IconButton(
-                                                    onClick = { itemsAnotados = itemsAnotados.map { if (it === item) it.copy(cantidad = it.cantidad + 1) else it } },
-                                                    modifier = Modifier.size(32.dp)
-                                                ) { Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp)) }
-                                            }
-                                        }
-                                    )
-                                    HorizontalDivider()
-                                }
-                            }
-                        }
-
-                        // Botón principal
-                        if (itemsAnotados.isNotEmpty()) {
-                            val total = itemsAnotados.sumOf { it.precio * it.cantidad }
-                            val cliente = clienteSeleccionado
-                            Button(
-                                onClick = {
-                                    if (cliente != null) confirmarAnotacion(cliente)
-                                    else mostrarConfirmar = true
-                                },
-                                enabled = !cargandoAnotacion,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).navigationBarsPadding().height(48.dp)
-                            ) {
-                                if (cargandoAnotacion) {
-                                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                                } else {
-                                    Text(
-                                        if (cliente != null) "Confirmar para ${cliente.nombre}  ·  $${total.toInt()}"
-                                        else "Elegir cliente  ·  $${total.toInt()}",
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        } else {
-                            Spacer(Modifier.navigationBarsPadding())
-                        }
-                    }
+                    )
                 }
-
-                // ── Modo Cargar nuevo ──
-                ModoEscaner.CARGAR_NUEVO -> {
-                    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        val prod = productoParaCargar
-                        if (prod == null) {
-                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("Escaneá el código del producto", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        } else {
-                            if (prod.nombre.isBlank()) {
-                                OutlinedTextField(value = nombreCarga, onValueChange = { nombreCarga = it }, label = { Text("Nombre del producto") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
-                            } else {
-                                Text(prod.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            }
-                            OutlinedTextField(
-                                value = precioCarga,
-                                onValueChange = { precioCarga = it.filter { c -> c.isDigit() || c == '.' } },
-                                label = { Text("Precio en tu local") },
-                                prefix = { Text("$") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                            )
-                            Button(
-                                onClick = {
-                                    vm.guardarProducto(
-                                        nombre = nombreCarga.trim().ifBlank { prod.nombre.ifBlank { prod.codigoBarras } },
-                                        precio = precioCarga.toDoubleOrNull() ?: 0.0,
-                                        productoId = prod.productoId,
-                                        categoria = "",
-                                        imagenUri = null
-                                    ) { productoParaCargar = null; precioCarga = ""; yaDetecto.value = false }
-                                },
-                                enabled = !cargandoVm && (prod.nombre.isNotBlank() || nombreCarga.isNotBlank()),
-                                modifier = Modifier.fillMaxWidth().height(48.dp)
-                            ) {
-                                if (cargandoVm) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                                else Text("Guardar al local", fontWeight = FontWeight.Bold)
-                            }
-                            TextButton(onClick = { productoParaCargar = null; yaDetecto.value = false; precioCarga = ""; nombreCarga = "" }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Escanear otro")
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        Spacer(Modifier.navigationBarsPadding())
-                    }
-                }
-                } // end when
             }
         }
     }
 
     // ── Sheet registro de nuevo cliente ──
-    if (mostrarRegistroCliente) {
-        val telefonoValido = telefonoNuevoCliente.isBlank() ||
-                telefonoNuevoCliente.filter { it.isDigit() }.length >= 8
-        ModalBottomSheet(onDismissRequest = { mostrarRegistroCliente = false }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(
-                    "Nuevo cliente",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                OutlinedTextField(
-                    value = nombreNuevoCliente,
-                    onValueChange = { nombreNuevoCliente = it },
-                    label = { Text("Nombre *") },
-                    leadingIcon = { Icon(Icons.Default.Person, null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
-                )
-                OutlinedTextField(
-                    value = telefonoNuevoCliente,
-                    onValueChange = { telefonoNuevoCliente = it },
-                    label = { Text("Teléfono (opcional)") },
-                    leadingIcon = { Icon(Icons.Default.Phone, null) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    supportingText = {
-                        if (telefonoNuevoCliente.isNotBlank() && !telefonoValido)
-                            Text("Mínimo 8 dígitos", color = MaterialTheme.colorScheme.error)
-                        else
-                            Text("Para avisarle por WhatsApp")
-                    },
-                    isError = telefonoNuevoCliente.isNotBlank() && !telefonoValido
-                )
-                Button(
-                    onClick = {
-                        vm.agregarClienteYObtener(
-                            nombre = nombreNuevoCliente.trim(),
-                            telefono = telefonoNuevoCliente.trim()
-                        ) { nuevo ->
-                            clienteSeleccionado = nuevo
-                            mostrarRegistroCliente = false
-                        }
-                    },
-                    enabled = nombreNuevoCliente.isNotBlank() && telefonoValido,
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    Text("Crear y seleccionar", fontWeight = FontWeight.Bold)
+    if (escanerVm.mostrarRegistroCliente) {
+        RegistroClienteSheet(
+            nombreInicial = escanerVm.nombreNuevoCliente,
+            telefonoInicial = escanerVm.telefonoNuevoCliente,
+            onNombreChange = { escanerVm.nombreNuevoCliente = it },
+            onTelefonoChange = { escanerVm.telefonoNuevoCliente = it },
+            cargando = false,
+            onCrear = {
+                escanerVm.agregarClienteYObtener(
+                    nombre = escanerVm.nombreNuevoCliente.trim(),
+                    telefono = escanerVm.telefonoNuevoCliente.trim()
+                ) { nuevo ->
+                    escanerVm.clienteSeleccionado = nuevo
+                    escanerVm.mostrarRegistroCliente = false
                 }
-            }
-        }
+            },
+            onDismiss = { escanerVm.mostrarRegistroCliente = false }
+        )
     }
 
     // ── Diálogo cambio de modo ──
-    if (mostrarDialogoCambioModo) {
+    if (escanerVm.mostrarDialogoCambioModo) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogoCambioModo = false },
+            onDismissRequest = { escanerVm.mostrarDialogoCambioModo = false },
             title = { Text("¿Cambiar de modo?") },
-            text = { Text("Tenés ${itemsAnotados.size} producto${if (itemsAnotados.size != 1) "s" else ""} en la lista. Si cambiás a Cargar nuevo los perdés.") },
+            text = {
+                val n = escanerVm.itemsAnotados.size
+                Text("Tenés $n producto${if (n != 1) "s" else ""} en la lista. Si cambiás a Cargar nuevo los perdés.")
+            },
             confirmButton = {
-                TextButton(onClick = { mostrarDialogoCambioModo = false; itemsAnotados = emptyList(); modo = ModoEscaner.CARGAR_NUEVO; yaDetecto.value = false }) {
-                    Text("Sí, cambiar", color = MaterialTheme.colorScheme.error)
-                }
+                TextButton(onClick = {
+                    escanerVm.mostrarDialogoCambioModo = false
+                    escanerVm.itemsAnotados = emptyList()
+                    escanerVm.modo = ModoEscaner.CARGAR_NUEVO
+                    escanerVm.yaDetecto.set(false)
+                }) { Text("Sí, cambiar", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoCambioModo = false }) { Text("Cancelar") }
+                TextButton(onClick = { escanerVm.mostrarDialogoCambioModo = false }) { Text("Cancelar") }
             }
         )
     }

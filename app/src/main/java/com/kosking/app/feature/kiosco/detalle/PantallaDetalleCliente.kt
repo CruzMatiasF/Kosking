@@ -25,6 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.kosking.app.util.WhatsAppUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +55,7 @@ fun PantallaDetalleCliente(
     val extracto = remember(movimientos) {
         construirExtracto(movimientos)
     }
+    val scope = rememberCoroutineScope()
 
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
     var mostrarEditar by remember { mutableStateOf(false) }
@@ -143,13 +147,17 @@ fun PantallaDetalleCliente(
                                         leadingIcon = { Icon(Icons.Default.PictureAsPdf, null) },
                                         onClick = {
                                             mostrarMenu = false
-                                            val intent = PdfExportUtil.generarHistorialCliente(
-                                                context = context,
-                                                localNombre = localData?.nombre ?: "Mi local",
-                                                cliente = cliente,
-                                                movimientos = movimientos
-                                            )
-                                            context.startActivity(Intent.createChooser(intent, "Compartir PDF"))
+                                            scope.launch {
+                                                val intent = withContext(Dispatchers.IO) {
+                                                    PdfExportUtil.generarHistorialCliente(
+                                                        context = context,
+                                                        localNombre = localData?.nombre ?: "Mi local",
+                                                        cliente = cliente,
+                                                        movimientos = movimientos
+                                                    )
+                                                }
+                                                context.startActivity(Intent.createChooser(intent, "Compartir PDF"))
+                                            }
                                         }
                                     )
                                 }

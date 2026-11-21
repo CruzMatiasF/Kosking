@@ -6,7 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kosking.app.MainActivity
@@ -16,9 +16,9 @@ import com.kosking.app.modelo.Cliente
 class NotificacionDeudaWorker(
     private val ctx: Context,
     params: WorkerParameters
-) : Worker(ctx, params) {
+) : CoroutineWorker(ctx, params) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         val prefs = ctx.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
         val localId = prefs.getString("local_id", "") ?: ""
         if (localId.isBlank()) return Result.success()
@@ -28,7 +28,7 @@ class NotificacionDeudaWorker(
                 .collection("clientes")
                 .whereEqualTo("localId", localId)
                 .get()
-                .result ?: return Result.retry()
+                .await()
 
             val clientes = snap.toObjects(Cliente::class.java)
             val conDeuda = clientes.filter { it.deudaTotal > 0 }

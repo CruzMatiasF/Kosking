@@ -6,7 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -18,9 +18,9 @@ import java.util.Calendar
 class ResumenDiaWorker(
     private val ctx: Context,
     params: WorkerParameters
-) : Worker(ctx, params) {
+) : CoroutineWorker(ctx, params) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         val prefs = ctx.getSharedPreferences("kosking_prefs", Context.MODE_PRIVATE)
         val localId = prefs.getString("local_id", "") ?: ""
         if (localId.isBlank()) return Result.success()
@@ -45,7 +45,7 @@ class ResumenDiaWorker(
                 .whereEqualTo("anulado", false)
                 .whereGreaterThanOrEqualTo("fecha", Timestamp(inicioDia / 1000, 0))
                 .get()
-                .result ?: return Result.retry()
+                .await()
 
             val movimientos = snap.toObjects(Movimiento::class.java)
             if (movimientos.isEmpty()) return Result.success()

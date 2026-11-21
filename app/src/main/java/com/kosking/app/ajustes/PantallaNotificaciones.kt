@@ -97,7 +97,7 @@ private fun NotifSwitchItem(
     ) {
         Icon(
             icono, null,
-            modifier = Modifier.size(22.dp).padding(end = 0.dp),
+            modifier = Modifier.size(22.dp),
             tint = MaterialTheme.colorScheme.primary
         )
         Spacer(Modifier.width(16.dp))

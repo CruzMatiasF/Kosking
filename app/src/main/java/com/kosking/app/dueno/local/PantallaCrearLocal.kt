@@ -109,8 +109,7 @@ fun PantallaCrearLocal(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(tiposLocales.size) { i ->
-                val t = tiposLocales[i]
+            items(tiposLocales) { t ->
                 FilterChip(
                     selected = tipo == t,
                     onClick = { tipo = t },

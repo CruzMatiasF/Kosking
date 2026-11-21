@@ -161,10 +161,11 @@ fun PantallaConfigurarPerfil(
                     guardando = true
                     scope.launch {
                         try {
-                            val uid = FirebaseAuth.getInstance().currentUser?.uid
+                            val auth = FirebaseAuth.getInstance()
+                            val uid = auth.currentUser?.uid
                             if (uid != null) {
                                 FiadoRepository.actualizarDatosPersonales(uid, nombre.trim(), telefono.trim(), dni.trim())
-                                FirebaseAuth.getInstance().currentUser?.updateProfile(
+                                auth.currentUser?.updateProfile(
                                     userProfileChangeRequest { displayName = nombre.trim() }
                                 )
                             }

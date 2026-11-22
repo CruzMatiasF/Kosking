@@ -124,7 +124,8 @@ fun KoskingNavHost(
                 val destino = StartupUseCase.resolver(
                     context = ctx,
                     empleadoTieneSession = empleadoVm.tieneSession.value,
-                    duenoLocalIdFlow = duenoVm.localId
+                    duenoLocalIdFlow = duenoVm.localId,
+                    duenoCargandoInicialFlow = duenoVm.cargandoInicial
                 )
                 when (destino) {
                     StartupDestino.PanelEmpleado ->
@@ -290,9 +291,11 @@ fun KoskingNavHost(
             val puedeVerDeuda by empleadoVm.puedeVerDeuda.collectAsState()
             val clientes by duenoVm.clientes.collectAsState()
             val movimientosEmpleado by duenoVm.movimientosLocal.collectAsState()
+            val cargandoInicialEmpleado by duenoVm.cargandoInicial.collectAsState()
             TabClientes(
                 clientes = clientes,
                 movimientos = movimientosEmpleado,
+                cargandoInicial = cargandoInicialEmpleado,
                 onVerCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
                 onAgregarCliente = {},
                 esEmpleado = true,

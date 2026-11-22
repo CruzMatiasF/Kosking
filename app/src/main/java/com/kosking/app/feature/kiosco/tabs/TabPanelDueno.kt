@@ -36,6 +36,7 @@ internal fun TabPanelDueno(
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirDetalleMovimiento: (String) -> Unit = {},
     onAnotar: () -> Unit,
+    onVender: () -> Unit = {},
     onRecordarTodos: () -> Unit,
     onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit,
@@ -137,6 +138,7 @@ internal fun TabPanelDueno(
                 totalDeuda = totalDeuda,
                 clientesConDeuda = clientesConDeuda,
                 onAnotar = onAnotar,
+                onVender = onVender,
                 onAbrirProductos = onAbrirProductos,
                 esEmpleado = esEmpleado,
                 puedeVerDeuda = puedeVerDeuda

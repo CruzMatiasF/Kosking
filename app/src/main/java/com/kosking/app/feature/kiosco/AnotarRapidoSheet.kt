@@ -215,7 +215,7 @@ fun AnotarRapidoSheet(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        Scaffold { padding ->
+        Scaffold(contentWindowInsets = WindowInsets.systemBars) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -29,6 +29,7 @@ internal fun CardsResumenDueno(
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     onAnotar: () -> Unit,
+    onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true
@@ -57,6 +58,7 @@ internal fun CardsResumenDueno(
             totalDeuda = totalDeuda,
             clientesConDeuda = clientesConDeuda,
             onAnotar = onAnotar,
+            onVender = onVender,
             onAbrirProductos = onAbrirProductos,
             esEmpleado = esEmpleado,
             puedeVerDeuda = puedeVerDeuda,
@@ -75,6 +77,7 @@ private fun CardDeudaTotal(
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     onAnotar: () -> Unit,
+    onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
@@ -143,7 +146,8 @@ private fun CardDeudaTotal(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar, primary = true)
+                AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
+                AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar)
                 AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
             }
         }

@@ -86,6 +86,17 @@ data class Producto(
 )
 
 @Immutable
+data class Venta(
+    val id: String = "",
+    val localId: String = "",
+    val items: List<String> = emptyList(), // "nombre x cantidad"
+    val total: Double = 0.0,
+    val fecha: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
+    val registradoPorUid: String = "",
+    val registradoPorNombre: String = ""
+)
+
+@Immutable
 data class Usuario(
     val uid: String = "",
     val nombre: String = "",

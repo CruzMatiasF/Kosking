@@ -8,17 +8,24 @@ import com.kosking.app.util.CrashLogger
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
+import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.Venta
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,6 +42,10 @@ class DuenoViewModel : ViewModel() {
     fun clearError() { _error.value = null }
     private val _cargando = MutableStateFlow(false)
     val cargando: StateFlow<Boolean> = _cargando
+
+    // true mientras no llegaron aún los primeros datos de Firestore
+    private val _cargandoInicial = MutableStateFlow(true)
+    val cargandoInicial: StateFlow<Boolean> = _cargandoInicial
 
     private val _localId = MutableStateFlow("")
     val localId: StateFlow<String> = _localId
@@ -79,6 +90,16 @@ class DuenoViewModel : ViewModel() {
             _localId.value = usuario.localId
             val local = FiadoRepository.obtenerLocal(usuario.localId)
             _nombreLocal.value = local?.nombre ?: ""
+            // Espera el primer emit real de Firestore (drop(1) saltea el emptyList() inicial del StateFlow).
+            // Timeout de 8s por si no hay internet — el panel se muestra igual aunque esté vacío.
+            withTimeoutOrNull(8_000) {
+                val a = async { clientes.drop(1).first() }
+                val b = async { movimientosLocal.drop(1).first() }
+                a.await(); b.await()
+            }
+            _cargandoInicial.value = false
+        } else {
+            _cargandoInicial.value = false
         }
     }
 
@@ -145,7 +166,10 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    companion object { const val LIMITE_CLIENTES_GRATIS = 150 }
+    companion object {
+        private var syncProductosHecho = false
+        const val LIMITE_CLIENTES_GRATIS = 150
+    }
 
     fun agregarCliente(nombre: String, telefono: String, domicilio: String, limiteCredito: Double = 0.0, deudaInicial: Double = 0.0, onExito: () -> Unit) {
         viewModelScope.launch {
@@ -291,6 +315,40 @@ class DuenoViewModel : ViewModel() {
         }
         if (nombreEmpleado.isNotBlank()) {
             _nombreDueno.value = nombreEmpleado
+        }
+    }
+
+    fun registrarVenta(
+        items: List<ItemAnotado>,
+        onExito: () -> Unit,
+        onError: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _cargando.value = true
+            try {
+                val uid = auth.currentUser?.uid ?: return@launch
+                val total = items.sumOf { it.precio * it.cantidad }
+                val venta = Venta(
+                    localId = _localId.value,
+                    items = items.map { "${it.nombre} x${it.cantidad}" },
+                    total = total,
+                    registradoPorUid = uid,
+                    registradoPorNombre = _nombreDueno.value
+                )
+                FiadoRepository.registrarVenta(venta)
+                FiadoRepository.upsertProductosBatch(
+                    _localId.value,
+                    items.map { Triple(it.nombre, it.precio * it.cantidad, it.cantidad) },
+                    productos.value
+                )
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "registrarVenta")
+                _error.value = "No se pudo registrar la venta"
+                onError()
+            } finally {
+                _cargando.value = false
+            }
         }
     }
 
@@ -441,14 +499,19 @@ class DuenoViewModel : ViewModel() {
         .flatMapLatest { id ->
             if (id.isNotBlank()) FiadoRepository.productosFlow(id) else flowOf(emptyList())
         }
+        .map { lista -> lista.sortedByDescending { it.vecesUsado } }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
             val lista = productos.first { it.isNotEmpty() }
-            launch {
-                try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
-                catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
+            if (!syncProductosHecho) {
+                syncProductosHecho = true
+                launch(Dispatchers.Default) {
+                    try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }
+                    catch (e: Exception) { CrashLogger.log(e, "syncProductosGlobales") }
+                }
             }
         }
     }

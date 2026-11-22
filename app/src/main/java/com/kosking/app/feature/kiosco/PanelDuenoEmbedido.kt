@@ -55,6 +55,7 @@ fun PanelDuenoEmbedido(
 
     val context = LocalContext.current
 
+    var modoManual by remember { mutableStateOf<ModoManual?>(null) }
     var mostrarAnotar by remember { mutableStateOf(false) }
     var clientePreseleccionado by remember { mutableStateOf<Cliente?>(null) }
     var tipoAnotar by remember { mutableStateOf("cargo") }
@@ -123,7 +124,8 @@ fun PanelDuenoEmbedido(
                 onVerClientes = onVerClientes,
                 onAbrirDetalleCliente = onAbrirDetalleCliente,
                 onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
-                onAnotar = { tipoAnotar = "cargo"; mostrarAnotar = true },
+                onAnotar = { modoManual = ModoManual.ANOTAR },
+                onVender = { modoManual = ModoManual.VENDER },
                 onRegistrarPago = { cliente ->
                     clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true
                 },
@@ -153,7 +155,29 @@ fun PanelDuenoEmbedido(
         }
     }
 
-    // Sheet anotar rápido
+    // Pantalla manual (Vender o Anotar)
+    modoManual?.let { modo ->
+        PantallaManual(
+            modo = modo,
+            productos = productos,
+            clientes = clientes,
+            cargando = cargando,
+            onConfirmarVenta = { items, onExito ->
+                vm.registrarVenta(items = items, onError = {}, onExito = onExito)
+            },
+            onConfirmarAnotacion = { clienteId, items, onExito ->
+                vm.agregarMovimientos(
+                    clienteId = clienteId,
+                    items = items.map { Triple(it.nombre, it.precio * it.cantidad, it.cantidad) },
+                    tipo = "cargo",
+                    onExito = onExito
+                )
+            },
+            onDismiss = { modoManual = null }
+        )
+    }
+
+    // Sheet anotar rápido (registro de pago manual desde detalle de cliente)
     if (mostrarAnotar) {
         AnotarRapidoSheet(
             clientes = clientes,

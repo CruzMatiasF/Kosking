@@ -11,6 +11,7 @@ import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Usuario
+import com.kosking.app.modelo.Venta
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -179,6 +180,11 @@ object FiadoRepository {
         batch.commit().await()
     }
 
+    suspend fun registrarVenta(venta: Venta) {
+        val ref = db.collection("ventas").document()
+        ref.set(venta.copy(id = ref.id)).await()
+    }
+
     suspend fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {
         val delta = if (tipo == "cargo") -monto else monto
         val batch = db.batch()
@@ -304,10 +310,7 @@ object FiadoRepository {
             .whereEqualTo("localId", localId)
             .addSnapshotListener { snap, error ->
                 if (error != null) { trySend(emptyList()); return@addSnapshotListener }
-                trySend(
-                    (snap?.toObjects(Producto::class.java) ?: emptyList())
-                        .sortedByDescending { it.vecesUsado }
-                )
+                trySend(snap?.toObjects(Producto::class.java) ?: emptyList())
             }
         awaitClose { sub.remove() }
     }

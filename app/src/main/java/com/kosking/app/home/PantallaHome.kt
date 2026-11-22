@@ -85,7 +85,6 @@ fun PantallaHome(
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
     var tabNav by rememberSaveable { mutableStateOf(TabNav.MI_LOCAL) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
-
     LaunchedEffect(abrirEscaner) {
         if (abrirEscaner) {
             tabNav = TabNav.ESCANER
@@ -119,6 +118,7 @@ fun PantallaHome(
     val empleados by duenoVm.empleados.collectAsState()
     val movimientos by duenoVm.movimientosLocal.collectAsState()
     val clientes by duenoVm.clientes.collectAsState()
+    val cargandoInicial by duenoVm.cargandoInicial.collectAsState()
 
     var mostrarPerfilSheet by remember { mutableStateOf(false) }
 
@@ -276,6 +276,7 @@ fun PantallaHome(
                         TabClientes(
                             clientes = clientes,
                             movimientos = movimientos,
+                            cargandoInicial = cargandoInicial,
                             onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             onAnotarRapido = { cliente, tipo ->
@@ -377,6 +378,7 @@ fun PantallaHome(
                     TabClientes(
                         clientes = clientes,
                         movimientos = movimientos,
+                        cargandoInicial = cargandoInicial,
                         onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                         onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                         onAnotarRapido = { cliente, tipo ->

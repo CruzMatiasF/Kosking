@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal const val PREFIJO_CLIENTE_QR = "ksk_c_"
 
-internal enum class ModoEscaner { ANOTAR, CARGAR_NUEVO }
+enum class ModoEscaner { VENDER, ANOTAR, CARGAR_NUEVO }
 
 internal data class ProductoDetectado(
     val nombre: String,
@@ -27,7 +27,7 @@ internal data class ProductoDetectado(
 
 internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel() {
 
-    var modo by mutableStateOf(ModoEscaner.ANOTAR)
+    var modo by mutableStateOf(ModoEscaner.VENDER)
     var clienteSeleccionado by mutableStateOf<Cliente?>(null)
     var mostrarBuscarCliente by mutableStateOf(false)
     var busquedaCliente by mutableStateOf("")
@@ -42,7 +42,8 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     var precioCarga by mutableStateOf("")
     var nombreCarga by mutableStateOf("")
     var mostrarConfirmar by mutableStateOf(false)
-    var anotacionExitosa by mutableStateOf<Pair<Cliente, List<ItemAnotado>>?>(null)
+    var anotacionExitosa by mutableStateOf<Triple<Cliente, List<ItemAnotado>, String>?>(null)
+    var ventaExitosa by mutableStateOf<Pair<List<ItemAnotado>, Double>?>(null)
     var mostrarDialogoCambioModo by mutableStateOf(false)
     var escaneoExitoso by mutableStateOf(false)
 
@@ -50,6 +51,19 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     val yaDetecto = AtomicBoolean(false)
     private var ultimoCodigo = ""
     private var ultimoCodigoTs = 0L
+
+    fun resetear(modoInicial: ModoEscaner = ModoEscaner.VENDER) {
+        modo = modoInicial
+        itemsAnotados = emptyList()
+        clienteSeleccionado = null
+        mostrarBuscarCliente = false
+        busquedaCliente = ""
+        mostrarConfirmar = false
+        ventaExitosa = null
+        anotacionExitosa = null
+        queryBusqueda = ""
+        yaDetecto.set(false)
+    }
 
     fun agregarALista(item: ItemAnotado) {
         val idx = itemsAnotados.indexOfFirst {
@@ -64,22 +78,34 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         queryBusqueda = ""
     }
 
-    fun confirmarAnotacion(cliente: Cliente, onCerrar: () -> Unit) {
+    fun confirmarAnotacion(cliente: Cliente) {
+        val tipo = if (modo == ModoEscaner.VENDER) "venta" else "cargo"
         val itemsSnap = itemsAnotados.toList()
         cargandoAnotacion = true
         duenoVm.agregarMovimientos(
             clienteId = cliente.id,
             items = itemsSnap.map { Triple(it.nombre, it.precio * it.cantidad, it.cantidad) },
-            tipo = "cargo",
+            tipo = tipo,
             onError = { cargandoAnotacion = false },
             onExito = {
                 cargandoAnotacion = false
                 mostrarConfirmar = false
-                if (cliente.telefono.isNotBlank()) {
-                    anotacionExitosa = Pair(cliente, itemsSnap)
-                } else {
-                    onCerrar()
-                }
+                anotacionExitosa = Triple(cliente, itemsSnap, tipo)
+            }
+        )
+    }
+
+    fun registrarVenta() {
+        val itemsSnap = itemsAnotados.toList()
+        cargandoAnotacion = true
+        duenoVm.registrarVenta(
+            items = itemsSnap,
+            onError = { cargandoAnotacion = false },
+            onExito = {
+                cargandoAnotacion = false
+                mostrarConfirmar = false
+                val total = itemsSnap.sumOf { it.precio * it.cantidad }
+                ventaExitosa = itemsSnap to total
             }
         )
     }
@@ -112,14 +138,16 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         ultimoCodigo = codigo
         ultimoCodigoTs = ahora
 
-        // QR de cliente: setea silenciosamente sin interrumpir el escaneo
+        // QR de cliente: ignorar en modo Vender (no requiere cliente)
         if (codigo.startsWith(PREFIJO_CLIENTE_QR)) {
-            val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
-            val cliente = duenoVm.clientes.value.find { it.id == clienteId }
-            if (cliente != null) {
-                clienteSeleccionado = cliente
-                mostrarBuscarCliente = false
-                busquedaCliente = ""
+            if (modo != ModoEscaner.VENDER) {
+                val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
+                val cliente = duenoVm.clientes.value.find { it.id == clienteId }
+                if (cliente != null) {
+                    clienteSeleccionado = cliente
+                    mostrarBuscarCliente = false
+                    busquedaCliente = ""
+                }
             }
             yaDetecto.set(false)
             return
@@ -141,7 +169,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 }
                 buscandoProducto = false
                 when (modo) {
-                    ModoEscaner.ANOTAR -> {
+                    ModoEscaner.VENDER, ModoEscaner.ANOTAR -> {
                         agregarALista(ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId))
                         escaneoExitoso = true
                         delay(400)

@@ -28,6 +28,7 @@ import java.util.Calendar
 fun TabClientes(
     clientes: List<Cliente>,
     movimientos: List<Movimiento> = emptyList(),
+    cargandoInicial: Boolean = false,
     modifier: Modifier = Modifier,
     onVerCliente: (String) -> Unit,
     onAgregarCliente: () -> Unit,
@@ -145,7 +146,11 @@ fun TabClientes(
             esEmpleado = esEmpleado
         )
 
-        if (clientesFiltrados.isEmpty()) {
+        if (cargandoInicial && clientes.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (clientesFiltrados.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

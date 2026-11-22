@@ -1,10 +1,9 @@
 package com.kosking.app.scanner.components
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -49,15 +48,13 @@ internal fun EscanerAnotarPanel(
             }
         } else {
             if (categoriaSeleccionada == null && categorias.size > 1) {
-                // Solo categorías
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                // Solo categorías — LazyRow para no componer todas de golpe
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    categorias.forEach { cat ->
+                    items(categorias) { cat ->
                         ElevatedCard(onClick = { categoriaSeleccionada = cat }) {
                             Text(
                                 cat,
@@ -69,7 +66,7 @@ internal fun EscanerAnotarPanel(
                     }
                 }
             } else {
-                // Flecha fija + productos scrolleables
+                // Flecha fija + productos scrolleables — LazyRow para no componer todos de golpe
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -82,14 +79,12 @@ internal fun EscanerAnotarPanel(
                             Icon(Icons.Default.ArrowBack, "Volver a categorías", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .horizontalScroll(rememberScrollState())
-                            .padding(end = 12.dp),
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(end = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        productosFiltrados.forEach { prod ->
+                        items(productosFiltrados, key = { it.id }) { prod ->
                             ElevatedCard(
                                 onClick = { onAgregarSugerencia(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }
                             ) {
@@ -167,27 +162,36 @@ internal fun EscanerAnotarPanel(
 
         if (itemsAnotados.isNotEmpty()) {
             val total = itemsAnotados.sumOf { it.precio * it.cantidad }
-            Button(
-                onClick = onConfirmar,
-                enabled = !cargandoAnotacion,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .navigationBarsPadding()
-                    .height(48.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (cargandoAnotacion) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                } else {
+                Button(
+                    onClick = onConfirmar,
+                    enabled = !cargandoAnotacion && clienteSeleccionado != null,
+                    modifier = Modifier.height(46.dp)
+                ) {
+                    if (cargandoAnotacion) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text("Continuar", fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                if (total > 0) {
                     Text(
-                        if (clienteSeleccionado != null) "Confirmar para ${clienteSeleccionado.nombre}  ·  $${total.toInt()}"
-                        else "Elegir cliente  ·  $${total.toInt()}",
-                        fontWeight = FontWeight.Bold
+                        "$${"%.0f".format(total)}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
         } else {
-            Spacer(Modifier.navigationBarsPadding())
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

@@ -4,19 +4,28 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import kotlin.math.abs
+import kotlinx.coroutines.flow.drop
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,6 +37,105 @@ import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val modos = listOf(ModoEscaner.ANOTAR, ModoEscaner.VENDER, ModoEscaner.CARGAR_NUEVO)
+private val modoLabel = mapOf(
+    ModoEscaner.VENDER to "Vender",
+    ModoEscaner.ANOTAR to "Anotar",
+    ModoEscaner.CARGAR_NUEVO to "Cargar nuevo"
+)
+
+@Composable
+private fun SelectorModo(
+    modo: ModoEscaner,
+    onCambiar: (ModoEscaner) -> Unit
+) {
+    val idx = modos.indexOf(modo)
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = idx)
+    val snapBehavior = rememberSnapFlingBehavior(state)
+
+    val haptic = LocalHapticFeedback.current
+
+    fun centeredIdx(): Int {
+        val info = state.layoutInfo
+        if (info.visibleItemsInfo.isEmpty()) return -1
+        val viewportCenter = (info.viewportStartOffset + info.viewportEndOffset) / 2
+        return info.visibleItemsInfo
+            .minByOrNull { abs(it.offset + it.size / 2 - viewportCenter) }?.index ?: -1
+    }
+
+    // Calculado sincrónicamente desde el layout — sin coroutine, sin delay de frame
+    val visualIdx by remember {
+        derivedStateOf {
+            val info = state.layoutInfo
+            val center = (info.viewportStartOffset + info.viewportEndOffset) / 2
+            info.visibleItemsInfo
+                .minByOrNull { abs(it.offset + it.size / 2 - center) }
+                ?.index ?: state.firstVisibleItemIndex
+        }
+    }
+
+    // Haptic + cambio de modo en cuanto el ítem cruza el centro — sin esperar que pare el scroll
+    LaunchedEffect(state) {
+        snapshotFlow { visualIdx }
+            .drop(1)
+            .collect { newIdx ->
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                modos.getOrNull(newIdx)?.let { onCambiar(it) }
+            }
+    }
+
+    // Snapea al ítem correcto cuando el modo cambia desde afuera o cuando un diálogo rechaza el cambio
+    LaunchedEffect(idx, state.isScrollInProgress) {
+        if (!state.isScrollInProgress && centeredIdx() != idx) {
+            state.animateScrollToItem(idx)
+        }
+    }
+
+    BoxWithConstraints(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
+    ) {
+        val itemWidth = maxWidth / modos.size
+        val pill = RoundedCornerShape(50)
+
+        // Indicador fijo en el centro — nunca se mueve
+        Box(
+            Modifier
+                .padding(2.dp)
+                .width(itemWidth - 4.dp)
+                .height(32.dp)
+                .align(Alignment.Center)
+                .background(MaterialTheme.colorScheme.primary, pill)
+        )
+
+        // Labels que se deslizan por encima del indicador
+        LazyRow(
+            state = state,
+            flingBehavior = snapBehavior,
+            contentPadding = PaddingValues(horizontal = itemWidth),
+            modifier = Modifier.fillMaxWidth().clip(pill)
+        ) {
+            itemsIndexed(modos) { i, m ->
+                Box(
+                    Modifier.width(itemWidth).height(36.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = modoLabel[m] ?: "",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (i == visualIdx) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (i == visualIdx) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,12 +161,6 @@ fun PantallaEscaner(
         if (escanerVm.busquedaCliente.isBlank()) clientesOrdenados
         else clientesOrdenados.filter { it.nombre.contains(escanerVm.busquedaCliente, ignoreCase = true) }
     }
-    val sugerencias = remember(escanerVm.queryBusqueda, productos) {
-        if (escanerVm.queryBusqueda.isBlank()) emptyList()
-        else productos.filter { it.nombre.contains(escanerVm.queryBusqueda, ignoreCase = true) }.take(3)
-    }
-    // sugerencias se mantiene por si otra parte lo usa; EscanerAnotarPanel ahora recibe productos directo
-
     var permiso by remember { mutableStateOf(false) }
     val focusCliente = remember { FocusRequester() }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> permiso = granted }
@@ -67,45 +169,60 @@ fun PantallaEscaner(
         permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!permiso) launcher.launch(Manifest.permission.CAMERA)
+        escanerVm.resetear()
     }
 
-    // ── Pantalla confirmar (elige cliente al final) ──
-    if (escanerVm.mostrarConfirmar) {
+    // ── Pantalla confirmar ──
+    val clienteConfirmar = escanerVm.clienteSeleccionado
+    val esVender = escanerVm.modo == ModoEscaner.VENDER
+    if (escanerVm.mostrarConfirmar && (esVender || clienteConfirmar != null)) {
         PantallaConfirmarAnotacion(
+            cliente = clienteConfirmar,
             items = escanerVm.itemsAnotados,
-            clientes = clientesOrdenados,
-            movimientos = movimientos,
+            tipo = if (esVender) "venta" else "cargo",
             cargando = cargandoVm,
-            onConfirmar = { escanerVm.confirmarAnotacion(it, onCerrar) },
-            onCrearYConfirmar = { nombre, onClienteCreado ->
-                vm.agregarClienteYObtener(nombre = nombre, onExito = onClienteCreado)
+            onConfirmar = {
+                if (esVender) escanerVm.registrarVenta()
+                else escanerVm.confirmarAnotacion(clienteConfirmar!!)
             },
             onVolver = { escanerVm.mostrarConfirmar = false }
         )
         return
     }
 
-    // ── Pantalla éxito ──
-    escanerVm.anotacionExitosa?.let { (cliente, items) ->
-        val hora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
-        AnotacionExitosaScreen(
-            cliente = cliente,
+    // ── Pantalla éxito venta ──
+    escanerVm.ventaExitosa?.let { (items, _) ->
+        MovimientoExitosoScreen(
+            titulo = "Venta registrada",
             items = items,
-            onEnviarWhatsApp = {
+            onInicio = { escanerVm.ventaExitosa = null; escanerVm.itemsAnotados = emptyList(); onCerrar() },
+            onCerrar = { escanerVm.ventaExitosa = null; escanerVm.itemsAnotados = emptyList(); onCerrar() }
+        )
+        return
+    }
+
+    // ── Pantalla éxito anotación ──
+    escanerVm.anotacionExitosa?.let { (cliente, items, tipo) ->
+        val hora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
+        MovimientoExitosoScreen(
+            titulo = "Anotado para ${cliente.nombre}",
+            items = items,
+            onInicio = { escanerVm.anotacionExitosa = null; onCerrar() },
+            onCerrar = { escanerVm.anotacionExitosa = null; onCerrar() },
+            onWhatsApp = if (cliente.telefono.isNotBlank()) ({
                 WhatsAppUtil.abrirWhatsApp(
                     context, cliente.telefono,
                     WhatsAppUtil.ticketVisita(
                         nombreCliente = cliente.nombre,
                         nombreLocal = nombreLocal,
                         items = items.map { Triple(it.nombre, it.precio, it.cantidad) },
-                        tipo = "cargo",
+                        tipo = tipo,
                         hora = hora
                     )
                 )
                 escanerVm.anotacionExitosa = null
                 onCerrar()
-            },
-            onCerrar = { escanerVm.anotacionExitosa = null; onCerrar() }
+            }) else null
         )
         return
     }
@@ -123,10 +240,7 @@ fun PantallaEscaner(
                     modifier = Modifier.fillMaxSize()
                 )
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    MarcaEscaner(
-                        escaneoExitoso = escanerVm.escaneoExitoso,
-                        modifier = Modifier.size(220.dp)
-                    )
+                    MarcaEscaner(escaneoExitoso = escanerVm.escaneoExitoso, modifier = Modifier.size(220.dp))
                 }
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -135,96 +249,76 @@ fun PantallaEscaner(
                     }
                 }
             }
-
-            IconButton(
-                onClick = onCerrar,
-                modifier = Modifier.padding(4.dp)
-            ) {
+            IconButton(onClick = onCerrar, modifier = Modifier.padding(4.dp)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
             }
-
-            if (escanerVm.modo == ModoEscaner.ANOTAR) {
-                ClienteOverlay(
-                    clienteSeleccionado = escanerVm.clienteSeleccionado,
-                    busquedaCliente = escanerVm.busquedaCliente,
-                    mostrarBuscarCliente = escanerVm.mostrarBuscarCliente,
-                    clientesOrdenados = clientesOrdenados,
-                    filtradosCliente = filtradosCliente,
-                    focusCliente = focusCliente,
-                    onClienteSelected = {
-                        escanerVm.clienteSeleccionado = it
-                        escanerVm.mostrarBuscarCliente = false
-                        escanerVm.busquedaCliente = ""
-                    },
-                    onBusquedaChange = { escanerVm.busquedaCliente = it; escanerVm.mostrarBuscarCliente = true },
-                    onMostrarBuscar = { escanerVm.busquedaCliente = ""; escanerVm.mostrarBuscarCliente = true },
-                    onLimpiarCliente = { escanerVm.clienteSeleccionado = null },
-                    onNuevoCliente = {
-                        escanerVm.nombreNuevoCliente = it
-                        escanerVm.telefonoNuevoCliente = ""
-                        escanerVm.mostrarBuscarCliente = false
-                        escanerVm.busquedaCliente = ""
-                        escanerVm.mostrarRegistroCliente = true
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(horizontal = 24.dp, vertical = 10.dp)
-                        .fillMaxWidth()
-                )
+            val iconColor = Color.White.copy(alpha = 0.65f)
+            Row(
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.QrCode, null, tint = iconColor, modifier = Modifier.size(22.dp))
+                IconoCodigoBarras(color = iconColor, modifier = Modifier.size(width = 24.dp, height = 20.dp))
             }
+            ClienteOverlay(
+                clienteSeleccionado = escanerVm.clienteSeleccionado,
+                busquedaCliente = escanerVm.busquedaCliente,
+                mostrarBuscarCliente = escanerVm.mostrarBuscarCliente,
+                clientesOrdenados = clientesOrdenados,
+                filtradosCliente = filtradosCliente,
+                focusCliente = focusCliente,
+                onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.mostrarBuscarCliente = false; escanerVm.busquedaCliente = "" },
+                onBusquedaChange = { escanerVm.busquedaCliente = it; escanerVm.mostrarBuscarCliente = true },
+                onMostrarBuscar = { escanerVm.busquedaCliente = ""; escanerVm.mostrarBuscarCliente = true },
+                onLimpiarCliente = { escanerVm.clienteSeleccionado = null },
+                onNuevoCliente = {
+                    escanerVm.nombreNuevoCliente = it
+                    escanerVm.telefonoNuevoCliente = ""
+                    escanerVm.mostrarBuscarCliente = false
+                    escanerVm.busquedaCliente = ""
+                    escanerVm.mostrarRegistroCliente = true
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 24.dp, vertical = 10.dp)
+                    .fillMaxWidth()
+                    .alpha(if (escanerVm.modo == ModoEscaner.ANOTAR) 1f else 0f)
+            )
         }
 
         // Panel inferior
         Surface(modifier = Modifier.fillMaxWidth().weight(0.55f), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
 
-                // Tabs de modo
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val tabModifier = Modifier.weight(1f).height(36.dp)
-                    val tabShape = RoundedCornerShape(50)
-                    val tabPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-
-                    if (escanerVm.modo == ModoEscaner.ANOTAR) {
-                        Button(onClick = {}, modifier = tabModifier, shape = tabShape, contentPadding = tabPadding) {
-                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Anotar", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
-                        }
-                    } else {
-                        OutlinedButton(onClick = { escanerVm.modo = ModoEscaner.ANOTAR; escanerVm.yaDetecto.set(false) }, modifier = tabModifier, shape = tabShape, contentPadding = tabPadding) {
-                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Anotar", style = MaterialTheme.typography.labelMedium)
-                        }
+                // Selector de modo — swipe horizontal para cambiar
+                SelectorModo(
+                    modo = escanerVm.modo,
+                    onCambiar = { nuevo ->
+                        val tieneItems = escanerVm.itemsAnotados.isNotEmpty()
+                        val aCargar = nuevo == ModoEscaner.CARGAR_NUEVO
+                        if (aCargar && tieneItems) escanerVm.mostrarDialogoCambioModo = true
+                        else { escanerVm.modo = nuevo; escanerVm.yaDetecto.set(false) }
                     }
-
-                    if (escanerVm.modo == ModoEscaner.CARGAR_NUEVO) {
-                        Button(onClick = {}, modifier = tabModifier, shape = tabShape, contentPadding = tabPadding) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Cargar nuevo", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = {
-                                if (escanerVm.itemsAnotados.isNotEmpty()) escanerVm.mostrarDialogoCambioModo = true
-                                else { escanerVm.modo = ModoEscaner.CARGAR_NUEVO; escanerVm.yaDetecto.set(false) }
-                            },
-                            modifier = tabModifier, shape = tabShape, contentPadding = tabPadding
-                        ) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Cargar nuevo", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
+                )
 
                 HorizontalDivider()
 
                 when (escanerVm.modo) {
+                    ModoEscaner.VENDER -> EscanerVenderPanel(
+                        itemsVenta = escanerVm.itemsAnotados,
+                        productos = productos,
+                        cargando = escanerVm.cargandoAnotacion,
+                        onAgregarProducto = { escanerVm.agregarALista(it) },
+                        onCambiarCantidad = { item, nueva ->
+                            escanerVm.itemsAnotados = if (nueva <= 0)
+                                escanerVm.itemsAnotados - item
+                            else
+                                escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
+                        },
+                        onCobrar = { escanerVm.mostrarConfirmar = true },
+                        modifier = Modifier.weight(1f)
+                    )
                     ModoEscaner.ANOTAR -> EscanerAnotarPanel(
                         itemsAnotados = escanerVm.itemsAnotados,
                         queryBusqueda = escanerVm.queryBusqueda,
@@ -240,11 +334,8 @@ fun PantallaEscaner(
                             else
                                 escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
                         },
-                        onConfirmar = {
-                            val cliente = escanerVm.clienteSeleccionado
-                            if (cliente != null) escanerVm.confirmarAnotacion(cliente, onCerrar)
-                            else escanerVm.mostrarConfirmar = true
-                        }
+                        onConfirmar = { escanerVm.mostrarConfirmar = true },
+                        modifier = Modifier.weight(1f)
                     )
                     ModoEscaner.CARGAR_NUEVO -> EscanerCargarPanel(
                         productoParaCargar = escanerVm.productoParaCargar,
@@ -264,7 +355,7 @@ fun PantallaEscaner(
                 }
             }
         }
-    }
+    } // Column escaner
 
     // ── Sheet registro de nuevo cliente ──
     if (escanerVm.mostrarRegistroCliente) {

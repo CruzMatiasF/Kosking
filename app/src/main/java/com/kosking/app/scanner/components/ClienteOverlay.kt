@@ -1,8 +1,13 @@
 package com.kosking.app.scanner.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -49,35 +54,65 @@ internal fun ClienteOverlay(
                     tonalElevation = 4.dp,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                 ) {
-                    Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         if (mostrarCrear) {
-                            ListItem(
-                                headlineContent = {
+                            Surface(
+                                onClick = { onNuevoCliente(busquedaCliente.trim()) },
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                                     Text(
-                                        "Nuevo cliente: \"${busquedaCliente.trim()}\"",
+                                        "\"${busquedaCliente.trim()}\"",
                                         style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                },
-                                leadingContent = { Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp)) },
-                                modifier = Modifier.clickable { onNuevoCliente(busquedaCliente.trim()) }
-                            )
+                                }
+                            }
                         } else {
                             sugs.forEach { c ->
-                                ListItem(
-                                    headlineContent = {
-                                        Text(c.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                                    },
-                                    supportingContent = if (c.deudaTotal > 0) ({
+                                Surface(
+                                    onClick = { onClienteSelected(c) },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondaryContainer),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                c.nombre.take(1).uppercase(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
                                         Text(
-                                            "Debe $${c.deudaTotal.toInt()}",
-                                            color = MaterialTheme.colorScheme.error,
-                                            style = MaterialTheme.typography.labelSmall
+                                            c.nombre,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium
                                         )
-                                    }) else null,
-                                    modifier = Modifier.clickable { onClienteSelected(c) }
-                                )
-                                if (c != sugs.last()) HorizontalDivider()
+                                    }
+                                }
                             }
                         }
                     }

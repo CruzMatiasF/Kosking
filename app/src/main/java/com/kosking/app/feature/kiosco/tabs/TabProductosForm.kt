@@ -347,15 +347,16 @@ internal fun PantallaProducto(
                         }
                     )
                 }
-                val disponibles = categoriasExistentes.filter { it != categoria }
-                if (disponibles.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(disponibles) { cat ->
-                            SuggestionChip(
-                                onClick = { categoria = cat; nuevaCategoria = ""; mostrarNuevaCategoria = false },
-                                label = { Text(cat, style = MaterialTheme.typography.labelMedium) }
-                            )
-                        }
+                val predeterminadas = listOf("Gaseosas", "Snacks", "Lácteos", "Fiambre", "Cigarrillos", "Panificados", "Almacén", "Limpieza", "Otros")
+                val todasDisponibles = (predeterminadas + categoriasExistentes)
+                    .distinct()
+                    .filter { it != categoria }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(todasDisponibles) { cat ->
+                        SuggestionChip(
+                            onClick = { categoria = cat; nuevaCategoria = ""; mostrarNuevaCategoria = false },
+                            label = { Text(cat, style = MaterialTheme.typography.labelMedium) }
+                        )
                     }
                 }
                 AnimatedVisibility(visible = !mostrarNuevaCategoria) {
@@ -366,7 +367,7 @@ internal fun PantallaProducto(
                         value = nuevaCategoria,
                         onValueChange = { nuevaCategoria = it },
                         label = { Text("Nueva categoría") },
-                        placeholder = { Text("Ej: Gaseosas, Dulces...") },
+                        placeholder = { Text("Ej: Bebidas alcohólicas...") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         trailingIcon = {
@@ -383,13 +384,6 @@ internal fun PantallaProducto(
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                if (categoria.isBlank()) {
-                    Text(
-                        "Podés dejarlo sin categoría y asignarlo después.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

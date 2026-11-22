@@ -1,18 +1,17 @@
 package com.kosking.app.scanner.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.ItemAnotado
@@ -22,7 +21,7 @@ import com.kosking.app.modelo.Producto
 internal fun EscanerAnotarPanel(
     itemsAnotados: List<ItemAnotado>,
     queryBusqueda: String,
-    sugerencias: List<Producto>,
+    productos: List<Producto>,
     clienteSeleccionado: Cliente?,
     cargandoAnotacion: Boolean,
     onQueryChange: (String) -> Unit,
@@ -32,61 +31,81 @@ internal fun EscanerAnotarPanel(
     onConfirmar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+
+    val categorias = remember(productos) {
+        productos.map { it.categoria.ifBlank { "Otros" } }.distinct().sorted()
+    }
+    val productosFiltrados = remember(productos, categoriaSeleccionada) {
+        if (categoriaSeleccionada == null) productos
+        else productos.filter { (it.categoria.ifBlank { "Otros" }) == categoriaSeleccionada }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
 
-        // Búsqueda manual
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = queryBusqueda,
-                onValueChange = onQueryChange,
-                placeholder = { Text("Sin código? Escribí el nombre") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodySmall,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                trailingIcon = {
-                    if (queryBusqueda.isNotBlank()) {
-                        IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
+        if (productos.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text("Sin productos cargados", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            if (categoriaSeleccionada == null && categorias.size > 1) {
+                // Solo categorías
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    categorias.forEach { cat ->
+                        ElevatedCard(onClick = { categoriaSeleccionada = cat }) {
+                            Text(
+                                cat,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
                         }
                     }
                 }
-            )
-            if (queryBusqueda.isNotBlank() && sugerencias.isEmpty()) {
-                Spacer(Modifier.width(6.dp))
-                IconButton(
-                    onClick = { onAgregarManual(queryBusqueda.trim()) },
-                    modifier = Modifier.size(40.dp)
+            } else {
+                // Flecha fija + productos scrolleables
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-
-        if (sugerencias.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(sugerencias) { prod ->
-                    ElevatedCard(
-                        onClick = { onAgregarSugerencia(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) },
-                        modifier = Modifier.height(56.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.Center
+                    if (categorias.size > 1) {
+                        IconButton(
+                            onClick = { categoriaSeleccionada = null },
+                            modifier = Modifier.size(36.dp)
                         ) {
-                            Text(prod.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1)
-                            if (prod.ultimoPrecio > 0) Text(
-                                "$${prod.ultimoPrecio.toInt()}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Icon(Icons.Default.ArrowBack, "Volver a categorías", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .horizontalScroll(rememberScrollState())
+                            .padding(end = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        productosFiltrados.forEach { prod ->
+                            ElevatedCard(
+                                onClick = { onAgregarSugerencia(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(prod.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1)
+                                    if (prod.ultimoPrecio > 0) Text(
+                                        "$${prod.ultimoPrecio.toInt()}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
                         }
                     }
                 }

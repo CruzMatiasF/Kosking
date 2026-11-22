@@ -57,6 +57,7 @@ fun PantallaEscaner(
         if (escanerVm.queryBusqueda.isBlank()) emptyList()
         else productos.filter { it.nombre.contains(escanerVm.queryBusqueda, ignoreCase = true) }.take(3)
     }
+    // sugerencias se mantiene por si otra parte lo usa; EscanerAnotarPanel ahora recibe productos directo
 
     var permiso by remember { mutableStateOf(false) }
     val focusCliente = remember { FocusRequester() }
@@ -227,7 +228,7 @@ fun PantallaEscaner(
                     ModoEscaner.ANOTAR -> EscanerAnotarPanel(
                         itemsAnotados = escanerVm.itemsAnotados,
                         queryBusqueda = escanerVm.queryBusqueda,
-                        sugerencias = sugerencias,
+                        productos = productos,
                         clienteSeleccionado = escanerVm.clienteSeleccionado,
                         cargandoAnotacion = escanerVm.cargandoAnotacion,
                         onQueryChange = { escanerVm.queryBusqueda = it },

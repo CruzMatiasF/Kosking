@@ -168,11 +168,19 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 buscandoProducto = false
                 when (modo) {
                     ModoEscaner.VENDER, ModoEscaner.ANOTAR -> {
-                        agregarALista(ItemAnotado(nombre.ifBlank { "Código: $codigo" }, precio, productoId))
-                        escaneoExitoso = true
-                        delay(400)
-                        escaneoExitoso = false
-                        yaDetecto.set(false)
+                        if (enLocal != null) {
+                            agregarALista(ItemAnotado(nombre, precio, productoId))
+                            escaneoExitoso = true
+                            delay(400)
+                            escaneoExitoso = false
+                            yaDetecto.set(false)
+                        } else {
+                            // Producto no existe en el catálogo → ir a cargarlo
+                            productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
+                            nombreCarga = nombre
+                            precioCarga = if (precio > 0) precio.toInt().toString() else ""
+                            modo = ModoEscaner.CARGAR_NUEVO
+                        }
                     }
                     ModoEscaner.CARGAR_NUEVO -> {
                         productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)

@@ -227,7 +227,7 @@ fun PantallaEscaner(
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
 
         // Área de cámara
-        Box(modifier = Modifier.fillMaxWidth().weight(0.45f)) {
+        Box(modifier = Modifier.fillMaxWidth().weight(0.40f)) {
             if (permiso) {
                 CamaraEscaner(
                     onCodigo = { escanerVm.onCodigo(it) },
@@ -261,7 +261,7 @@ fun PantallaEscaner(
         }
 
         // Panel inferior
-        Surface(modifier = Modifier.fillMaxWidth().weight(0.55f), color = MaterialTheme.colorScheme.surface) {
+        Surface(modifier = Modifier.fillMaxWidth().weight(0.60f), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
 
                 // Selector de modo — swipe horizontal para cambiar

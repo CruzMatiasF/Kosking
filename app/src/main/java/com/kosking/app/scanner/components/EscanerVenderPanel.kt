@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Producto
@@ -100,32 +99,8 @@ internal fun EscanerVenderPanel(
                 }
             } else {
                 items(itemsVenta) { item ->
-                    ListItem(
-                        headlineContent = { Text(item.nombre, style = MaterialTheme.typography.bodyMedium) },
-                        supportingContent = {
-                            if (item.precio > 0) Text(
-                                "$${(item.precio * item.cantidad).toInt()}" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold
-                            ) else Text(
-                                "sin precio" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { onCambiarCantidad(item, item.cantidad - 1) }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Remove, null, modifier = Modifier.size(16.dp))
-                                }
-                                Text("${item.cantidad}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                IconButton(onClick = { onCambiarCantidad(item, item.cantidad + 1) }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        }
-                    )
+                    val presentacion = productos.firstOrNull { it.id == item.productoId }?.presentacion ?: ""
+                    ItemRemitoRow(item = item, presentacion = presentacion, onCambiarCantidad = onCambiarCantidad)
                     HorizontalDivider()
                 }
             }

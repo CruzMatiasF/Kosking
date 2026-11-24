@@ -10,7 +10,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -130,37 +133,8 @@ internal fun EscanerAnotarPanel(
                 }
             } else {
                 items(itemsAnotados) { item ->
-                    ListItem(
-                        headlineContent = { Text(item.nombre, style = MaterialTheme.typography.bodyMedium) },
-                        supportingContent = {
-                            if (item.precio > 0) {
-                                Text(
-                                    "$${(item.precio * item.cantidad).toInt()}" +
-                                        if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            } else {
-                                Text(
-                                    "sin precio" + if (item.cantidad > 1) "  ·  x${item.cantidad}" else "",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { onCambiarCantidad(item, item.cantidad - 1) }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Remove, null, modifier = Modifier.size(16.dp))
-                                }
-                                Text("${item.cantidad}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                IconButton(onClick = { onCambiarCantidad(item, item.cantidad + 1) }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        }
-                    )
+                    val presentacion = productos.firstOrNull { it.id == item.productoId }?.presentacion ?: ""
+                    ItemRemitoRow(item = item, presentacion = presentacion, onCambiarCantidad = onCambiarCantidad)
                     HorizontalDivider()
                 }
             }

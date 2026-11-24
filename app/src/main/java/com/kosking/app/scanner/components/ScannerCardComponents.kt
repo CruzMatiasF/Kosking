@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -159,6 +161,73 @@ internal fun ScannerProductoCard(
                 }
             }
         }
+    }
+}
+
+/** Fila estilo remito: nombre+presentacion — controles de cantidad — precio */
+@Composable
+internal fun ItemRemitoRow(
+    item: com.kosking.app.modelo.ItemAnotado,
+    presentacion: String,
+    onCambiarCantidad: (com.kosking.app.modelo.ItemAnotado, Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Nombre + presentación
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                item.nombre,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (presentacion.isNotBlank()) {
+                Text(
+                    presentacion,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+        // Controles cantidad
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = { onCambiarCantidad(item, item.cantidad - 1) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(Icons.Default.Remove, null, Modifier.size(16.dp))
+            }
+            Text(
+                "${item.cantidad}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.widthIn(min = 20.dp),
+                textAlign = TextAlign.Center
+            )
+            IconButton(
+                onClick = { onCambiarCantidad(item, item.cantidad + 1) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+            }
+        }
+        // Precio
+        Text(
+            if (item.precio > 0) "$${"%.0f".format(item.precio * item.cantidad)}"
+            else "s/p",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (item.precio > 0) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.widthIn(min = 48.dp),
+            textAlign = TextAlign.End
+        )
     }
 }
 

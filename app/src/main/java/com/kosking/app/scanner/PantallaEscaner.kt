@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,6 +16,8 @@ import kotlin.math.abs
 import kotlinx.coroutines.flow.drop
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +37,79 @@ import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+@Composable
+private fun SelectorCarrito(
+    carritos: List<CarritoState>,
+    activoIdx: Int,
+    onSeleccionar: (Int) -> Unit,
+    onAgregar: () -> Unit,
+    onCerrar: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        carritos.forEachIndexed { idx, carrito ->
+            val esActivo = idx == activoIdx
+            val cantItems = carrito.itemsAnotados.sumOf { it.cantidad }
+            Surface(
+                onClick = { onSeleccionar(idx) },
+                shape = RoundedCornerShape(50),
+                color = if (esActivo) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.height(30.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        "${idx + 1}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (esActivo) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (cantItems > 0) {
+                        Text(
+                            "·$cantItems",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                    if (carritos.size > 1) {
+                        Icon(
+                            Icons.Default.Close, null,
+                            Modifier
+                                .size(12.dp)
+                                .clickable { onCerrar(idx) },
+                            tint = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+        }
+        if (carritos.size < 3) {
+            IconButton(
+                onClick = onAgregar,
+                modifier = Modifier.size(30.dp)
+            ) {
+                Icon(
+                    Icons.Default.Add, null,
+                    Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
 
 private val modos = listOf(ModoEscaner.ANOTAR, ModoEscaner.VENDER, ModoEscaner.CARGAR_NUEVO)
 private val modoLabel = mapOf(
@@ -154,9 +230,10 @@ fun PantallaEscaner(
             movimientos.filter { it.clienteId == c.id }.maxOfOrNull { it.fecha.seconds } ?: 0L
         }
     }
-    val filtradosCliente = remember(escanerVm.busquedaCliente, clientesOrdenados) {
-        if (escanerVm.busquedaCliente.isBlank()) clientesOrdenados
-        else clientesOrdenados.filter { it.nombre.contains(escanerVm.busquedaCliente, ignoreCase = true) }
+    val busquedaClienteActiva = escanerVm.carritoActivo.busquedaCliente
+    val filtradosCliente = remember(busquedaClienteActiva, clientesOrdenados) {
+        if (busquedaClienteActiva.isBlank()) clientesOrdenados
+        else clientesOrdenados.filter { it.nombre.contains(busquedaClienteActiva, ignoreCase = true) }
     }
     var permiso by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> permiso = granted }
@@ -263,6 +340,17 @@ fun PantallaEscaner(
         // Panel inferior
         Surface(modifier = Modifier.fillMaxWidth().weight(0.60f), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
+
+                // Selector de carritos simultáneos
+                SelectorCarrito(
+                    carritos = escanerVm.carritos,
+                    activoIdx = escanerVm.carritoActivoIdx,
+                    onSeleccionar = { escanerVm.seleccionarCarrito(it) },
+                    onAgregar = { escanerVm.agregarCarrito() },
+                    onCerrar = { escanerVm.cerrarCarrito(it) }
+                )
+
+                HorizontalDivider()
 
                 // Selector de modo — swipe horizontal para cambiar
                 SelectorModo(

@@ -36,6 +36,16 @@ import com.kosking.app.scanner.components.MovimientoExitosoScreen
 
 enum class ModoManual { VENDER, ANOTAR }
 
+/** Estado inmutable de un carrito en la pantalla manual. */
+private data class CarritoManual(
+    val id: Int,
+    val items: List<ItemAnotado> = emptyList(),
+    val clienteSeleccionado: Cliente? = null,
+    val busquedaCliente: String = "",
+    val mostrarSugerencias: Boolean = false,
+    val categoriaSeleccionada: String? = null
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaManual(
@@ -47,33 +57,40 @@ fun PantallaManual(
     onConfirmarAnotacion: (clienteId: String, items: List<ItemAnotado>, onExito: () -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val carrito = remember { mutableStateListOf<ItemAnotado>() }
-    var clienteSeleccionado by remember { mutableStateOf<Cliente?>(null) }
-    var busquedaCliente by remember { mutableStateOf("") }
-    var mostrarSugerenciasCliente by remember { mutableStateOf(false) }
-    var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+    var carritos by remember { mutableStateOf(listOf(CarritoManual(id = 1))) }
+    var carritoActivoIdx by remember { mutableStateOf(0) }
     var mostrarConfirmar by remember { mutableStateOf(false) }
     var exitoItems by remember { mutableStateOf<List<ItemAnotado>>(emptyList()) }
     var exitoCliente by remember { mutableStateOf<Cliente?>(null) }
     var mostrarExito by remember { mutableStateOf(false) }
 
+    val carrito = carritos[carritoActivoIdx]
+
+    fun updateCarrito(block: CarritoManual.() -> CarritoManual) {
+        carritos = carritos.mapIndexed { i, c -> if (i == carritoActivoIdx) c.block() else c }
+    }
+
     val categorias = remember(productos) {
         productos.map { it.categoria.ifBlank { "Otros" } }.distinct().sorted()
     }
-    val productosFiltrados = remember(productos, categoriaSeleccionada) {
+    val productosFiltrados = remember(productos, carrito.categoriaSeleccionada) {
         productos
-            .filter { categoriaSeleccionada == null || it.categoria.ifBlank { "Otros" } == categoriaSeleccionada }
+            .filter { carrito.categoriaSeleccionada == null || it.categoria.ifBlank { "Otros" } == carrito.categoriaSeleccionada }
             .sortedByDescending { it.vecesUsado }
     }
-    val clientesFiltrados = remember(clientes, busquedaCliente) {
-        if (busquedaCliente.isBlank()) emptyList()
-        else clientes.filter { it.nombre.contains(busquedaCliente, ignoreCase = true) }.take(5)
+    val clientesFiltrados = remember(clientes, carrito.busquedaCliente) {
+        if (carrito.busquedaCliente.isBlank()) emptyList()
+        else clientes.filter { it.nombre.contains(carrito.busquedaCliente, ignoreCase = true) }.take(5)
     }
 
     fun agregar(prod: Producto) {
-        val idx = carrito.indexOfFirst { it.productoId == prod.id }
-        if (idx >= 0) carrito[idx] = carrito[idx].copy(cantidad = carrito[idx].cantidad + 1)
-        else carrito.add(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id, 1))
+        val idx = carrito.items.indexOfFirst { it.productoId == prod.id }
+        updateCarrito {
+            if (idx >= 0)
+                copy(items = items.mapIndexed { i, it -> if (i == idx) it.copy(cantidad = it.cantidad + 1) else it })
+            else
+                copy(items = items + ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id, 1))
+        }
     }
 
     // ── Pantalla éxito ──
@@ -91,25 +108,31 @@ fun PantallaManual(
     // ── Pantalla confirmar ──
     if (mostrarConfirmar) {
         PantallaConfirmarAnotacion(
-            cliente = if (modo == ModoManual.ANOTAR) clienteSeleccionado else null,
-            items = carrito.toList(),
+            cliente = if (modo == ModoManual.ANOTAR) carrito.clienteSeleccionado else null,
+            items = carrito.items,
             tipo = if (modo == ModoManual.VENDER) "venta" else "cargo",
             cargando = cargando,
             onConfirmar = {
                 if (modo == ModoManual.VENDER) {
-                    val itemsConfirmados = carrito.toList()
+                    val itemsConfirmados = carrito.items
                     onConfirmarVenta(itemsConfirmados) {
                         exitoItems = itemsConfirmados
                         mostrarConfirmar = false
                         mostrarExito = true
                     }
                 } else {
-                    val cliente = clienteSeleccionado ?: return@PantallaConfirmarAnotacion
-                    val itemsConfirmados = carrito.toList()
+                    val cliente = carrito.clienteSeleccionado ?: return@PantallaConfirmarAnotacion
+                    val itemsConfirmados = carrito.items
                     onConfirmarAnotacion(cliente.id, itemsConfirmados) {
                         exitoItems = itemsConfirmados
                         exitoCliente = cliente
                         mostrarConfirmar = false
+                        // Limpiar carrito confirmado; si hay otros, cambiar al primero con items
+                        val newCarritos = carritos.mapIndexed { i, c ->
+                            if (i == carritoActivoIdx) c.copy(items = emptyList(), clienteSeleccionado = null, busquedaCliente = "")
+                            else c
+                        }
+                        carritos = newCarritos
                         mostrarExito = true
                     }
                 }
@@ -132,8 +155,8 @@ fun PantallaManual(
                         IconButton(onClick = onDismiss) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
                     },
                     actions = {
-                        if (carrito.isNotEmpty()) {
-                            TextButton(onClick = { carrito.clear() }) {
+                        if (carrito.items.isNotEmpty()) {
+                            TextButton(onClick = { updateCarrito { copy(items = emptyList()) } }) {
                                 Text("Limpiar", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -141,9 +164,9 @@ fun PantallaManual(
                 )
             },
             bottomBar = {
-                val total = carrito.sumOf { it.precio * it.cantidad }
-                val puedeConfirmar = carrito.isNotEmpty() &&
-                    (modo == ModoManual.VENDER || clienteSeleccionado != null)
+                val total = carrito.items.sumOf { it.precio * it.cantidad }
+                val puedeConfirmar = carrito.items.isNotEmpty() &&
+                    (modo == ModoManual.VENDER || carrito.clienteSeleccionado != null)
                 Surface(shadowElevation = 8.dp) {
                     Column(
                         modifier = Modifier
@@ -185,21 +208,43 @@ fun PantallaManual(
 
                 Column(modifier = Modifier.fillMaxSize()) {
 
+                    // ── Selector de carritos ──
+                    SelectorCarritoManual(
+                        carritos = carritos,
+                        activoIdx = carritoActivoIdx,
+                        onSeleccionar = { carritoActivoIdx = it },
+                        onAgregar = {
+                            if (carritos.size < 3) {
+                                val newId = (carritos.maxOf { it.id }) + 1
+                                carritos = carritos + CarritoManual(id = newId)
+                                carritoActivoIdx = carritos.size - 1
+                            }
+                        },
+                        onCerrar = { idx ->
+                            if (carritos.size > 1) {
+                                carritos = carritos.filterIndexed { i, _ -> i != idx }
+                                carritoActivoIdx = minOf(carritoActivoIdx, carritos.size - 1)
+                            }
+                        }
+                    )
+
+                    HorizontalDivider()
+
                     // ── Buscador de cliente (solo Anotar) ──
                     if (modo == ModoManual.ANOTAR) {
-                        if (clienteSeleccionado == null) {
+                        if (carrito.clienteSeleccionado == null) {
                             OutlinedTextField(
-                                value = busquedaCliente,
-                                onValueChange = {
-                                    busquedaCliente = it
-                                    mostrarSugerenciasCliente = it.isNotBlank()
+                                value = carrito.busquedaCliente,
+                                onValueChange = { q ->
+                                    updateCarrito { copy(busquedaCliente = q, mostrarSugerencias = q.isNotBlank()) }
                                 },
                                 placeholder = { Text("Buscar cliente…") },
                                 leadingIcon = { Icon(Icons.Default.Person, null, Modifier.size(18.dp)) },
                                 trailingIcon = {
-                                    if (busquedaCliente.isNotBlank()) IconButton(onClick = { busquedaCliente = ""; mostrarSugerenciasCliente = false }) {
-                                        Icon(Icons.Default.Clear, null, Modifier.size(16.dp))
-                                    }
+                                    if (carrito.busquedaCliente.isNotBlank())
+                                        IconButton(onClick = { updateCarrito { copy(busquedaCliente = "", mostrarSugerencias = false) } }) {
+                                            Icon(Icons.Default.Clear, null, Modifier.size(16.dp))
+                                        }
                                 },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -215,12 +260,15 @@ fun PantallaManual(
                             ) {
                                 Icon(Icons.Default.Person, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                 Text(
-                                    clienteSeleccionado!!.nombre,
+                                    carrito.clienteSeleccionado!!.nombre,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1f)
                                 )
-                                IconButton(onClick = { clienteSeleccionado = null; busquedaCliente = "" }, modifier = Modifier.size(28.dp)) {
+                                IconButton(
+                                    onClick = { updateCarrito { copy(clienteSeleccionado = null, busquedaCliente = "") } },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
                                     Icon(Icons.Default.Close, null, Modifier.size(16.dp))
                                 }
                             }
@@ -231,8 +279,7 @@ fun PantallaManual(
                     // ── Mitad superior: catálogo ──
                     Column(modifier = Modifier.weight(1f)) {
 
-                        if (categoriaSeleccionada == null) {
-                            // Cards grandes de categoría
+                        if (carrito.categoriaSeleccionada == null) {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(3),
                                 contentPadding = PaddingValues(10.dp),
@@ -242,7 +289,7 @@ fun PantallaManual(
                             ) {
                                 items(categorias) { cat ->
                                     Card(
-                                        onClick = { categoriaSeleccionada = cat },
+                                        onClick = { updateCarrito { copy(categoriaSeleccionada = cat) } },
                                         shape = RoundedCornerShape(12.dp),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                                         modifier = Modifier.aspectRatio(1f)
@@ -261,7 +308,6 @@ fun PantallaManual(
                                 }
                             }
                         } else {
-                            // Chip compacto con la categoría activa + X para volver
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -270,8 +316,8 @@ fun PantallaManual(
                             ) {
                                 InputChip(
                                     selected = true,
-                                    onClick = { categoriaSeleccionada = null },
-                                    label = { Text(categoriaSeleccionada!!, style = MaterialTheme.typography.labelMedium) },
+                                    onClick = { updateCarrito { copy(categoriaSeleccionada = null) } },
+                                    label = { Text(carrito.categoriaSeleccionada!!, style = MaterialTheme.typography.labelMedium) },
                                     trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(14.dp)) }
                                 )
                             }
@@ -281,7 +327,7 @@ fun PantallaManual(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(productosFiltrados, key = { it.id }) { prod ->
-                                    val cant = carrito.firstOrNull { it.productoId == prod.id }?.cantidad ?: 0
+                                    val cant = carrito.items.firstOrNull { it.productoId == prod.id }?.cantidad ?: 0
                                     ProductoManualCard(prod = prod, cantEnCarrito = cant, onClick = { agregar(prod) })
                                 }
                             }
@@ -290,12 +336,10 @@ fun PantallaManual(
 
                     HorizontalDivider()
 
-                    // ── Mitad inferior: carrito ──
+                    // ── Mitad inferior: carrito (remito) ──
                     Column(modifier = Modifier.weight(1f)) {
-                        // Remito — siempre muestra N líneas, los productos las van llenando
                         val LINEAS_REMITO = 6
                         Column(modifier = Modifier.fillMaxSize()) {
-                            // Encabezado
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -309,10 +353,10 @@ fun PantallaManual(
                             }
                             HorizontalDivider()
 
-                            val totalLineas = maxOf(LINEAS_REMITO, carrito.size)
+                            val totalLineas = maxOf(LINEAS_REMITO, carrito.items.size)
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(totalLineas) { i ->
-                                    val item = carrito.getOrNull(i)
+                                    val item = carrito.items.getOrNull(i)
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -335,17 +379,33 @@ fun PantallaManual(
                                                 modifier = Modifier.width(36.dp),
                                                 horizontalArrangement = Arrangement.Center
                                             ) {
+                                                val itemIdx = carrito.items.indexOf(item)
                                                 IconButton(
                                                     onClick = {
-                                                        val idx = carrito.indexOf(item)
-                                                        if (item.cantidad <= 1) carrito.removeAt(idx)
-                                                        else carrito[idx] = item.copy(cantidad = item.cantidad - 1)
+                                                        updateCarrito {
+                                                            if (item.cantidad <= 1)
+                                                                copy(items = items.filterIndexed { j, _ -> j != itemIdx })
+                                                            else
+                                                                copy(items = items.mapIndexed { j, it -> if (j == itemIdx) it.copy(cantidad = it.cantidad - 1) else it })
+                                                        }
                                                     },
                                                     modifier = Modifier.size(20.dp)
-                                                ) { Icon(if (item.cantidad <= 1) Icons.Default.Delete else Icons.Default.Remove, null, Modifier.size(12.dp), tint = if (item.cantidad <= 1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                                ) {
+                                                    Icon(
+                                                        if (item.cantidad <= 1) Icons.Default.Delete else Icons.Default.Remove,
+                                                        null, Modifier.size(12.dp),
+                                                        tint = if (item.cantidad <= 1) MaterialTheme.colorScheme.error
+                                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                                 Text("${item.cantidad}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 2.dp))
                                                 IconButton(
-                                                    onClick = { val idx = carrito.indexOf(item); carrito[idx] = item.copy(cantidad = item.cantidad + 1) },
+                                                    onClick = {
+                                                        val itemIdx2 = carrito.items.indexOf(item)
+                                                        updateCarrito {
+                                                            copy(items = items.mapIndexed { j, it -> if (j == itemIdx2) it.copy(cantidad = it.cantidad + 1) else it })
+                                                        }
+                                                    },
                                                     modifier = Modifier.size(20.dp)
                                                 ) { Icon(Icons.Default.Add, null, Modifier.size(12.dp)) }
                                             }
@@ -358,7 +418,6 @@ fun PantallaManual(
                                                 textAlign = androidx.compose.ui.text.style.TextAlign.End
                                             )
                                         }
-                                        // línea vacía — no muestra nada, solo el espacio y el divider
                                     }
                                     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                                 }
@@ -367,8 +426,8 @@ fun PantallaManual(
                     }
                 }
 
-                // ── Dropdown flotante de clientes (zIndex: flota sobre todo) ──
-                if (mostrarSugerenciasCliente && clientesFiltrados.isNotEmpty()) {
+                // ── Dropdown flotante de clientes ──
+                if (carrito.mostrarSugerencias && clientesFiltrados.isNotEmpty()) {
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -388,9 +447,7 @@ fun PantallaManual(
                                             Text("Deuda: $${"%.0f".format(cliente.deudaTotal)}", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                                     },
                                     modifier = Modifier.clickable {
-                                        clienteSeleccionado = cliente
-                                        busquedaCliente = ""
-                                        mostrarSugerenciasCliente = false
+                                        updateCarrito { copy(clienteSeleccionado = cliente, busquedaCliente = "", mostrarSugerencias = false) }
                                     }
                                 )
                                 if (cliente != clientesFiltrados.last()) HorizontalDivider()
@@ -398,6 +455,81 @@ fun PantallaManual(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectorCarritoManual(
+    carritos: List<CarritoManual>,
+    activoIdx: Int,
+    onSeleccionar: (Int) -> Unit,
+    onAgregar: () -> Unit,
+    onCerrar: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        carritos.forEachIndexed { idx, c ->
+            val esActivo = idx == activoIdx
+            val cantItems = c.items.sumOf { it.cantidad }
+            Surface(
+                onClick = { onSeleccionar(idx) },
+                shape = RoundedCornerShape(50),
+                color = if (esActivo) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.height(32.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        "${idx + 1}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (esActivo) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (cantItems > 0) {
+                        Text(
+                            "·$cantItems",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                    if (c.clienteSeleccionado != null) {
+                        Text(
+                            c.clienteSeleccionado.nombre.split(" ").first(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            maxLines = 1
+                        )
+                    }
+                    if (carritos.size > 1) {
+                        Icon(
+                            Icons.Default.Close, null,
+                            Modifier
+                                .size(12.dp)
+                                .clickable { onCerrar(idx) },
+                            tint = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
+        }
+        if (carritos.size < 3) {
+            IconButton(onClick = onAgregar, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Add, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

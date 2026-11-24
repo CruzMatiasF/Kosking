@@ -25,15 +25,61 @@ internal data class ProductoDetectado(
     val codigoBarras: String = ""
 )
 
+/** Estado inmutable de un carrito individual. */
+data class CarritoState(
+    val id: Int,
+    val itemsAnotados: List<ItemAnotado> = emptyList(),
+    val clienteSeleccionado: Cliente? = null,
+    val busquedaCliente: String = ""
+)
+
 internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel() {
 
+    // ── Multi-carrito ──────────────────────────────────────────────────────────
+    var carritos by mutableStateOf(listOf(CarritoState(id = 1)))
+    var carritoActivoIdx by mutableStateOf(0)
+
+    val carritoActivo: CarritoState get() = carritos[carritoActivoIdx]
+
+    private fun actualizarCarritoActivo(block: CarritoState.() -> CarritoState) {
+        carritos = carritos.mapIndexed { i, c -> if (i == carritoActivoIdx) c.block() else c }
+    }
+
+    fun agregarCarrito() {
+        if (carritos.size >= 3) return
+        val newId = (carritos.maxOf { it.id }) + 1
+        carritos = carritos + CarritoState(id = newId)
+        carritoActivoIdx = carritos.size - 1
+    }
+
+    fun cerrarCarrito(idx: Int) {
+        if (carritos.size <= 1) return
+        carritos = carritos.filterIndexed { i, _ -> i != idx }
+        carritoActivoIdx = minOf(carritoActivoIdx, carritos.size - 1)
+    }
+
+    fun seleccionarCarrito(idx: Int) {
+        carritoActivoIdx = idx
+    }
+
+    // ── Propiedades delegadas al carrito activo (compatibilidad con código existente) ──
+    var itemsAnotados: List<ItemAnotado>
+        get() = carritoActivo.itemsAnotados
+        set(value) { actualizarCarritoActivo { copy(itemsAnotados = value) } }
+
+    var clienteSeleccionado: Cliente?
+        get() = carritoActivo.clienteSeleccionado
+        set(value) { actualizarCarritoActivo { copy(clienteSeleccionado = value) } }
+
+    var busquedaCliente: String
+        get() = carritoActivo.busquedaCliente
+        set(value) { actualizarCarritoActivo { copy(busquedaCliente = value) } }
+
+    // ── Estado global (no pertenece a ningún carrito) ─────────────────────────
     var modo by mutableStateOf(ModoEscaner.VENDER)
-    var clienteSeleccionado by mutableStateOf<Cliente?>(null)
-    var busquedaCliente by mutableStateOf("")
     var mostrarRegistroCliente by mutableStateOf(false)
     var nombreNuevoCliente by mutableStateOf("")
     var telefonoNuevoCliente by mutableStateOf("")
-    var itemsAnotados by mutableStateOf(listOf<ItemAnotado>())
     var productoParaCargar by mutableStateOf<ProductoDetectado?>(null)
     var buscandoProducto by mutableStateOf(false)
     var cargandoAnotacion by mutableStateOf(false)
@@ -46,16 +92,14 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     var mostrarDialogoCambioModo by mutableStateOf(false)
     var escaneoExitoso by mutableStateOf(false)
 
-    // AtomicBoolean: leído desde el hilo del analizador de cámara
     val yaDetecto = AtomicBoolean(false)
     private var ultimoCodigo = ""
     private var ultimoCodigoTs = 0L
 
     fun resetear(modoInicial: ModoEscaner = ModoEscaner.VENDER) {
         modo = modoInicial
-        itemsAnotados = emptyList()
-        clienteSeleccionado = null
-        busquedaCliente = ""
+        carritos = listOf(CarritoState(id = 1))
+        carritoActivoIdx = 0
         mostrarConfirmar = false
         ventaExitosa = null
         anotacionExitosa = null
@@ -89,6 +133,8 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 cargandoAnotacion = false
                 mostrarConfirmar = false
                 anotacionExitosa = Triple(cliente, itemsSnap, tipo)
+                // Limpiar carrito confirmado
+                actualizarCarritoActivo { copy(itemsAnotados = emptyList(), clienteSeleccionado = null, busquedaCliente = "") }
             }
         )
     }
@@ -104,6 +150,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 mostrarConfirmar = false
                 val total = itemsSnap.sumOf { it.precio * it.cantidad }
                 ventaExitosa = itemsSnap to total
+                actualizarCarritoActivo { copy(itemsAnotados = emptyList()) }
             }
         )
     }

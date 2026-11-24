@@ -52,16 +52,6 @@ internal fun EscanerAnotarPanel(
 
     Column(modifier = modifier.fillMaxSize()) {
 
-        // ── Selector de cliente ──
-        ClientePicker(
-            clienteSeleccionado = clienteSeleccionado,
-            busquedaCliente = busquedaCliente,
-            onBusquedaChange = onBusquedaChange,
-            onLimpiarCliente = onLimpiarCliente
-        )
-
-        HorizontalDivider()
-
         // ── Catálogo ──
         if (productos.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -130,33 +120,44 @@ internal fun EscanerAnotarPanel(
             }
         }
 
-        if (itemsAnotados.isNotEmpty()) {
-            val total = itemsAnotados.sumOf { it.precio * it.cantidad }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+        HorizontalDivider()
+
+        // ── Barra inferior: cliente + continuar + total ──
+        val total = itemsAnotados.sumOf { it.precio * it.cantidad }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Cliente — ocupa el espacio libre
+            ClientePicker(
+                clienteSeleccionado = clienteSeleccionado,
+                busquedaCliente = busquedaCliente,
+                onBusquedaChange = onBusquedaChange,
+                onLimpiarCliente = onLimpiarCliente,
+                modifier = Modifier.weight(1f)
+            )
+            // Botón + total (solo si hay ítems)
+            if (itemsAnotados.isNotEmpty()) {
                 Button(
                     onClick = onConfirmar,
                     enabled = !cargandoAnotacion && clienteSeleccionado != null,
-                    modifier = Modifier.height(46.dp)
+                    modifier = Modifier.height(42.dp)
                 ) {
-                    if (cargandoAnotacion) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    if (cargandoAnotacion) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     else Text("Continuar", fontWeight = FontWeight.Bold)
                 }
-                Spacer(Modifier.weight(1f))
                 if (total > 0) {
                     Text(
                         "$${"%.0f".format(total)}",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
-        } else {
-            Spacer(Modifier.height(8.dp))
         }
     }
 }
@@ -166,53 +167,49 @@ private fun ClientePicker(
     clienteSeleccionado: Cliente?,
     busquedaCliente: String,
     onBusquedaChange: (String) -> Unit,
-    onLimpiarCliente: () -> Unit
+    onLimpiarCliente: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        if (clienteSeleccionado != null) {
-            // Cliente seleccionado — chip compacto
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Default.Person, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                Text(
-                    clienteSeleccionado.nombre,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    Icons.Default.Close, null,
-                    Modifier.size(16.dp).clickable { onLimpiarCliente() },
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            // Campo de búsqueda
-            OutlinedTextField(
-                value = busquedaCliente,
-                onValueChange = onBusquedaChange,
-                placeholder = { Text("Buscar o escanear cliente…", style = MaterialTheme.typography.bodySmall) },
-                leadingIcon = { Icon(Icons.Default.Person, null, Modifier.size(16.dp)) },
-                trailingIcon = {
-                    if (busquedaCliente.isNotBlank()) {
-                        IconButton(onClick = { onBusquedaChange("") }) {
-                            Icon(Icons.Default.Clear, null, Modifier.size(14.dp))
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(50),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .height(44.dp),
-                textStyle = MaterialTheme.typography.bodySmall
+    if (clienteSeleccionado != null) {
+        Row(
+            modifier = modifier
+                .clip(RoundedCornerShape(50))
+                .height(42.dp)
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(Icons.Default.Person, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Text(
+                clienteSeleccionado.nombre,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.Default.Close, null,
+                Modifier.size(14.dp).clickable { onLimpiarCliente() },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    } else {
+        OutlinedTextField(
+            value = busquedaCliente,
+            onValueChange = onBusquedaChange,
+            placeholder = { Text("Cliente…", style = MaterialTheme.typography.bodySmall) },
+            leadingIcon = { Icon(Icons.Default.Person, null, Modifier.size(14.dp)) },
+            trailingIcon = {
+                if (busquedaCliente.isNotBlank()) {
+                    IconButton(onClick = { onBusquedaChange("") }) {
+                        Icon(Icons.Default.Clear, null, Modifier.size(13.dp))
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(50),
+            modifier = modifier.height(42.dp),
+            textStyle = MaterialTheme.typography.bodySmall
+        )
     }
 }

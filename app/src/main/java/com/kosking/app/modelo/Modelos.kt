@@ -82,7 +82,8 @@ data class Producto(
     val vecesUsado: Int = 0,
     val categoria: String = "",
     val imagenUrl: String = "",
-    val codigoBarras: String = ""
+    val codigoBarras: String = "",
+    val presentacion: String = ""
 )
 
 @Immutable

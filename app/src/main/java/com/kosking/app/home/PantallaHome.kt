@@ -292,8 +292,8 @@ fun PantallaHome(
                             productos = productos,
                             cargando = cargando,
                             onBuscarGlobal = { query -> duenoVm.buscarProductosGlobales(query) },
-                            onGuardar = { nombre, precio, _, productoId, uri, onExito ->
-                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, onExito)
+                            onGuardar = { nombre, precio, _, productoId, uri, presentacion, onExito ->
+                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, presentacion = presentacion, onExito = onExito)
                             },
                             onEliminar = { duenoVm.eliminarProducto(it) },
                             onVolver = { vistaDueno = NavDueno.Panel }

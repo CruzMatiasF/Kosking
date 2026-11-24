@@ -49,7 +49,7 @@ fun TabProductos(
     mostrarDialogExterno: Boolean = false,
     onDismissDialogExterno: () -> Unit = {},
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, onExito: () -> Unit) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
 ) {
@@ -96,8 +96,8 @@ fun TabProductos(
             },
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
-            onGuardar = { nombre, precio, categoria, imagenUri ->
-                onGuardar(nombre, precio, categoria, editando?.id, imagenUri) {
+            onGuardar = { nombre, precio, categoria, imagenUri, presentacion ->
+                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion) {
                     mostrarDialog = false
                     editando = null
                 }

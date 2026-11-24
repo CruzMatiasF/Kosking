@@ -134,6 +134,18 @@ internal fun ScannerProductoCard(
                     else
                         MaterialTheme.colorScheme.onSurface
                 )
+                if (prod.presentacion.isNotBlank()) {
+                    Text(
+                        prod.presentacion,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (cantEnCarrito > 0)
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (prod.ultimoPrecio > 0) {
                     Text(
                         "$${prod.ultimoPrecio.toInt()}",

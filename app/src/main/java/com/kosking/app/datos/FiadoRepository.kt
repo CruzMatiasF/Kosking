@@ -346,7 +346,7 @@ object FiadoRepository {
         batch.commit().await()
     }
 
-    suspend fun upsertProducto(localId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", productoId: String? = null, codigoBarras: String = "") {
+    suspend fun upsertProducto(localId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", productoId: String? = null, codigoBarras: String = "", presentacion: String = "") {
         if (nombre.isBlank()) return
         val snap = db.collection("productos")
             .whereEqualTo("localId", localId)
@@ -356,7 +356,7 @@ object FiadoRepository {
         if (snap.isEmpty) {
             val ref = if (productoId != null) db.collection("productos").document(productoId)
                       else db.collection("productos").document()
-            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1, categoria = categoria, imagenUrl = imagenUrl, codigoBarras = codigoBarras)).await()
+            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1, categoria = categoria, imagenUrl = imagenUrl, codigoBarras = codigoBarras, presentacion = presentacion)).await()
         } else {
             val updates = mutableMapOf<String, Any>(
                 "ultimoPrecio" to precio,
@@ -365,12 +365,13 @@ object FiadoRepository {
             if (categoria.isNotBlank()) updates["categoria"] = categoria
             if (imagenUrl.isNotBlank()) updates["imagenUrl"] = imagenUrl
             if (codigoBarras.isNotBlank()) updates["codigoBarras"] = codigoBarras
+            if (presentacion.isNotBlank()) updates["presentacion"] = presentacion
             snap.documents.first().reference.update(updates).await()
         }
     }
 
-    suspend fun editarProducto(productoId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", codigoBarras: String = "") {
-        val updates = mutableMapOf<String, Any>("nombre" to nombre, "ultimoPrecio" to precio, "categoria" to categoria)
+    suspend fun editarProducto(productoId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", codigoBarras: String = "", presentacion: String = "") {
+        val updates = mutableMapOf<String, Any>("nombre" to nombre, "ultimoPrecio" to precio, "categoria" to categoria, "presentacion" to presentacion)
         if (imagenUrl.isNotBlank()) updates["imagenUrl"] = imagenUrl
         if (codigoBarras.isNotBlank()) updates["codigoBarras"] = codigoBarras
         db.collection("productos").document(productoId).update(updates).await()

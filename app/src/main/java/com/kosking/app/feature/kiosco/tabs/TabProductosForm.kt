@@ -47,7 +47,7 @@ internal fun DialogProducto(
     categoriasExistentes: List<String>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -72,7 +72,7 @@ internal fun PantallaProducto(
     categoriasExistentes: List<String>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String>,
-    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -83,6 +83,7 @@ internal fun PantallaProducto(
         if (producto != null && producto.ultimoPrecio > 0) "%.0f".format(producto.ultimoPrecio) else ""
     ) }
     var categoria by remember(producto) { mutableStateOf(producto?.categoria ?: "") }
+    var presentacion by remember(producto) { mutableStateOf(producto?.presentacion ?: "") }
     var busqueda by remember { mutableStateOf(producto?.nombre ?: "") }
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
@@ -123,6 +124,7 @@ internal fun PantallaProducto(
     val hayCambios = nombre != (producto?.nombre ?: "") ||
         precioTexto != precioOriginal ||
         categoria != (producto?.categoria ?: "") ||
+        presentacion != (producto?.presentacion ?: "") ||
         imagenUri != null
 
     var mostrarDialogDescartar by remember { mutableStateOf(false) }
@@ -135,7 +137,7 @@ internal fun PantallaProducto(
             title = { Text("¿Descartar cambios?") },
             text = { Text("Tenés cambios sin guardar.") },
             confirmButton = {
-                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri) }) {
+                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim()) }) {
                     Text("Guardar")
                 }
             },
@@ -192,7 +194,7 @@ internal fun PantallaProducto(
         bottomBar = {
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Button(
-                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri) },
+                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim()) },
                     enabled = puedeGuardar,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -326,6 +328,17 @@ internal fun PantallaProducto(
                 placeholder = { Text("Ej: 500") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // ── Presentación ─────────────────────────────────────────────
+            OutlinedTextField(
+                value = presentacion,
+                onValueChange = { presentacion = it },
+                label = { Text("Presentación") },
+                placeholder = { Text("Ej: 500ml, 1L, 100gr, 1kg") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth()
             )
 

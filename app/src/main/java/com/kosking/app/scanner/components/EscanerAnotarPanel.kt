@@ -257,7 +257,7 @@ private fun ClientePicker(
             if (sugerencias.isNotEmpty() || (busquedaCliente.isNotBlank())) {
                 val mostrarCrear = busquedaCliente.isNotBlank() && sugerencias.isEmpty()
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 10.dp, bottom = 6.dp),
+                    contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     if (mostrarCrear) {

@@ -131,7 +131,6 @@ internal fun EscanerAnotarPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Cliente — ocupa el espacio libre
             ClientePicker(
                 clienteSeleccionado = clienteSeleccionado,
                 busquedaCliente = busquedaCliente,
@@ -139,25 +138,21 @@ internal fun EscanerAnotarPanel(
                 onLimpiarCliente = onLimpiarCliente,
                 modifier = Modifier.weight(1f)
             )
-            // Botón + total (solo si hay ítems)
-            if (itemsAnotados.isNotEmpty()) {
-                Button(
-                    onClick = onConfirmar,
-                    enabled = !cargandoAnotacion && clienteSeleccionado != null,
-                    modifier = Modifier.height(42.dp)
-                ) {
-                    if (cargandoAnotacion) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Continuar", fontWeight = FontWeight.Bold)
-                }
-                if (total > 0) {
-                    Text(
-                        "$${"%.0f".format(total)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+            Button(
+                onClick = onConfirmar,
+                enabled = !cargandoAnotacion && clienteSeleccionado != null && itemsAnotados.isNotEmpty(),
+                modifier = Modifier.height(42.dp)
+            ) {
+                if (cargandoAnotacion) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                else Text("Continuar", fontWeight = FontWeight.Bold)
             }
+            Text(
+                if (total > 0) "$${"%.0f".format(total)}" else "",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.widthIn(min = 48.dp)
+            )
         }
     }
 }

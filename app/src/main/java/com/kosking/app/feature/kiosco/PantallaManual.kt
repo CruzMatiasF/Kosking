@@ -490,12 +490,17 @@ private fun SelectorCarritoManual(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    val label = c.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
+                        ?: "Cliente ${idx + 1}"
                     Text(
-                        "${idx + 1}",
+                        label,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (esActivo) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 100.dp)
                     )
                     if (cantItems > 0) {
                         Text(
@@ -503,15 +508,6 @@ private fun SelectorCarritoManual(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                    if (c.clienteSeleccionado != null) {
-                        Text(
-                            c.clienteSeleccionado.nombre.split(" ").first(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            maxLines = 1
                         )
                     }
                     if (esActivo && carritos.size > 1) {

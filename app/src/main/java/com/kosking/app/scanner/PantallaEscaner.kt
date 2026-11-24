@@ -68,12 +68,17 @@ private fun SelectorCarrito(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    val label = carrito.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
+                        ?: "Cliente ${idx + 1}"
                     Text(
-                        "${idx + 1}",
+                        label,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (esActivo) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 100.dp)
                     )
                     if (cantItems > 0) {
                         Text(

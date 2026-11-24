@@ -1,19 +1,16 @@
 package com.kosking.app.scanner.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,7 +26,6 @@ import com.kosking.app.modelo.Producto
 internal fun EscanerAnotarPanel(
     itemsAnotados: List<ItemAnotado>,
     productos: List<Producto>,
-    clientes: List<Cliente>,
     clienteSeleccionado: Cliente?,
     busquedaCliente: String,
     filtradosCliente: List<Cliente>,
@@ -53,9 +49,6 @@ internal fun EscanerAnotarPanel(
         if (cat == null) productos.sortedByDescending { it.vecesUsado }
         else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }.sortedByDescending { it.vecesUsado }
     }
-    val sugerenciasCliente = remember(busquedaCliente, clientes, filtradosCliente) {
-        if (busquedaCliente.isBlank()) clientes.take(4) else filtradosCliente.take(4)
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
 
@@ -63,11 +56,8 @@ internal fun EscanerAnotarPanel(
         ClientePicker(
             clienteSeleccionado = clienteSeleccionado,
             busquedaCliente = busquedaCliente,
-            sugerencias = sugerenciasCliente,
             onBusquedaChange = onBusquedaChange,
-            onClienteSelected = onClienteSelected,
-            onLimpiarCliente = onLimpiarCliente,
-            onNuevoCliente = onNuevoCliente
+            onLimpiarCliente = onLimpiarCliente
         )
 
         HorizontalDivider()
@@ -175,11 +165,8 @@ internal fun EscanerAnotarPanel(
 private fun ClientePicker(
     clienteSeleccionado: Cliente?,
     busquedaCliente: String,
-    sugerencias: List<Cliente>,
     onBusquedaChange: (String) -> Unit,
-    onClienteSelected: (Cliente) -> Unit,
-    onLimpiarCliente: () -> Unit,
-    onNuevoCliente: (String) -> Unit
+    onLimpiarCliente: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         if (clienteSeleccionado != null) {
@@ -209,7 +196,7 @@ private fun ClientePicker(
             OutlinedTextField(
                 value = busquedaCliente,
                 onValueChange = onBusquedaChange,
-                placeholder = { Text("Buscar cliente…", style = MaterialTheme.typography.bodySmall) },
+                placeholder = { Text("Buscar o escanear cliente…", style = MaterialTheme.typography.bodySmall) },
                 leadingIcon = { Icon(Icons.Default.Person, null, Modifier.size(16.dp)) },
                 trailingIcon = {
                     if (busquedaCliente.isNotBlank()) {
@@ -226,55 +213,6 @@ private fun ClientePicker(
                     .height(44.dp),
                 textStyle = MaterialTheme.typography.bodySmall
             )
-
-            // Sugerencias inline
-            if (sugerencias.isNotEmpty() || (busquedaCliente.isNotBlank())) {
-                val mostrarCrear = busquedaCliente.isNotBlank() && sugerencias.isEmpty()
-                LazyRow(
-                    contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (mostrarCrear) {
-                        item {
-                            SuggestionChip(
-                                onClick = { onNuevoCliente(busquedaCliente.trim()) },
-                                label = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(Icons.Default.PersonAdd, null, Modifier.size(12.dp))
-                                        Text("\"${busquedaCliente.trim()}\"", style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                            )
-                        }
-                    } else {
-                        items(sugerencias) { c ->
-                            SuggestionChip(
-                                onClick = { onClienteSelected(c) },
-                                label = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(16.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.secondaryContainer),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(c.nombre.take(1).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontSize = androidx.compose.ui.unit.TextUnit(8f, androidx.compose.ui.unit.TextUnitType.Sp)), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                        }
-                                        Text(c.nombre, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

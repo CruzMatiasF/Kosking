@@ -295,7 +295,6 @@ fun PantallaEscaner(
                     ModoEscaner.ANOTAR -> EscanerAnotarPanel(
                         itemsAnotados = escanerVm.itemsAnotados,
                         productos = productos,
-                        clientes = clientes,
                         clienteSeleccionado = escanerVm.clienteSeleccionado,
                         busquedaCliente = escanerVm.busquedaCliente,
                         filtradosCliente = filtradosCliente,

@@ -29,7 +29,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
 
     var modo by mutableStateOf(ModoEscaner.VENDER)
     var clienteSeleccionado by mutableStateOf<Cliente?>(null)
-    var mostrarBuscarCliente by mutableStateOf(false)
     var busquedaCliente by mutableStateOf("")
     var mostrarRegistroCliente by mutableStateOf(false)
     var nombreNuevoCliente by mutableStateOf("")
@@ -56,7 +55,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         modo = modoInicial
         itemsAnotados = emptyList()
         clienteSeleccionado = null
-        mostrarBuscarCliente = false
         busquedaCliente = ""
         mostrarConfirmar = false
         ventaExitosa = null
@@ -121,7 +119,8 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
             precio = precioCarga.toDoubleOrNull() ?: 0.0,
             productoId = prod.productoId,
             categoria = "",
-            imagenUri = null
+            imagenUri = null,
+            codigoBarras = prod.codigoBarras
         ) {
             productoParaCargar = null
             precioCarga = ""
@@ -145,7 +144,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 val cliente = duenoVm.clientes.value.find { it.id == clienteId }
                 if (cliente != null) {
                     clienteSeleccionado = cliente
-                    mostrarBuscarCliente = false
                     busquedaCliente = ""
                 }
             }

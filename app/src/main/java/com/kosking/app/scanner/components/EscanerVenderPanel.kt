@@ -1,11 +1,11 @@
 package com.kosking.app.scanner.components
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,12 +27,14 @@ internal fun EscanerVenderPanel(
     modifier: Modifier = Modifier
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+
     val categorias = remember(productos) {
         productos.map { it.categoria.ifBlank { "Otros" } }.distinct().sorted()
     }
     val productosFiltrados = remember(productos, categoriaSeleccionada) {
-        if (categoriaSeleccionada == null) productos
-        else productos.filter { (it.categoria.ifBlank { "Otros" }) == categoriaSeleccionada }
+        val cat = categoriaSeleccionada
+        if (cat == null) productos.sortedByDescending { it.vecesUsado }
+        else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }.sortedByDescending { it.vecesUsado }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -41,45 +43,47 @@ internal fun EscanerVenderPanel(
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                 Text("Sin productos cargados", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        } else if (categoriaSeleccionada == null && categorias.size > 1) {
+            // Fila de categorías con imagen
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(categorias) { cat ->
+                    ScannerCategoriaCard(
+                        nombre = cat,
+                        imagenUrl = primeraImagenCategoria(productos, cat),
+                        onClick = { categoriaSeleccionada = cat }
+                    )
+                }
+            }
         } else {
-            if (categoriaSeleccionada == null && categorias.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    categorias.forEach { cat ->
-                        ElevatedCard(onClick = { categoriaSeleccionada = cat }) {
-                            Text(cat, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
-                        }
+            // Fila de productos con imagen
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (categorias.size > 1) {
+                    IconButton(
+                        onClick = { categoriaSeleccionada = null },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            } else {
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (categorias.size > 1) {
-                        IconButton(onClick = { categoriaSeleccionada = null }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.ArrowBack, "Volver", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()).padding(end = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        productosFiltrados.forEach { prod ->
-                            ElevatedCard(onClick = { onAgregarProducto(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }) {
-                                Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                                    Text(prod.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, maxLines = 1)
-                                    if (prod.ultimoPrecio > 0) Text(
-                                        "$${prod.ultimoPrecio.toInt()}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(end = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(productosFiltrados, key = { it.id }) { prod ->
+                        val cant = itemsVenta.firstOrNull { it.productoId == prod.id }?.cantidad ?: 0
+                        ScannerProductoCard(
+                            prod = prod,
+                            cantEnCarrito = cant,
+                            onClick = { onAgregarProducto(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }
+                        )
                     }
                 }
             }
@@ -139,11 +143,8 @@ internal fun EscanerVenderPanel(
                     enabled = !cargando,
                     modifier = Modifier.height(46.dp)
                 ) {
-                    if (cargando) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                    } else {
-                        Text("Cobrar", fontWeight = FontWeight.Bold)
-                    }
+                    if (cargando) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    else Text("Cobrar", fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.weight(1f))
                 if (total > 0) {

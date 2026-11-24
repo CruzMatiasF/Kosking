@@ -529,7 +529,7 @@ class DuenoViewModel : ViewModel() {
         return usuario.localId
     }
 
-    fun guardarProducto(nombre: String, precio: Double, productoId: String?, categoria: String = "", imagenUri: Uri? = null, onExito: () -> Unit = {}) {
+    fun guardarProducto(nombre: String, precio: Double, productoId: String?, categoria: String = "", imagenUri: Uri? = null, codigoBarras: String = "", onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
@@ -541,9 +541,9 @@ class DuenoViewModel : ViewModel() {
                     catch (e: Exception) { CrashLogger.log(e, "subirImagenProducto"); "" }
                 } else ""
                 if (productoId != null) {
-                    FiadoRepository.editarProducto(productoId, nombre, precio, categoria, imagenUrl)
+                    FiadoRepository.editarProducto(productoId, nombre, precio, categoria, imagenUrl, codigoBarras)
                 } else {
-                    FiadoRepository.upsertProducto(localId, nombre, precio, categoria, imagenUrl, targetId)
+                    FiadoRepository.upsertProducto(localId, nombre, precio, categoria, imagenUrl, targetId, codigoBarras)
                     try { FiadoRepository.upsertProductoGlobal(nombre) }
                     catch (e: Exception) { CrashLogger.log(e, "upsertProductoGlobal") }
                 }

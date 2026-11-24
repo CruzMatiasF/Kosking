@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import kotlin.math.abs
 import kotlinx.coroutines.flow.drop
@@ -21,7 +20,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -31,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.scanner.components.*
 import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
@@ -162,7 +159,6 @@ fun PantallaEscaner(
         else clientesOrdenados.filter { it.nombre.contains(escanerVm.busquedaCliente, ignoreCase = true) }
     }
     var permiso by remember { mutableStateOf(false) }
-    val focusCliente = remember { FocusRequester() }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> permiso = granted }
 
     LaunchedEffect(Unit) {
@@ -261,30 +257,7 @@ fun PantallaEscaner(
                 Icon(Icons.Default.QrCode, null, tint = iconColor, modifier = Modifier.size(22.dp))
                 IconoCodigoBarras(color = iconColor, modifier = Modifier.size(width = 24.dp, height = 20.dp))
             }
-            ClienteOverlay(
-                clienteSeleccionado = escanerVm.clienteSeleccionado,
-                busquedaCliente = escanerVm.busquedaCliente,
-                mostrarBuscarCliente = escanerVm.mostrarBuscarCliente,
-                clientesOrdenados = clientesOrdenados,
-                filtradosCliente = filtradosCliente,
-                focusCliente = focusCliente,
-                onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.mostrarBuscarCliente = false; escanerVm.busquedaCliente = "" },
-                onBusquedaChange = { escanerVm.busquedaCliente = it; escanerVm.mostrarBuscarCliente = true },
-                onMostrarBuscar = { escanerVm.busquedaCliente = ""; escanerVm.mostrarBuscarCliente = true },
-                onLimpiarCliente = { escanerVm.clienteSeleccionado = null },
-                onNuevoCliente = {
-                    escanerVm.nombreNuevoCliente = it
-                    escanerVm.telefonoNuevoCliente = ""
-                    escanerVm.mostrarBuscarCliente = false
-                    escanerVm.busquedaCliente = ""
-                    escanerVm.mostrarRegistroCliente = true
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp, vertical = 10.dp)
-                    .fillMaxWidth()
-                    .alpha(if (escanerVm.modo == ModoEscaner.ANOTAR) 1f else 0f)
-            )
+            // Cliente ahora vive en el panel inferior (EscanerAnotarPanel)
         }
 
         // Panel inferior
@@ -321,13 +294,13 @@ fun PantallaEscaner(
                     )
                     ModoEscaner.ANOTAR -> EscanerAnotarPanel(
                         itemsAnotados = escanerVm.itemsAnotados,
-                        queryBusqueda = escanerVm.queryBusqueda,
                         productos = productos,
+                        clientes = clientes,
                         clienteSeleccionado = escanerVm.clienteSeleccionado,
+                        busquedaCliente = escanerVm.busquedaCliente,
+                        filtradosCliente = filtradosCliente,
                         cargandoAnotacion = escanerVm.cargandoAnotacion,
-                        onQueryChange = { escanerVm.queryBusqueda = it },
                         onAgregarSugerencia = { escanerVm.agregarALista(it) },
-                        onAgregarManual = { escanerVm.agregarALista(ItemAnotado(it, 0.0)) },
                         onCambiarCantidad = { item, nueva ->
                             escanerVm.itemsAnotados = if (nueva <= 0)
                                 escanerVm.itemsAnotados - item
@@ -335,6 +308,15 @@ fun PantallaEscaner(
                                 escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
                         },
                         onConfirmar = { escanerVm.mostrarConfirmar = true },
+                        onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.busquedaCliente = "" },
+                        onBusquedaChange = { escanerVm.busquedaCliente = it },
+                        onLimpiarCliente = { escanerVm.clienteSeleccionado = null; escanerVm.busquedaCliente = "" },
+                        onNuevoCliente = {
+                            escanerVm.nombreNuevoCliente = it
+                            escanerVm.telefonoNuevoCliente = ""
+                            escanerVm.busquedaCliente = ""
+                            escanerVm.mostrarRegistroCliente = true
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     ModoEscaner.CARGAR_NUEVO -> EscanerCargarPanel(

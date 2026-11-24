@@ -277,22 +277,27 @@ fun PantallaEscaner(
 
                 HorizontalDivider()
 
-                when (escanerVm.modo) {
-                    ModoEscaner.VENDER -> EscanerVenderPanel(
+                // Vender y Anotar siempre en composición (object-pool style).
+                // requiredSize(0.dp) = ocupan 0px y no se dibujan cuando no son el modo activo,
+                // pero su estado interno (scroll, categoría, etc.) se preserva entre switches.
+                val onCambiarCantidad: (com.kosking.app.modelo.ItemAnotado, Int) -> Unit = { item, nueva ->
+                    escanerVm.itemsAnotados = if (nueva <= 0)
+                        escanerVm.itemsAnotados - item
+                    else
+                        escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    EscanerVenderPanel(
                         itemsVenta = escanerVm.itemsAnotados,
                         productos = productos,
                         cargando = escanerVm.cargandoAnotacion,
                         onAgregarProducto = { escanerVm.agregarALista(it) },
-                        onCambiarCantidad = { item, nueva ->
-                            escanerVm.itemsAnotados = if (nueva <= 0)
-                                escanerVm.itemsAnotados - item
-                            else
-                                escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
-                        },
+                        onCambiarCantidad = onCambiarCantidad,
                         onCobrar = { escanerVm.mostrarConfirmar = true },
-                        modifier = Modifier.weight(1f)
+                        modifier = if (escanerVm.modo == ModoEscaner.VENDER) Modifier.fillMaxSize()
+                                   else Modifier.requiredSize(0.dp)
                     )
-                    ModoEscaner.ANOTAR -> EscanerAnotarPanel(
+                    EscanerAnotarPanel(
                         itemsAnotados = escanerVm.itemsAnotados,
                         productos = productos,
                         clienteSeleccionado = escanerVm.clienteSeleccionado,
@@ -300,12 +305,7 @@ fun PantallaEscaner(
                         filtradosCliente = filtradosCliente,
                         cargandoAnotacion = escanerVm.cargandoAnotacion,
                         onAgregarSugerencia = { escanerVm.agregarALista(it) },
-                        onCambiarCantidad = { item, nueva ->
-                            escanerVm.itemsAnotados = if (nueva <= 0)
-                                escanerVm.itemsAnotados - item
-                            else
-                                escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
-                        },
+                        onCambiarCantidad = onCambiarCantidad,
                         onConfirmar = { escanerVm.mostrarConfirmar = true },
                         onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.busquedaCliente = "" },
                         onBusquedaChange = { escanerVm.busquedaCliente = it },
@@ -316,23 +316,27 @@ fun PantallaEscaner(
                             escanerVm.busquedaCliente = ""
                             escanerVm.mostrarRegistroCliente = true
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = if (escanerVm.modo == ModoEscaner.ANOTAR) Modifier.fillMaxSize()
+                                   else Modifier.requiredSize(0.dp)
                     )
-                    ModoEscaner.CARGAR_NUEVO -> EscanerCargarPanel(
-                        productoParaCargar = escanerVm.productoParaCargar,
-                        nombreCarga = escanerVm.nombreCarga,
-                        precioCarga = escanerVm.precioCarga,
-                        cargandoVm = cargandoVm,
-                        onNombreChange = { escanerVm.nombreCarga = it },
-                        onPrecioChange = { escanerVm.precioCarga = it.filter { c -> c.isDigit() || c == '.' } },
-                        onGuardar = { escanerVm.guardarProducto() },
-                        onEscanearOtro = {
-                            escanerVm.productoParaCargar = null
-                            escanerVm.yaDetecto.set(false)
-                            escanerVm.precioCarga = ""
-                            escanerVm.nombreCarga = ""
-                        }
-                    )
+                    if (escanerVm.modo == ModoEscaner.CARGAR_NUEVO) {
+                        EscanerCargarPanel(
+                            productoParaCargar = escanerVm.productoParaCargar,
+                            nombreCarga = escanerVm.nombreCarga,
+                            precioCarga = escanerVm.precioCarga,
+                            cargandoVm = cargandoVm,
+                            onNombreChange = { escanerVm.nombreCarga = it },
+                            onPrecioChange = { escanerVm.precioCarga = it.filter { c -> c.isDigit() || c == '.' } },
+                            onGuardar = { escanerVm.guardarProducto() },
+                            onEscanearOtro = {
+                                escanerVm.productoParaCargar = null
+                                escanerVm.yaDetecto.set(false)
+                                escanerVm.precioCarga = ""
+                                escanerVm.nombreCarga = ""
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }

@@ -514,14 +514,13 @@ private fun SelectorCarritoManual(
                             maxLines = 1
                         )
                     }
-                    if (carritos.size > 1) {
+                    if (esActivo && carritos.size > 1) {
                         Icon(
                             Icons.Default.Close, null,
                             Modifier
                                 .size(12.dp)
                                 .clickable { onCerrar(idx) },
-                            tint = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                         )
                     }
                 }

@@ -50,7 +50,7 @@ internal fun EscanerAnotarPanel(
         else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }.sortedByDescending { it.vecesUsado }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize().imePadding()) {
 
         // ── Catálogo ──
         if (productos.isEmpty()) {
@@ -103,19 +103,44 @@ internal fun EscanerAnotarPanel(
 
         HorizontalDivider()
 
-        // ── Lista de ítems ──
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            if (itemsAnotados.isEmpty()) {
-                item {
-                    Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Escaneá un producto para empezar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // ── Lista de ítems + sugerencias de cliente ──
+        Box(modifier = Modifier.weight(1f)) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                if (itemsAnotados.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Escaneá un producto para empezar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    items(itemsAnotados) { item ->
+                        val presentacion = productos.firstOrNull { it.id == item.productoId }?.presentacion ?: ""
+                        ItemRemitoRow(item = item, presentacion = presentacion, onCambiarCantidad = onCambiarCantidad)
+                        HorizontalDivider()
                     }
                 }
-            } else {
-                items(itemsAnotados) { item ->
-                    val presentacion = productos.firstOrNull { it.id == item.productoId }?.presentacion ?: ""
-                    ItemRemitoRow(item = item, presentacion = presentacion, onCambiarCantidad = onCambiarCantidad)
-                    HorizontalDivider()
+            }
+            // Sugerencias de cliente superpuestas al final de la lista
+            if (clienteSeleccionado == null && busquedaCliente.isNotBlank() && filtradosCliente.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column {
+                        filtradosCliente.take(6).forEach { cliente ->
+                            ListItem(
+                                headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
+                                supportingContent = if (cliente.telefono.isNotBlank()) {
+                                    { Text(cliente.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                } else null,
+                                modifier = Modifier.clickable { onClienteSelected(cliente) }
+                            )
+                            HorizontalDivider()
+                        }
+                    }
                 }
             }
         }

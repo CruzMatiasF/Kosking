@@ -85,7 +85,7 @@ internal fun ScannerProductoCard(
     ElevatedCard(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        colors = ElevatedCardDefaults.elevatedCardColors(
+        colors = CardDefaults.elevatedCardColors(
             containerColor = if (cantEnCarrito > 0)
                 MaterialTheme.colorScheme.primaryContainer
             else

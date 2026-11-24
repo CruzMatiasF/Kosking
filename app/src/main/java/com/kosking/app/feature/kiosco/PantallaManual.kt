@@ -33,6 +33,7 @@ import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Producto
 import com.kosking.app.scanner.PantallaConfirmarAnotacion
 import com.kosking.app.scanner.components.MovimientoExitosoScreen
+import kotlinx.coroutines.launch
 
 enum class ModoManual { VENDER, ANOTAR }
 

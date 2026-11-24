@@ -63,6 +63,8 @@ fun PantallaManual(
     var exitoItems by remember { mutableStateOf<List<ItemAnotado>>(emptyList()) }
     var exitoCliente by remember { mutableStateOf<Cliente?>(null) }
     var mostrarExito by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val carrito = carritos[carritoActivoIdx]
 
@@ -116,24 +118,34 @@ fun PantallaManual(
                 if (modo == ModoManual.VENDER) {
                     val itemsConfirmados = carrito.items
                     onConfirmarVenta(itemsConfirmados) {
-                        exitoItems = itemsConfirmados
                         mostrarConfirmar = false
-                        mostrarExito = true
+                        if (carritos.size > 1) {
+                            // Quedan otros carritos: cerrar este y seguir atendiendo
+                            val idx = carritoActivoIdx
+                            carritos = carritos.filterIndexed { i, _ -> i != idx }
+                            carritoActivoIdx = minOf(idx, carritos.size - 1)
+                            scope.launch { snackbarHostState.showSnackbar("Venta registrada", duration = SnackbarDuration.Short) }
+                        } else {
+                            exitoItems = itemsConfirmados
+                            mostrarExito = true
+                        }
                     }
                 } else {
                     val cliente = carrito.clienteSeleccionado ?: return@PantallaConfirmarAnotacion
                     val itemsConfirmados = carrito.items
                     onConfirmarAnotacion(cliente.id, itemsConfirmados) {
-                        exitoItems = itemsConfirmados
-                        exitoCliente = cliente
                         mostrarConfirmar = false
-                        // Limpiar carrito confirmado; si hay otros, cambiar al primero con items
-                        val newCarritos = carritos.mapIndexed { i, c ->
-                            if (i == carritoActivoIdx) c.copy(items = emptyList(), clienteSeleccionado = null, busquedaCliente = "")
-                            else c
+                        if (carritos.size > 1) {
+                            // Quedan otros carritos: cerrar este y seguir atendiendo
+                            val idx = carritoActivoIdx
+                            carritos = carritos.filterIndexed { i, _ -> i != idx }
+                            carritoActivoIdx = minOf(idx, carritos.size - 1)
+                            scope.launch { snackbarHostState.showSnackbar("Anotado para ${cliente.nombre}", duration = SnackbarDuration.Short) }
+                        } else {
+                            exitoItems = itemsConfirmados
+                            exitoCliente = cliente
+                            mostrarExito = true
                         }
-                        carritos = newCarritos
-                        mostrarExito = true
                     }
                 }
             },
@@ -148,6 +160,7 @@ fun PantallaManual(
     ) {
         Scaffold(
             contentWindowInsets = WindowInsets.systemBars,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 TopAppBar(
                     title = { Text(if (modo == ModoManual.VENDER) "Vender" else "Anotar", fontWeight = FontWeight.Bold) },

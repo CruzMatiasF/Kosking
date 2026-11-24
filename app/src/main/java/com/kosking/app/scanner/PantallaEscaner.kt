@@ -29,14 +29,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.scanner.components.*
 import com.kosking.app.util.WhatsAppUtil
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
 private fun SelectorCarrito(
@@ -222,6 +223,8 @@ fun PantallaEscaner(
 ) {
     val context = LocalContext.current
     val escanerVm: EscanerViewModel = viewModel(factory = EscanerViewModel.factory(vm))
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val productos by vm.productos.collectAsState()
     val clientes by vm.clientes.collectAsState()
@@ -267,44 +270,43 @@ fun PantallaEscaner(
         return
     }
 
-    // ── Pantalla éxito venta ──
-    escanerVm.ventaExitosa?.let { (items, _) ->
-        MovimientoExitosoScreen(
-            titulo = "Venta registrada",
-            items = items,
-            onInicio = { escanerVm.ventaExitosa = null; escanerVm.itemsAnotados = emptyList(); onCerrar() },
-            onCerrar = { escanerVm.ventaExitosa = null; escanerVm.itemsAnotados = emptyList(); onCerrar() }
+    // ── Snackbar: éxito venta ──
+    LaunchedEffect(escanerVm.ventaExitosa) {
+        val ex = escanerVm.ventaExitosa ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(
+            message = "Venta registrada — $${"%.0f".format(ex.second)}",
+            duration = SnackbarDuration.Short
         )
-        return
+        escanerVm.ventaExitosa = null
     }
 
-    // ── Pantalla éxito anotación ──
-    escanerVm.anotacionExitosa?.let { (cliente, items, tipo) ->
-        val hora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
-        MovimientoExitosoScreen(
-            titulo = "Anotado para ${cliente.nombre}",
-            items = items,
-            onInicio = { escanerVm.anotacionExitosa = null; onCerrar() },
-            onCerrar = { escanerVm.anotacionExitosa = null; onCerrar() },
-            onWhatsApp = if (cliente.telefono.isNotBlank()) ({
-                WhatsAppUtil.abrirWhatsApp(
-                    context, cliente.telefono,
-                    WhatsAppUtil.ticketVisita(
-                        nombreCliente = cliente.nombre,
-                        nombreLocal = nombreLocal,
-                        items = items.map { Triple(it.nombre, it.precio, it.cantidad) },
-                        tipo = tipo,
-                        hora = hora
-                    )
-                )
-                escanerVm.anotacionExitosa = null
-                onCerrar()
-            }) else null
+    // ── Snackbar: éxito anotación (con opción WA) ──
+    LaunchedEffect(escanerVm.anotacionExitosa) {
+        val ex = escanerVm.anotacionExitosa ?: return@LaunchedEffect
+        val (cliente, items, tipo) = ex
+        val result = snackbarHostState.showSnackbar(
+            message = "Anotado para ${cliente.nombre}",
+            actionLabel = if (cliente.telefono.isNotBlank()) "Avisar WA" else null,
+            duration = SnackbarDuration.Long
         )
-        return
+        if (result == SnackbarResult.ActionPerformed && cliente.telefono.isNotBlank()) {
+            val hora = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            WhatsAppUtil.abrirWhatsApp(
+                context, cliente.telefono,
+                WhatsAppUtil.ticketVisita(
+                    nombreCliente = cliente.nombre,
+                    nombreLocal = nombreLocal,
+                    items = items.map { Triple(it.nombre, it.precio, it.cantidad) },
+                    tipo = tipo,
+                    hora = hora
+                )
+            )
+        }
+        escanerVm.anotacionExitosa = null
     }
 
     // ── Pantalla principal ──
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
 
         // Área de cámara
@@ -433,6 +435,11 @@ fun PantallaEscaner(
             }
         }
     } // Column escaner
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
+    } // Box principal
 
     // ── Sheet registro de nuevo cliente ──
     if (escanerVm.mostrarRegistroCliente) {

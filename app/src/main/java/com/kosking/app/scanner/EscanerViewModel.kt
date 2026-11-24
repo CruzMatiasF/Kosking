@@ -133,8 +133,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 cargandoAnotacion = false
                 mostrarConfirmar = false
                 anotacionExitosa = Triple(cliente, itemsSnap, tipo)
-                // Limpiar carrito confirmado
-                actualizarCarritoActivo { copy(itemsAnotados = emptyList(), clienteSeleccionado = null, busquedaCliente = "") }
+                eliminarCarritoActivo()
             }
         )
     }
@@ -150,9 +149,20 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 mostrarConfirmar = false
                 val total = itemsSnap.sumOf { it.precio * it.cantidad }
                 ventaExitosa = itemsSnap to total
-                actualizarCarritoActivo { copy(itemsAnotados = emptyList()) }
+                eliminarCarritoActivo()
             }
         )
+    }
+
+    private fun eliminarCarritoActivo() {
+        if (carritos.size > 1) {
+            val idx = carritoActivoIdx
+            carritos = carritos.filterIndexed { i, _ -> i != idx }
+            carritoActivoIdx = minOf(idx, carritos.size - 1)
+        } else {
+            // Único carrito: limpiar sin borrar la pestaña
+            carritos = listOf(CarritoState(id = carritos[0].id))
+        }
     }
 
     fun agregarClienteYObtener(nombre: String, telefono: String, onExito: (Cliente) -> Unit) {

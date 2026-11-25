@@ -292,6 +292,7 @@ fun PantallaHome(
                         TabProductos(
                             productos = productos,
                             cargando = cargando,
+                            vm = duenoVm,
                             onBuscarGlobal = { query -> duenoVm.buscarProductosGlobales(query) },
                             onGuardar = { nombre, precio, _, productoId, uri, presentacion, codigoBarras, onExito ->
                                 duenoVm.guardarProducto(nombre, precio, productoId, "", uri, codigoBarras = codigoBarras, presentacion = presentacion, onExito = onExito)

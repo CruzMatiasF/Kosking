@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
+import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.feature.kiosco.ActualizarPreciosSheet
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,12 +52,14 @@ fun TabProductos(
     onDismissDialogExterno: () -> Unit = {},
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     esEmpleado: Boolean = false,
+    vm: DuenoViewModel? = null,
     onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
 ) {
     var mostrarDialog by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Producto?>(null) }
+    var mostrarActualizarPrecios by remember { mutableStateOf(false) }
 
     LaunchedEffect(mostrarDialogExterno) {
         if (mostrarDialogExterno) { editando = null; mostrarDialog = true }
@@ -87,6 +91,14 @@ fun TabProductos(
 
     LaunchedEffect(Unit) {
         try { CatalogoRepository.migrarSiVacio(context) } catch (_: Exception) {}
+    }
+
+    if (mostrarActualizarPrecios && vm != null) {
+        ActualizarPreciosSheet(
+            productos = productos,
+            vm = vm,
+            onDismiss = { mostrarActualizarPrecios = false }
+        )
     }
 
     if (mostrarDialog) {
@@ -156,13 +168,25 @@ fun TabProductos(
             }
             } // cierre Row interno
             if (!esEmpleado) {
-                Button(
-                    onClick = { editando = null; mostrarDialog = true },
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
-                ) {
-                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Agregar")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (productos.isNotEmpty() && vm != null) {
+                        OutlinedButton(
+                            onClick = { mostrarActualizarPrecios = true },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Icon(Icons.Default.PriceChange, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Precios")
+                        }
+                    }
+                    Button(
+                        onClick = { editando = null; mostrarDialog = true },
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Agregar")
+                    }
                 }
             }
         }

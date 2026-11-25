@@ -592,6 +592,21 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun actualizarPrecios(cambios: Map<String, Double>, onExito: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                cambios.forEach { (productoId, nuevoPrecio) ->
+                    val prod = productos.value.find { it.id == productoId } ?: return@forEach
+                    FiadoRepository.editarProducto(productoId, prod.nombre, nuevoPrecio, prod.categoria, prod.imagenUrl, prod.codigoBarras, prod.presentacion)
+                }
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "actualizarPrecios")
+                _error.value = "No se pudieron actualizar los precios"
+            }
+        }
+    }
+
     fun eliminarProducto(producto: Producto) {
         viewModelScope.launch {
             try {

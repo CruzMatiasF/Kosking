@@ -185,6 +185,20 @@ object FiadoRepository {
         ref.set(venta.copy(id = ref.id)).await()
     }
 
+    fun ventasLocalFlow(localId: String, diasAtras: Int = 7): Flow<List<Venta>> = callbackFlow {
+        val desdeTs = com.google.firebase.Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
+        val sub = db.collection("ventas")
+            .whereEqualTo("localId", localId)
+            .whereGreaterThan("fecha", desdeTs)
+            .orderBy("fecha", Query.Direction.DESCENDING)
+            .limit(200)
+            .addSnapshotListener { snap, err ->
+                if (err != null) { trySend(emptyList()); return@addSnapshotListener }
+                trySend(snap?.toObjects(Venta::class.java) ?: emptyList())
+            }
+        awaitClose { sub.remove() }
+    }
+
     suspend fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {
         val delta = if (tipo == "cargo") -monto else monto
         val batch = db.batch()

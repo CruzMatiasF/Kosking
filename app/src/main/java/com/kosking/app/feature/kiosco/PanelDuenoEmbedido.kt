@@ -36,10 +36,12 @@ fun PanelDuenoEmbedido(
     puedeVerDeuda: Boolean = true,
     onCerrarSesionEmpleado: () -> Unit = {},
     onAbrirPerfil: () -> Unit = {},
-    onAbrirNotificaciones: () -> Unit = {}
+    onAbrirNotificaciones: () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
+    val ventasHoy by vm.ventasHoy.collectAsState()
     val productos by vm.productos.collectAsState()
     val empleados by vm.empleados.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
@@ -91,6 +93,7 @@ fun PanelDuenoEmbedido(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
+        bottomBar = bottomBar,
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -116,6 +119,7 @@ fun PanelDuenoEmbedido(
             TabPanelDueno(
                 clientes = clientes,
                 movimientosLocal = movimientosLocal,
+                ventasHoy = ventasHoy,
                 totalDeuda = totalDeuda,
                 clientesConDeuda = clientesConDeuda,
                 localData = localData,

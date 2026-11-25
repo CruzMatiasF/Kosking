@@ -70,6 +70,8 @@ class DuenoViewModel : ViewModel() {
                 val usuario = try { FiadoRepository.obtenerUsuario(uid) } catch (_: Exception) { null }
                 if (usuario?.localId?.isNotBlank() == true) {
                     cargarDatos(usuario)
+                } else {
+                    _cargandoInicial.value = false
                 }
             }
         }
@@ -399,6 +401,22 @@ class DuenoViewModel : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val ventasLocal: StateFlow<List<Venta>> = _localId
+        .flatMapLatest { id ->
+            if (id.isNotBlank()) FiadoRepository.ventasLocalFlow(id) else flowOf(emptyList())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val ventasHoy: StateFlow<Double> = ventasLocal
+        .map { ventas ->
+            val inicioDia = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            ventas.filter { it.fecha.toDate().time >= inicioDia }.sumOf { it.total }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     // ── Estadísticas derivadas (calculadas en background, no en el hilo de UI) ─
 
     val totalDeuda: StateFlow<Double> = clientes
@@ -504,7 +522,7 @@ class DuenoViewModel : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        viewModelScope.launch {
+        if (!syncProductosHecho) viewModelScope.launch {
             val lista = productos.first { it.isNotEmpty() }
             if (!syncProductosHecho) {
                 syncProductosHecho = true

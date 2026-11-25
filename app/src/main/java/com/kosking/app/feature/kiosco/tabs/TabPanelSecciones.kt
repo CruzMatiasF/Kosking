@@ -28,10 +28,12 @@ internal fun LazyListScope.seccionHoy(
     movimientosHoy: List<Movimiento>,
     fiadoHoy: Double,
     cobradoHoy: Double,
+    ventasHoy: Double = 0.0,
     visitasHoy: List<VisitaResumen>,
     onCompartirResumen: () -> Unit,
     onVerClientes: () -> Unit,
-    onAbrirVisita: (VisitaResumen) -> Unit
+    onAbrirVisita: (VisitaResumen) -> Unit,
+    esEmpleado: Boolean = false
 ) {
     item {
         Row(
@@ -43,7 +45,8 @@ internal fun LazyListScope.seccionHoy(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (fiadoHoy > 0) Text("-$${"%.0f".format(fiadoHoy)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 if (cobradoHoy > 0) Text("+$${"%.0f".format(cobradoHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
-                if (fiadoHoy > 0 || cobradoHoy > 0) {
+                if (ventasHoy > 0) Text("🛒$${"%.0f".format(ventasHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
+                if (!esEmpleado && (fiadoHoy > 0 || cobradoHoy > 0 || ventasHoy > 0)) {
                     IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.AutoMirrored.Filled.Send, "Compartir", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -75,8 +78,13 @@ internal fun LazyListScope.seccionHoy(
                 Icon(Icons.Default.EditNote, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                 Text("Todavía nada hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Tocá el botón + para anotar o cobrar.", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                Text(
+                    if (esEmpleado) "Usá el Escáner o Anotar para registrar una venta."
+                    else "Tocá el botón + para anotar o cobrar.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
         } else {
             visitasHoy.take(5).forEach { visita ->

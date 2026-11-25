@@ -177,7 +177,7 @@ fun PantallaHome(
 
     Scaffold(
         bottomBar = {
-            if (!enSubPantalla && esDueno) {
+            if (!enSubPantalla && esDueno && tabNav != TabNav.ESCANER) {
                 NavigationBar {
                     TabNav.entries.forEach { tab ->
                         if (tab == TabNav.ESCANER) {
@@ -292,8 +292,8 @@ fun PantallaHome(
                             productos = productos,
                             cargando = cargando,
                             onBuscarGlobal = { query -> duenoVm.buscarProductosGlobales(query) },
-                            onGuardar = { nombre, precio, _, productoId, uri, presentacion, onExito ->
-                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, presentacion = presentacion, onExito = onExito)
+                            onGuardar = { nombre, precio, _, productoId, uri, presentacion, codigoBarras, onExito ->
+                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, codigoBarras = codigoBarras, presentacion = presentacion, onExito = onExito)
                             },
                             onEliminar = { duenoVm.eliminarProducto(it) },
                             onVolver = { vistaDueno = NavDueno.Panel }

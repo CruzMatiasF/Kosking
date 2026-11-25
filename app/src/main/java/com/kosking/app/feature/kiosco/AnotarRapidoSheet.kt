@@ -56,6 +56,7 @@ fun AnotarRapidoSheet(
     var paso by remember { mutableIntStateOf(if (clienteInicial != null) 2 else 1) }
     var esCargo by remember { mutableStateOf(tipoInicial == "cargo") }
     var pedirConfirmCambio by remember { mutableStateOf(false) }
+    var clienteConAlerta by remember { mutableStateOf<Cliente?>(null) }
     val carrito = remember { mutableStateListOf<ItemCarrito>() }
     var busquedaCliente by remember { mutableStateOf("") }
     val clientesFiltrados = remember(clientesOrdenados, busquedaCliente) {
@@ -159,6 +160,46 @@ fun AnotarRapidoSheet(
         )
     }
 
+    // ── Dialog cliente bloqueado / con alerta ───────────────────────────────
+    clienteConAlerta?.let { cliente ->
+        val bloqueado = !cliente.habilitado
+        AlertDialog(
+            onDismissRequest = { clienteConAlerta = null },
+            title = {
+                Text(if (bloqueado) "Cliente bloqueado" else "Atención: ${cliente.nombre}")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        if (bloqueado) "${cliente.nombre} está bloqueado por el dueño."
+                        else "El dueño pidió que lo avises antes de anotar.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (cliente.notaInterna.isNotBlank()) {
+                        Text(
+                            "\"${cliente.notaInterna}\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    clienteSeleccionado = cliente
+                    busquedaCliente = ""
+                    paso = 2
+                    clienteConAlerta = null
+                }) {
+                    Text("Anotar igual", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { clienteConAlerta = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
     // ── Dialog precio producto global ────────────────────────────────────────
     productoGlobalPendiente?.let { nombre ->
         val precioDouble = precioGlobalTexto.toDoubleOrNull() ?: 0.0
@@ -240,9 +281,13 @@ fun AnotarRapidoSheet(
                         focusRequester = clienteFocusRequester,
                         onBusquedaChange = { busquedaCliente = it },
                         onClienteSeleccionado = { cliente ->
-                            clienteSeleccionado = cliente
-                            busquedaCliente = ""
-                            paso = 2
+                            if (!cliente.habilitado || cliente.alertaEmpleado) {
+                                clienteConAlerta = cliente
+                            } else {
+                                clienteSeleccionado = cliente
+                                busquedaCliente = ""
+                                paso = 2
+                            }
                         },
                         onDismiss = onDismiss,
                         onEsCargoChange = { esCargo = it },

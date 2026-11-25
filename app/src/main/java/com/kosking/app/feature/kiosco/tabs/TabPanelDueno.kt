@@ -27,6 +27,7 @@ import java.util.Locale
 internal fun TabPanelDueno(
     clientes: List<Cliente>,
     movimientosLocal: List<Movimiento>,
+    ventasHoy: Double = 0.0,
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     localData: Local?,
@@ -125,9 +126,11 @@ internal fun TabPanelDueno(
                         modifier = Modifier.size(28.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                IconButton(onClick = onAbrirNotificaciones) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Notificaciones",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!esEmpleado) {
+                    IconButton(onClick = onAbrirNotificaciones) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notificaciones",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
@@ -136,6 +139,7 @@ internal fun TabPanelDueno(
             CardsResumenDueno(
                 localData = localData,
                 totalDeuda = totalDeuda,
+                ventasHoy = ventasHoy,
                 clientesConDeuda = clientesConDeuda,
                 onAnotar = onAnotar,
                 onVender = onVender,
@@ -202,10 +206,12 @@ internal fun TabPanelDueno(
             movimientosHoy = movimientosHoy,
             fiadoHoy = fiadoHoy,
             cobradoHoy = cobradoHoy,
+            ventasHoy = ventasHoy,
             visitasHoy = visitasHoy,
-            onCompartirResumen = if (esEmpleado) ({}) else onCompartirResumen,
+            onCompartirResumen = onCompartirResumen,
             onVerClientes = onVerClientes,
-            onAbrirVisita = { visitaDetalle = it }
+            onAbrirVisita = { visitaDetalle = it },
+            esEmpleado = esEmpleado
         )
 
         if (!esEmpleado) {

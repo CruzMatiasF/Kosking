@@ -104,7 +104,7 @@ internal fun BarraFiltrosClientes(
         add(FiltroChip("aldia", alDia, "Al día"))
         if (pagaronEsteMes > 0) add(FiltroChip("pagaron", pagaronEsteMes, "Pagaron"))
         add(FiltroChip("todos", totalClientes, "Todos"))
-        if (bloqueados > 0) add(FiltroChip("bloqueado", bloqueados, "Bloqueados"))
+        if (bloqueados > 0 && !esEmpleado) add(FiltroChip("bloqueado", bloqueados, "Bloqueados"))
     }
     LazyRow(
         contentPadding = PaddingValues(horizontal = 12.dp),

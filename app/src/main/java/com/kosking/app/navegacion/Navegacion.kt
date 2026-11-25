@@ -38,11 +38,17 @@ import com.kosking.app.autenticacion.PantallaElegirRubro
 import com.kosking.app.autenticacion.PantallaDescargandoRubro
 import com.kosking.app.feature.kiosco.tabs.TabClientes
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.kosking.app.datos.PreferenciasRepository
+import com.kosking.app.scanner.PantallaEscaner
 
 private sealed class DestinoPostLogin {
     object CrearLocal : DestinoPostLogin()
@@ -272,19 +278,152 @@ fun KoskingNavHost(
             LaunchedEffect(empleadoLocalId, nombreEmpleado) {
                 if (empleadoLocalId.isNotBlank()) duenoVm.inicializarDesdeEmpleado(empleadoLocalId, nombreEmpleado)
             }
-            PanelDuenoEmbedido(
-                vm = duenoVm,
-                esEmpleado = true,
-                puedeVerDeuda = puedeVerDeuda,
-                onCerrarSesionEmpleado = {
-                    empleadoVm.cerrarSesion()
-                    duenoVm.cerrarSesion()
-                    nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
-                },
-                onVerClientes = { nav.navigate(Rutas.CLIENTES_EMPLEADO) },
-                onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
-                onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) }
-            )
+
+            var tabEmpleado by rememberSaveable { mutableStateOf(0) } // 0=panel, 1=escaner, 2=clientes
+            var mostrarProductosEmpleado by rememberSaveable { mutableStateOf(false) }
+
+            when (tabEmpleado) {
+                1 -> Scaffold(
+                    bottomBar = {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { tabEmpleado = 0 },
+                                icon = { Icon(Icons.Default.Store, null) },
+                                label = { Text("Panel") }
+                            )
+                            NavigationBarItem(
+                                selected = true,
+                                onClick = {},
+                                icon = {
+                                    Surface(
+                                        shape = androidx.compose.foundation.shape.CircleShape,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Icon(Icons.Default.QrCodeScanner, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp))
+                                        }
+                                    }
+                                },
+                                label = { Text("Escáner") }
+                            )
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { tabEmpleado = 2 },
+                                icon = { Icon(Icons.Default.People, null) },
+                                label = { Text("Clientes") }
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    Box(Modifier.padding(innerPadding)) {
+                        PantallaEscaner(
+                            vm = duenoVm,
+                            onCerrar = { tabEmpleado = 0 },
+                            esEmpleado = true
+                        )
+                    }
+                }
+                2 -> {
+                    val clientes by duenoVm.clientes.collectAsState()
+                    val movimientosEmpleado by duenoVm.movimientosLocal.collectAsState()
+                    val cargandoInicialEmpleado by duenoVm.cargandoInicial.collectAsState()
+                    Scaffold(
+                        bottomBar = {
+                            NavigationBar {
+                                NavigationBarItem(
+                                    selected = false,
+                                    onClick = { tabEmpleado = 0 },
+                                    icon = { Icon(Icons.Default.Store, null) },
+                                    label = { Text("Panel") }
+                                )
+                                NavigationBarItem(
+                                    selected = false,
+                                    onClick = { tabEmpleado = 1 },
+                                    icon = { Icon(Icons.Default.QrCodeScanner, null) },
+                                    label = { Text("Escáner") }
+                                )
+                                NavigationBarItem(
+                                    selected = true,
+                                    onClick = {},
+                                    icon = { Icon(Icons.Default.People, null) },
+                                    label = { Text("Clientes") }
+                                )
+                            }
+                        }
+                    ) { innerPadding ->
+                        Box(Modifier.padding(innerPadding)) {
+                            com.kosking.app.feature.kiosco.tabs.TabClientes(
+                                clientes = clientes,
+                                movimientos = movimientosEmpleado,
+                                cargandoInicial = cargandoInicialEmpleado,
+                                onVerCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
+                                onAgregarCliente = {},
+                                esEmpleado = true,
+                                onVolver = { tabEmpleado = 0 }
+                            )
+                        }
+                    }
+                }
+                else -> if (mostrarProductosEmpleado) {
+                    val productosEmpleado by duenoVm.productos.collectAsState()
+                    val cargandoEmpleado by duenoVm.cargando.collectAsState()
+                    com.kosking.app.feature.kiosco.tabs.TabProductos(
+                        productos = productosEmpleado,
+                        cargando = cargandoEmpleado,
+                        esEmpleado = true,
+                        onGuardar = { _, _, _, _, _, _, _, _ -> },
+                        onEliminar = {},
+                        onVolver = { mostrarProductosEmpleado = false }
+                    )
+                } else PanelDuenoEmbedido(
+                    vm = duenoVm,
+                    esEmpleado = true,
+                    puedeVerDeuda = puedeVerDeuda,
+                    onCerrarSesionEmpleado = {
+                        empleadoVm.cerrarSesion()
+                        duenoVm.cerrarSesion()
+                        nav.navigate(Rutas.EXPLORAR) { popUpTo(0) { inclusive = true } }
+                    },
+                    onVerClientes = { tabEmpleado = 2 },
+                    onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
+                    onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) },
+                    onAbrirProductos = { mostrarProductosEmpleado = true },
+                    bottomBar = {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = true,
+                                onClick = {},
+                                icon = { Icon(Icons.Default.Store, null) },
+                                label = { Text("Panel") }
+                            )
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { tabEmpleado = 1 },
+                                icon = {
+                                    Surface(
+                                        shape = androidx.compose.foundation.shape.CircleShape,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Icon(Icons.Default.QrCodeScanner, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(22.dp))
+                                        }
+                                    }
+                                },
+                                label = { Text("Escáner") }
+                            )
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { tabEmpleado = 2 },
+                                icon = { Icon(Icons.Default.People, null) },
+                                label = { Text("Clientes") }
+                            )
+                        }
+                    }
+                )
+            }
         }
 
         composable(Rutas.CLIENTES_EMPLEADO) {

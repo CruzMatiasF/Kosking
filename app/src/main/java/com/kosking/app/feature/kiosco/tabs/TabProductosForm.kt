@@ -1,5 +1,6 @@
 package com.kosking.app.feature.kiosco.tabs
 
+import android.Manifest
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -32,13 +34,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
 import com.kosking.app.datos.ItemCatalogo
 import com.kosking.app.modelo.Producto
+import com.kosking.app.scanner.components.CamaraEscaner
 import kotlinx.coroutines.delay
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +52,7 @@ internal fun DialogProducto(
     categoriasExistentes: List<String>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -72,7 +77,7 @@ internal fun PantallaProducto(
     categoriasExistentes: List<String>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String>,
-    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -84,6 +89,7 @@ internal fun PantallaProducto(
     ) }
     var categoria by remember(producto) { mutableStateOf(producto?.categoria ?: "") }
     var presentacion by remember(producto) { mutableStateOf(producto?.presentacion ?: "") }
+    var codigoBarras by remember(producto) { mutableStateOf(producto?.codigoBarras ?: "") }
     var busqueda by remember { mutableStateOf(producto?.nombre ?: "") }
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
@@ -91,6 +97,17 @@ internal fun PantallaProducto(
     var nuevaCategoria by remember { mutableStateOf("") }
     var imagenUri by remember { mutableStateOf<Uri?>(null) }
     var mostrarOpcionesImagen by remember { mutableStateOf(false) }
+    var mostrarEscanerCodigo by remember { mutableStateOf(false) }
+    val yaDetectoBarcode = remember { AtomicBoolean(false) }
+    var permisoCamera by remember { mutableStateOf(false) }
+    val launcherPermisoCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        permisoCamera = granted
+        if (granted) mostrarEscanerCodigo = true
+    }
+    LaunchedEffect(Unit) {
+        permisoCamera = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
 
     val pickerGaleria = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) imagenUri = uri
@@ -125,6 +142,7 @@ internal fun PantallaProducto(
         precioTexto != precioOriginal ||
         categoria != (producto?.categoria ?: "") ||
         presentacion != (producto?.presentacion ?: "") ||
+        codigoBarras != (producto?.codigoBarras ?: "") ||
         imagenUri != null
 
     var mostrarDialogDescartar by remember { mutableStateOf(false) }
@@ -137,7 +155,7 @@ internal fun PantallaProducto(
             title = { Text("¿Descartar cambios?") },
             text = { Text("Tenés cambios sin guardar.") },
             confirmButton = {
-                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim()) }) {
+                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim(), codigoBarras.trim()) }) {
                     Text("Guardar")
                 }
             },
@@ -194,7 +212,7 @@ internal fun PantallaProducto(
         bottomBar = {
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Button(
-                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim()) },
+                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim(), codigoBarras.trim()) },
                     enabled = puedeGuardar,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -341,6 +359,63 @@ internal fun PantallaProducto(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // ── Código de barras ─────────────────────────────────────────
+            OutlinedTextField(
+                value = codigoBarras,
+                onValueChange = { codigoBarras = it },
+                label = { Text("Código de barras") },
+                placeholder = { Text("Escaneá o escribí el código") },
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        yaDetectoBarcode.set(false)
+                        if (permisoCamera) mostrarEscanerCodigo = true
+                        else launcherPermisoCamera.launch(Manifest.permission.CAMERA)
+                    }) {
+                        Icon(Icons.Default.QrCode, "Escanear código")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (mostrarEscanerCodigo) {
+                Dialog(
+                    onDismissRequest = { mostrarEscanerCodigo = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .background(Color.Black, RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                    ) {
+                        CamaraEscaner(
+                            onCodigo = { code ->
+                                codigoBarras = code
+                                yaDetectoBarcode.set(true)
+                                mostrarEscanerCodigo = false
+                            },
+                            isYaDetecto = { yaDetectoBarcode.get() },
+                            buscandoProducto = false,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        IconButton(
+                            onClick = { mostrarEscanerCodigo = false },
+                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                        ) {
+                            Icon(Icons.Default.Close, "Cerrar", tint = Color.White)
+                        }
+                        Text(
+                            "Apuntá al código de barras o QR",
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
 
             // ── Categoría ────────────────────────────────────────────────
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

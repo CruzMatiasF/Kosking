@@ -22,6 +22,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.modelo.Producto
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ScannerCategoriaCard(
     nombre: String,
@@ -29,51 +30,53 @@ internal fun ScannerCategoriaCard(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    ElevatedCard(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.width(70.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+    if (imagenUrl.isNotBlank()) {
+        // Con imagen: card cuadrada chica
+        ElevatedCard(
+            onClick = onClick,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.width(70.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (imagenUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context).data(imagenUrl).crossfade(true).build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Text(
-                        nombre.take(2).uppercase(),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(imagenUrl).crossfade(true).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                )
+                Text(
+                    nombre,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 5.dp)
+                )
             }
-            Text(
-                nombre,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 5.dp)
-            )
         }
+    } else {
+        // Sin imagen: chip horizontal con nombre completo — más legible
+        SuggestionChip(
+            onClick = onClick,
+            label = {
+                Text(
+                    nombre,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+            },
+            shape = RoundedCornerShape(50)
+        )
     }
 }
 

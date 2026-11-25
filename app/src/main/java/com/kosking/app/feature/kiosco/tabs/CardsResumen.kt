@@ -22,11 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
+import com.kosking.app.ui.theme.Verde
 
 @Composable
 internal fun CardsResumenDueno(
     localData: Local?,
     totalDeuda: Double,
+    ventasHoy: Double = 0.0,
     clientesConDeuda: List<Cliente>,
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
@@ -56,6 +58,7 @@ internal fun CardsResumenDueno(
 
         CardDeudaTotal(
             totalDeuda = totalDeuda,
+            ventasHoy = ventasHoy,
             clientesConDeuda = clientesConDeuda,
             onAnotar = onAnotar,
             onVender = onVender,
@@ -75,6 +78,7 @@ internal fun CardsResumenDueno(
 @Composable
 private fun CardDeudaTotal(
     totalDeuda: Double,
+    ventasHoy: Double = 0.0,
     clientesConDeuda: List<Cliente>,
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
@@ -86,38 +90,76 @@ private fun CardDeudaTotal(
     val alDia = remember(clientesConDeuda) { clientesConDeuda.count { it.deudaTotal <= 0 } }
     var montoVisible by rememberSaveable { mutableStateOf(!esEmpleado) }
 
-    Card(
-        modifier = modifier.height(220.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    if (esEmpleado) {
+        Card(
+            modifier = modifier.height(220.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    "Te deben en total",
+                    "Tu turno hoy",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (esEmpleado && puedeVerDeuda) {
-                    IconButton(
-                        onClick = { montoVisible = !montoVisible },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            if (montoVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (montoVisible) "Ocultar monto" else "Ver monto",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                if (ventasHoy > 0) {
+                    Text(
+                        "\$${"%.0f".format(ventasHoy)}",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Verde
+                    )
+                } else {
+                    Text(
+                        "\$0",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    if (ventasHoy > 0) "vendido en este turno" else "todavía nada vendido hoy",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
+                    AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar)
+                    AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
+                }
+            }
+        }
+    } else {
+        Card(
+            modifier = modifier.height(220.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Te deben en total",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (ventasHoy > 0) {
+                        Text(
+                            "Vendido hoy \$${"%.0f".format(ventasHoy)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Verde
                         )
                     }
                 }
-            }
-            if (montoVisible) {
                 Text(
                     "$${"%.0f".format(totalDeuda)}",
                     style = MaterialTheme.typography.headlineMedium,
@@ -125,30 +167,23 @@ private fun CardDeudaTotal(
                     color = if (totalDeuda > 0) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurface
                 )
-            } else {
                 Text(
-                    "• • • • • •",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    buildString {
+                        if (clientesConDeuda.isNotEmpty()) append("${clientesConDeuda.size} deben")
+                        if (alDia > 0) append(" · $alDia al día")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            Text(
-                buildString {
-                    if (clientesConDeuda.isNotEmpty()) append("${clientesConDeuda.size} deben")
-                    if (alDia > 0) append(" · $alDia al día")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            HorizontalDivider()
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
-                AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar)
-                AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
+                    AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar)
+                    AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
+                }
             }
         }
     }

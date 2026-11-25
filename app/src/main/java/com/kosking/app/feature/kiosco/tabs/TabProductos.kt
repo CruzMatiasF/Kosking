@@ -49,7 +49,8 @@ fun TabProductos(
     mostrarDialogExterno: Boolean = false,
     onDismissDialogExterno: () -> Unit = {},
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, onExito: () -> Unit) -> Unit,
+    esEmpleado: Boolean = false,
+    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
 ) {
@@ -96,8 +97,8 @@ fun TabProductos(
             },
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
-            onGuardar = { nombre, precio, categoria, imagenUri, presentacion ->
-                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion) {
+            onGuardar = { nombre, precio, categoria, imagenUri, presentacion, codigoBarras ->
+                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion, codigoBarras) {
                     mostrarDialog = false
                     editando = null
                 }
@@ -154,13 +155,15 @@ fun TabProductos(
                 )
             }
             } // cierre Row interno
-            Button(
-                onClick = { editando = null; mostrarDialog = true },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
-            ) {
-                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Agregar")
+            if (!esEmpleado) {
+                Button(
+                    onClick = { editando = null; mostrarDialog = true },
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Agregar")
+                }
             }
         }
 
@@ -217,20 +220,23 @@ fun TabProductos(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Cargá los productos de tu local",
+                            if (esEmpleado) "Sin productos cargados" else "Cargá los productos de tu local",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            "Al anotar vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
+                            if (esEmpleado) "El dueño todavía no cargó productos al catálogo."
+                            else "Al anotar vas a ver los productos acá y solo tenés que tocarlos. No hace falta escribir ni el precio.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        Button(onClick = { editando = null; mostrarDialog = true }) {
-                            Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Agregar primer producto")
+                        if (!esEmpleado) {
+                            Button(onClick = { editando = null; mostrarDialog = true }) {
+                                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Agregar primer producto")
+                            }
                         }
                     }
                 }
@@ -264,6 +270,7 @@ fun TabProductos(
                         ) {
                             ProductoListItem(
                                 prod = prod,
+                                esEmpleado = esEmpleado,
                                 onEditar = { editando = prod; mostrarDialog = true },
                                 onEliminar = { mostrarConfirmarEliminar = prod }
                             )
@@ -295,6 +302,7 @@ fun TabProductos(
                                 items(prods, key = { it.id }) { prod ->
                                     ProductoCard(
                                         prod = prod,
+                                        esEmpleado = esEmpleado,
                                         onEditar = { editando = prod; mostrarDialog = true },
                                         onEliminar = { mostrarConfirmarEliminar = prod }
                                     )
@@ -312,6 +320,7 @@ fun TabProductos(
 @Composable
 private fun ProductoCard(
     prod: Producto,
+    esEmpleado: Boolean = false,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
@@ -328,10 +337,10 @@ private fun ProductoCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+            modifier = Modifier.fillMaxWidth().pointerInput(esEmpleado) {
                 detectTapGestures(
                     onPress = { pressed = true; tryAwaitRelease(); pressed = false },
-                    onTap = { onEditar() }
+                    onTap = { if (!esEmpleado) onEditar() }
                 )
             }
         ) {
@@ -375,12 +384,14 @@ private fun ProductoCard(
                     color = if (prod.ultimoPrecio > 0) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                    IconButton(onClick = onEditar, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Edit, "Editar", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    IconButton(onClick = onEliminar, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Delete, "Eliminar", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                if (!esEmpleado) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                        IconButton(onClick = onEditar, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Edit, "Editar", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = onEliminar, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Delete, "Eliminar", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                        }
                     }
                 }
             }
@@ -391,6 +402,7 @@ private fun ProductoCard(
 @Composable
 private fun ProductoListItem(
     prod: Producto,
+    esEmpleado: Boolean = false,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
@@ -433,15 +445,17 @@ private fun ProductoListItem(
                     color = if (prod.ultimoPrecio > 0) MaterialTheme.colorScheme.onSurface
                             else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                IconButton(onClick = onEditar, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Edit, "Editar", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Delete, "Eliminar", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                if (!esEmpleado) {
+                    IconButton(onClick = onEditar, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Edit, "Editar", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Delete, "Eliminar", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                    }
                 }
             }
         },
-        modifier = Modifier.clickable(onClick = onEditar)
+        modifier = if (esEmpleado) Modifier else Modifier.clickable(onClick = onEditar)
     )
 }
 

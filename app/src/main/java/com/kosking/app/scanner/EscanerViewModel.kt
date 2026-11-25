@@ -16,7 +16,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal const val PREFIJO_CLIENTE_QR = "ksk_c_"
 
-enum class ModoEscaner { VENDER, ANOTAR, CARGAR_NUEVO }
+/** Usado internamente solo para distinguir "cobrar" vs "anotar" al confirmar. */
+internal enum class TipoMovimiento { VENTA, CARGO }
 
 internal data class ProductoDetectado(
     val nombre: String,
@@ -62,7 +63,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         carritoActivoIdx = idx
     }
 
-    // ── Propiedades delegadas al carrito activo (compatibilidad con código existente) ──
+    // ── Propiedades delegadas al carrito activo ────────────────────────────────
     var itemsAnotados: List<ItemAnotado>
         get() = carritoActivo.itemsAnotados
         set(value) { actualizarCarritoActivo { copy(itemsAnotados = value) } }
@@ -75,8 +76,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         get() = carritoActivo.busquedaCliente
         set(value) { actualizarCarritoActivo { copy(busquedaCliente = value) } }
 
-    // ── Estado global (no pertenece a ningún carrito) ─────────────────────────
-    var modo by mutableStateOf(ModoEscaner.VENDER)
+    // ── Estado global ─────────────────────────────────────────────────────────
     var mostrarRegistroCliente by mutableStateOf(false)
     var nombreNuevoCliente by mutableStateOf("")
     var telefonoNuevoCliente by mutableStateOf("")
@@ -87,22 +87,23 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     var precioCarga by mutableStateOf("")
     var nombreCarga by mutableStateOf("")
     var mostrarConfirmar by mutableStateOf(false)
+    var tipoMovimiento by mutableStateOf(TipoMovimiento.VENTA)
     var anotacionExitosa by mutableStateOf<Triple<Cliente, List<ItemAnotado>, String>?>(null)
     var ventaExitosa by mutableStateOf<Pair<List<ItemAnotado>, Double>?>(null)
-    var mostrarDialogoCambioModo by mutableStateOf(false)
     var escaneoExitoso by mutableStateOf(false)
+    var irAInicio by mutableStateOf(false)
 
     val yaDetecto = AtomicBoolean(false)
     private var ultimoCodigo = ""
     private var ultimoCodigoTs = 0L
 
-    fun resetear(modoInicial: ModoEscaner = ModoEscaner.VENDER) {
-        modo = modoInicial
+    fun resetear() {
         carritos = listOf(CarritoState(id = 1))
         carritoActivoIdx = 0
         mostrarConfirmar = false
         ventaExitosa = null
         anotacionExitosa = null
+        irAInicio = false
         queryBusqueda = ""
         yaDetecto.set(false)
     }
@@ -121,7 +122,7 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     }
 
     fun confirmarAnotacion(cliente: Cliente) {
-        val tipo = if (modo == ModoEscaner.VENDER) "venta" else "cargo"
+        val tipo = "cargo"
         val itemsSnap = itemsAnotados.toList()
         cargandoAnotacion = true
         duenoVm.agregarMovimientos(
@@ -160,8 +161,9 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
             carritos = carritos.filterIndexed { i, _ -> i != idx }
             carritoActivoIdx = minOf(idx, carritos.size - 1)
         } else {
-            // Único carrito: limpiar sin borrar la pestaña
+            // Único carrito: limpiar y señalar que hay que volver a inicio
             carritos = listOf(CarritoState(id = carritos[0].id))
+            irAInicio = true
         }
     }
 
@@ -186,6 +188,26 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         }
     }
 
+    fun agregarProductoDesconocido(nombre: String, precio: Double, guardarEnCatalogo: Boolean) {
+        val prod = productoParaCargar ?: return
+        val nombreFinal = nombre.trim().ifBlank { prod.codigoBarras }
+        agregarALista(ItemAnotado(nombreFinal, precio, prod.productoId))
+        if (guardarEnCatalogo) {
+            duenoVm.guardarProducto(
+                nombre = nombreFinal,
+                precio = precio,
+                productoId = prod.productoId,
+                categoria = "",
+                imagenUri = null,
+                codigoBarras = prod.codigoBarras
+            ) {}
+        }
+        productoParaCargar = null
+        precioCarga = ""
+        nombreCarga = ""
+        yaDetecto.set(false)
+    }
+
     fun onCodigo(codigo: String) {
         val ahora = System.currentTimeMillis()
         if (codigo == ultimoCodigo && ahora - ultimoCodigoTs < 1500L) return
@@ -194,15 +216,13 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         ultimoCodigo = codigo
         ultimoCodigoTs = ahora
 
-        // QR de cliente: ignorar en modo Vender (no requiere cliente)
+        // QR de cliente: asignar al carrito activo
         if (codigo.startsWith(PREFIJO_CLIENTE_QR)) {
-            if (modo != ModoEscaner.VENDER) {
-                val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
-                val cliente = duenoVm.clientes.value.find { it.id == clienteId }
-                if (cliente != null) {
-                    clienteSeleccionado = cliente
-                    busquedaCliente = ""
-                }
+            val clienteId = codigo.removePrefix(PREFIJO_CLIENTE_QR)
+            val cliente = duenoVm.clientes.value.find { it.id == clienteId }
+            if (cliente != null) {
+                clienteSeleccionado = cliente
+                busquedaCliente = ""
             }
             yaDetecto.set(false)
             return
@@ -223,27 +243,17 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                     nombre = ext?.nombre ?: ""; precio = 0.0; productoId = null
                 }
                 buscandoProducto = false
-                when (modo) {
-                    ModoEscaner.VENDER, ModoEscaner.ANOTAR -> {
-                        if (enLocal != null) {
-                            agregarALista(ItemAnotado(nombre, precio, productoId))
-                            escaneoExitoso = true
-                            delay(400)
-                            escaneoExitoso = false
-                            yaDetecto.set(false)
-                        } else {
-                            // Producto no existe en el catálogo → ir a cargarlo
-                            productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
-                            nombreCarga = nombre
-                            precioCarga = if (precio > 0) precio.toInt().toString() else ""
-                            modo = ModoEscaner.CARGAR_NUEVO
-                        }
-                    }
-                    ModoEscaner.CARGAR_NUEVO -> {
-                        productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
-                        nombreCarga = nombre
-                        precioCarga = if (precio > 0) precio.toInt().toString() else ""
-                    }
+                if (enLocal != null) {
+                    agregarALista(ItemAnotado(nombre, precio, productoId))
+                    escaneoExitoso = true
+                    delay(400)
+                    escaneoExitoso = false
+                    yaDetecto.set(false)
+                } else {
+                    // Producto desconocido → mostrar sheet para cargarlo
+                    productoParaCargar = ProductoDetectado(nombre, precio, productoId, codigo)
+                    nombreCarga = nombre
+                    precioCarga = if (precio > 0) precio.toInt().toString() else ""
                 }
             } catch (_: Exception) {
                 buscandoProducto = false

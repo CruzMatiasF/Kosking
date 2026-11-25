@@ -279,6 +279,7 @@ fun PantallaHome(
                             cargandoInicial = cargandoInicial,
                             onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
+                            vm = duenoVm,
                             onAnotarRapido = { cliente, tipo ->
                                 vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                             },
@@ -381,6 +382,7 @@ fun PantallaHome(
                         cargandoInicial = cargandoInicial,
                         onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                         onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
+                        vm = duenoVm,
                         onAnotarRapido = { cliente, tipo ->
                             vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                         }

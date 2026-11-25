@@ -235,6 +235,23 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun importarContactos(contactos: List<Pair<String, String>>, onExito: (Int) -> Unit) {
+        viewModelScope.launch {
+            var importados = 0
+            for ((nombre, telefono) in contactos) {
+                if (clientes.value.size + importados >= LIMITE_CLIENTES_GRATIS) break
+                try {
+                    val cliente = Cliente(localId = _localId.value, nombre = nombre, telefono = telefono)
+                    FiadoRepository.agregarCliente(cliente)
+                    importados++
+                } catch (e: Exception) {
+                    CrashLogger.log(e, "importarContactos")
+                }
+            }
+            onExito(importados)
+        }
+    }
+
     fun actualizarCliente(cliente: Cliente) {
         viewModelScope.launch {
             try { FiadoRepository.actualizarCliente(cliente) }

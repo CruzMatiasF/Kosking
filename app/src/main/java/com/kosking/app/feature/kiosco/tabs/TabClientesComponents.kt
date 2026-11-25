@@ -40,6 +40,7 @@ internal fun BarraFiltrosClientes(
     onVistaChange: (Boolean) -> Unit,
     onFiltroChange: (String) -> Unit,
     onAgregarCliente: () -> Unit,
+    onImportarContactos: (() -> Unit)? = null,
     esEmpleado: Boolean = false
 ) {
     var mostrarOrden by remember { mutableStateOf(false) }
@@ -89,10 +90,31 @@ internal fun BarraFiltrosClientes(
         IconButton(onClick = { onVistaChange(!vistaLista) }, modifier = Modifier.size(44.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Icon(if (vistaLista) Icons.Default.GridView else Icons.Default.ViewList, "Vista", Modifier.size(20.dp))
         }
-        // Agregar
+        // Agregar / Importar
         if (!esEmpleado) {
-            FilledIconButton(onClick = onAgregarCliente, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp))
+            if (onImportarContactos != null) {
+                var mostrarMenu by remember { mutableStateOf(false) }
+                Box {
+                    FilledIconButton(onClick = { mostrarMenu = true }, modifier = Modifier.size(44.dp)) {
+                        Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp))
+                    }
+                    DropdownMenu(expanded = mostrarMenu, onDismissRequest = { mostrarMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Agregar manualmente") },
+                            leadingIcon = { Icon(Icons.Default.PersonAdd, null, Modifier.size(18.dp)) },
+                            onClick = { mostrarMenu = false; onAgregarCliente() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Importar contactos") },
+                            leadingIcon = { Icon(Icons.Default.Contacts, null, Modifier.size(18.dp)) },
+                            onClick = { mostrarMenu = false; onImportarContactos() }
+                        )
+                    }
+                }
+            } else {
+                FilledIconButton(onClick = onAgregarCliente, modifier = Modifier.size(44.dp)) {
+                    Icon(Icons.Default.PersonAdd, "Agregar cliente", Modifier.size(20.dp))
+                }
             }
         }
     }

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.feature.kiosco.ImportarContactosSheet
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import java.util.Calendar
@@ -32,11 +33,13 @@ fun TabClientes(
     modifier: Modifier = Modifier,
     onVerCliente: (String) -> Unit,
     onAgregarCliente: () -> Unit,
+    vm: DuenoViewModel? = null,
     onAnotarRapido: ((Cliente, String) -> Unit)? = null,
     esEmpleado: Boolean = false,
     onVolver: (() -> Unit)? = null
 ) {
     if (onVolver != null) BackHandler(onBack = onVolver)
+    var mostrarImportarContactos by remember { mutableStateOf(false) }
     var filtro by rememberSaveable { mutableStateOf("deuda") }
     var busqueda by rememberSaveable { mutableStateOf("") }
     var orden by rememberSaveable { mutableStateOf("deuda") }
@@ -143,8 +146,17 @@ fun TabClientes(
             onVistaChange = { vistaLista = it },
             onFiltroChange = { filtro = it },
             onAgregarCliente = onAgregarCliente,
+            onImportarContactos = if (!esEmpleado && vm != null) ({ mostrarImportarContactos = true }) else null,
             esEmpleado = esEmpleado
         )
+
+        if (mostrarImportarContactos && vm != null) {
+            ImportarContactosSheet(
+                vm = vm,
+                clientesExistentes = clientes.map { it.nombre },
+                onDismiss = { mostrarImportarContactos = false }
+            )
+        }
 
         if (cargandoInicial && clientes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

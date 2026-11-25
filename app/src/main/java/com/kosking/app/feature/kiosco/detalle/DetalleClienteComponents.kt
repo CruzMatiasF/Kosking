@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.sp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.ui.theme.Verde
-import com.kosking.app.ui.theme.VerdeClaro
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

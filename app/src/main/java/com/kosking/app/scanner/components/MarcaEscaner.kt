@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun MarcaEscaner(escaneoExitoso: Boolean, modifier: Modifier = Modifier) {
     val colorMarco by animateColorAsState(
-        targetValue = if (escaneoExitoso) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+        targetValue = if (escaneoExitoso) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
         animationSpec = tween(durationMillis = 200),
         label = "marcoColor"
     )

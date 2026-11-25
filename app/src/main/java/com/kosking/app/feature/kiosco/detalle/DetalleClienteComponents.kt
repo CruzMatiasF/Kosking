@@ -149,3 +149,124 @@ internal fun ConfigTilesColapsable(cliente: Cliente, vm: DuenoViewModel) {
         HorizontalDivider()
     }
 }
+
+@Composable
+private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
+    var mostrarEditarLimite by remember { mutableStateOf(false) }
+    var mostrarEditarNota by remember { mutableStateOf(false) }
+    var mostrarFechaCompromiso by remember { mutableStateOf(false) }
+
+    if (mostrarEditarLimite) {
+        DialogEditarLimite(
+            limiteActual = cliente.limiteCredito,
+            onGuardar = { nuevo ->
+                vm.actualizarCliente(cliente.copy(limiteCredito = nuevo))
+                mostrarEditarLimite = false
+            },
+            onDismiss = { mostrarEditarLimite = false }
+        )
+    }
+    if (mostrarEditarNota) {
+        DialogEditarNota(
+            notaActual = cliente.notaInterna,
+            alertaActual = cliente.alertaEmpleado,
+            onGuardar = { nota, alerta ->
+                vm.actualizarCliente(cliente.copy(notaInterna = nota, alertaEmpleado = alerta))
+                mostrarEditarNota = false
+            },
+            onDismiss = { mostrarEditarNota = false }
+        )
+    }
+    if (mostrarFechaCompromiso) {
+        DialogFechaCompromiso(
+            fechaActual = cliente.fechaCompromiso,
+            onGuardar = { ts -> vm.setFechaCompromiso(cliente.id, ts); mostrarFechaCompromiso = false },
+            onDismiss = { mostrarFechaCompromiso = false }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ConfigTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.AttachMoney,
+                label = "Límite de crédito",
+                valor = if (cliente.limiteCredito > 0) "$${"%.0f".format(cliente.limiteCredito)}" else "Sin límite",
+                onClick = { mostrarEditarLimite = true }
+            )
+            ConfigTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.EditNote,
+                label = "Nota interna",
+                valor = if (cliente.notaInterna.isNotBlank()) cliente.notaInterna else "Sin nota",
+                onClick = { mostrarEditarNota = true }
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ConfigTile(
+                modifier = Modifier.weight(1f),
+                icon = if (cliente.habilitado) Icons.Default.CheckCircle else Icons.Default.Block,
+                label = if (cliente.habilitado) "Habilitado" else "Bloqueado",
+                valor = if (cliente.habilitado) "Puede anotar" else "No puede anotar",
+                onClick = { vm.actualizarCliente(cliente.copy(habilitado = !cliente.habilitado)) }
+            )
+            ConfigTile(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.CalendarMonth,
+                label = "Fecha de pago",
+                valor = if (cliente.fechaCompromiso != null)
+                    fmtCompromiso.format(cliente.fechaCompromiso.toDate())
+                else "Sin fecha",
+                onClick = { mostrarFechaCompromiso = true }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConfigTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    valor: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    valor,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}

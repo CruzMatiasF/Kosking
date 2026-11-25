@@ -16,7 +16,6 @@ import com.kosking.app.feature.kiosco.ColorWhatsApp
 import com.kosking.app.feature.kiosco.ConfirmarMensajeWADialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -128,7 +127,7 @@ fun FilaExtracto(
                 .size(38.dp)
                 .background(
                     color = if (esCargo) MaterialTheme.colorScheme.errorContainer
-                            else Color(0xFFE8F5E9),
+                            else MaterialTheme.colorScheme.tertiaryContainer,
                     shape = RoundedCornerShape(10.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -137,7 +136,7 @@ fun FilaExtracto(
                 imageVector = if (esCargo) Icons.Default.Add else Icons.Default.Remove,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
-                tint = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
+                tint = if (esCargo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
             )
         }
 
@@ -178,7 +177,7 @@ fun FilaExtracto(
                     "${if (esCargo) "+" else "-"}$${"%,.0f".format(visita.monto)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C),
+                    color = if (esCargo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                     fontSize = 15.sp
                 )
                 Text(

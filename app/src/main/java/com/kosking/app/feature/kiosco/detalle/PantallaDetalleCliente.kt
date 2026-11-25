@@ -130,8 +130,7 @@ fun PantallaDetalleCliente(
                                     Icon(Icons.Default.Chat, "WhatsApp")
                                 }
                                 DropdownMenu(expanded = mostrarMenuWA, onDismissRequest = { mostrarMenuWA = false }) {
-                                    if (movimientos.isNotEmpty()) {
-                                        DropdownMenuItem(
+                                    DropdownMenuItem(
                                             text = { Text("Compartir historial") },
                                             leadingIcon = { Icon(Icons.Default.PictureAsPdf, null) },
                                             onClick = {
@@ -153,7 +152,6 @@ fun PantallaDetalleCliente(
                                                 }
                                             }
                                         )
-                                    }
                                 }
                             }
                         }

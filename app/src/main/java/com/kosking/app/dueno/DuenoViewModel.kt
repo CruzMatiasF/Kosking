@@ -540,8 +540,9 @@ class DuenoViewModel : ViewModel() {
 
     init {
         if (!syncProductosHecho) viewModelScope.launch {
-            val lista = productos.first { it.isNotEmpty() }
-            if (!syncProductosHecho) {
+            // Espera máximo 10s a que lleguen productos; si el usuario no tiene ninguno, omite la sync
+            val lista = withTimeoutOrNull(10_000L) { productos.first { it.isNotEmpty() } }
+            if (!syncProductosHecho && lista != null) {
                 syncProductosHecho = true
                 launch(Dispatchers.Default) {
                     try { FiadoRepository.syncProductosGlobales(lista.map { it.nombre }) }

@@ -126,7 +126,7 @@ fun PantallaDetalleCliente(
                     }
                     Spacer(Modifier.weight(1f))
                     if (cliente != null && !esEmpleado) {
-                        if (cliente.telefono.isNotBlank()) {
+                        if (cliente.telefono.isNotBlank() && movimientos.isNotEmpty()) {
                             Box {
                                 IconButton(onClick = { mostrarMenuWA = true }) {
                                     Icon(Icons.Default.Chat, "WhatsApp")

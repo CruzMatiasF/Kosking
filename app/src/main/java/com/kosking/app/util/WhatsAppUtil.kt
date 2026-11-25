@@ -93,15 +93,20 @@ object WhatsAppUtil {
         if (limpio.startsWith("+")) return limpio.drop(1).filter { it.isDigit() }
         if (limpio.startsWith("00")) return limpio.drop(2).filter { it.isDigit() }
         val d = limpio.filter { it.isDigit() }
-        return when {
+        val base = when {
             d.startsWith("54")  -> if (d.startsWith("549") || d.startsWith("5411")) d else "549${d.drop(2)}"
             d.startsWith("598") || d.startsWith("56") || d.startsWith("595") ||
             d.startsWith("591") || d.startsWith("51") || d.startsWith("57") ||
-            d.startsWith("58")  -> d
+            d.startsWith("58")  -> return d
             d.startsWith("15")  -> "549${d.drop(2)}"
             d.startsWith("0")   -> "549${d.drop(1)}"
-            d.length == 10      -> "549$d"
+            d.length <= 10      -> "549$d"
             else                -> "549$d"
         }
+        // Elimina "15" embebido después del prefijo 549 + código de área (ej: 54935115XXX → 549351XXX)
+        // Patrón: 549 + 2-4 dígitos de área + 15 + número
+        val sinPrefijo = if (base.startsWith("549")) base.drop(3) else return base
+        val match = Regex("^(\\d{2,4})15(\\d{6,8})$").find(sinPrefijo)
+        return if (match != null) "549${match.groupValues[1]}${match.groupValues[2]}" else base
     }
 }

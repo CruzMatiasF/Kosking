@@ -96,7 +96,7 @@ object PdfExportUtil {
         avanzar(LINE_H)
     }
 
-    // â”€â”€ Reporte del dÃ­a â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ Reporte del día â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     fun generarResumenDia(
         context: Context,
@@ -110,8 +110,8 @@ object PdfExportUtil {
 
         val hoy = Date()
         p.cabecera(
-            "Resumen del dÃ­a â€” $localNombre",
-            "Generado el ${fmtFecha.format(hoy)}"
+            “Resumen del día — $localNombre”,
+            “Generado el ${fmtFecha.format(hoy)}”
         )
 
         val clientesMap = clientes.associateBy { it.id }
@@ -153,13 +153,13 @@ object PdfExportUtil {
                     val esCargo = mov.tipo == "cargo"
                     val hora = fmtHora.format(mov.fecha.toDate())
                     val tipoLabel = if (esCargo) "Cargo" else "Pago"
-                    p.canvas.drawText("$hora Â· $tipoLabel", MARGIN + 8f, p.y, paintGris)
+                    p.canvas.drawText("$hora · $tipoLabel", MARGIN + 8f, p.y, paintGris)
                     p.avanzar(LINE_H)
 
                     if (esCargo && mov.producto.isNotBlank()) {
                         p.saltoPaginaSiNecesario()
-                        val linea = if (mov.cantidad > 1) "${mov.cantidad}Ã— ${mov.producto}" else mov.producto
-                        p.canvas.drawText("  Â· $linea", MARGIN + 16f, p.y, paintNormal)
+                        val linea = if (mov.cantidad > 1) "${mov.cantidad}× ${mov.producto}" else mov.producto
+                        p.canvas.drawText("  · $linea", MARGIN + 16f, p.y, paintNormal)
                         p.avanzar(LINE_H)
                     }
 
@@ -180,13 +180,13 @@ object PdfExportUtil {
                 p.avanzar(LINE_H + 4f)
             }
 
-            // Totales del dÃ­a
+            // Totales del día
             p.saltoPaginaSiNecesario(60f)
             p.avanzar(4f)
             p.canvas.drawLine(MARGIN, p.y, PAGE_WIDTH - MARGIN, p.y,
                 Paint().apply { color = Color.BLACK; strokeWidth = 1.5f })
             p.avanzar(LINE_H + 2f)
-            p.canvas.drawText("TOTALES DEL DÃA", MARGIN, p.y, paintSubtitulo)
+            p.canvas.drawText("TOTALES DEL DÍA", MARGIN, p.y, paintSubtitulo)
             p.avanzar(LINE_H + 2f)
             p.canvas.drawText("Total cargado:", MARGIN + 8f, p.y, paintNormal)
             p.canvas.drawTextRight(moneda.format(totalDiaCargo), PAGE_WIDTH - MARGIN, p.y, paintMonto(true))
@@ -195,7 +195,7 @@ object PdfExportUtil {
             p.canvas.drawTextRight(moneda.format(totalDiaPago), PAGE_WIDTH - MARGIN, p.y, paintMonto(false))
             p.avanzar(LINE_H)
             val neto = totalDiaCargo - totalDiaPago
-            p.canvas.drawText("Neto del dÃ­a:", MARGIN + 8f, p.y, paintSubtitulo)
+            p.canvas.drawText("Neto del día:", MARGIN + 8f, p.y, paintSubtitulo)
             p.canvas.drawTextRight(moneda.format(neto), PAGE_WIDTH - MARGIN, p.y, paintMonto(neto > 0))
         }
 
@@ -216,8 +216,8 @@ object PdfExportUtil {
         val p = Pagina(doc, page, canvas, MARGIN + 10f, 1)
 
         p.cabecera(
-            "Lo que te llevaste â€” ${cliente.nombre}",
-            "$localNombre Â· Generado el ${fmtFecha.format(Date())}"
+            "Lo que te llevaste — ${cliente.nombre}",
+            "$localNombre · Generado el ${fmtFecha.format(Date())}"
         )
 
         val movActivos = movimientos.filter { !it.anulado }.sortedByDescending { it.fecha.toDate().time }
@@ -253,8 +253,8 @@ object PdfExportUtil {
                     // Productos con cantidad y precio
                     movs.filter { it.producto.isNotBlank() }.forEach { mov ->
                         p.saltoPaginaSiNecesario()
-                        val linea = if (mov.cantidad > 1) "${mov.cantidad}Ã— ${mov.producto}" else mov.producto
-                        p.canvas.drawText("  Â· $linea", MARGIN + 12f, p.y, paintNormal)
+                        val linea = if (mov.cantidad > 1) "${mov.cantidad}× ${mov.producto}" else mov.producto
+                        p.canvas.drawText("  · $linea", MARGIN + 12f, p.y, paintNormal)
                         p.canvas.drawTextRight(moneda.format(mov.monto), PAGE_WIDTH - MARGIN, p.y, paintNormal)
                         p.avanzar(LINE_H)
                     }

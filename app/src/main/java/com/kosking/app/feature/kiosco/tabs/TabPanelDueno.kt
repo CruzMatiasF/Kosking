@@ -39,7 +39,6 @@ internal fun TabPanelDueno(
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onRecordarTodos: () -> Unit,
-    onCompartirResumen: () -> Unit = {},
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
     onAbrirProductos: () -> Unit = {},
@@ -208,7 +207,6 @@ internal fun TabPanelDueno(
             cobradoHoy = cobradoHoy,
             ventasHoy = ventasHoy,
             visitasHoy = visitasHoy,
-            onCompartirResumen = onCompartirResumen,
             onVerClientes = onVerClientes,
             onAbrirVisita = { visitaDetalle = it },
             esEmpleado = esEmpleado

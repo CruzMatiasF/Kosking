@@ -42,22 +42,6 @@ object WhatsAppUtil {
     }
 
 
-    fun mensajeResumenDia(
-        nombreLocal: String,
-        fiadoHoy: Double,
-        cobradoHoy: Double,
-        cantFiados: Int,
-        cantPagos: Int
-    ): String {
-        val sb = StringBuilder()
-        sb.append("📊 Resumen de hoy — $nombreLocal\n\n")
-        if (fiadoHoy > 0) sb.append("🔴 Debe: \$${"%.0f".format(fiadoHoy)} ($cantFiados operación${if (cantFiados != 1) "es" else ""})\n")
-        if (cobradoHoy > 0) sb.append("✅ Cobrado: \$${"%.0f".format(cobradoHoy)} ($cantPagos pago${if (cantPagos != 1) "s" else ""})\n")
-        val saldo = cobradoHoy - fiadoHoy
-        sb.append("\nSaldo neto del día: ${if (saldo >= 0) "+" else ""}\$${"%.0f".format(saldo)}")
-        return sb.toString()
-    }
-
     fun mensajeResumenPeriodo(
         nombreLocal: String,
         labelPeriodo: String,

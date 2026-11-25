@@ -135,20 +135,6 @@ fun PanelDuenoEmbedido(
                 },
                 puedeVerDeuda = puedeVerDeuda,
                 onRecordarTodos = { if (!esEmpleado) mostrarRecordarTodos = true },
-                onCompartirResumen = {
-                    val resumen = vm.resumenHoy.value
-                    val (movHoy, fiadoHoy, cobradoHoy) = resumen
-                    val cantFiados = movHoy.count { it.tipo == "cargo" }
-                    val cantPagos = movHoy.count { it.tipo == "pago" }
-                    val texto = WhatsAppUtil.mensajeResumenDia(
-                        nombreLocal = localData?.nombre ?: "Mi local",
-                        fiadoHoy = fiadoHoy,
-                        cobradoHoy = cobradoHoy,
-                        cantFiados = cantFiados,
-                        cantPagos = cantPagos
-                    )
-                    WhatsAppUtil.compartir(context, texto)
-                },
                 onWhatsAppCliente = { clienteWhatsApp = it },
                 onAbrirProductos = onAbrirProductos,
                 esEmpleado = esEmpleado,

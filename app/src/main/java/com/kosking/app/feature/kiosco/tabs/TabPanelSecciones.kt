@@ -30,7 +30,6 @@ internal fun LazyListScope.seccionHoy(
     cobradoHoy: Double,
     ventasHoy: Double = 0.0,
     visitasHoy: List<VisitaResumen>,
-    onCompartirResumen: () -> Unit,
     onVerClientes: () -> Unit,
     onAbrirVisita: (VisitaResumen) -> Unit,
     esEmpleado: Boolean = false
@@ -46,11 +45,6 @@ internal fun LazyListScope.seccionHoy(
                 if (fiadoHoy > 0) Text("-$${"%.0f".format(fiadoHoy)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 if (cobradoHoy > 0) Text("+$${"%.0f".format(cobradoHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
                 if (ventasHoy > 0) Text("🛒$${"%.0f".format(ventasHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
-                if (!esEmpleado && (fiadoHoy > 0 || cobradoHoy > 0 || ventasHoy > 0)) {
-                    IconButton(onClick = onCompartirResumen, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.Send, "Compartir", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
             }
         }
         if (clientes.isEmpty()) {

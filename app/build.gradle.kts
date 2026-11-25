@@ -100,7 +100,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.work.runtime.ktx)
-    implementation(libs.zxing.core)
     implementation(libs.androidx.biometric)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)

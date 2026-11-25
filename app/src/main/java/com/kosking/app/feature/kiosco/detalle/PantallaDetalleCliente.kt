@@ -9,11 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.*
 import com.kosking.app.util.PdfExportUtil
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -63,6 +59,7 @@ fun PantallaDetalleCliente(
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
     var mostrarEditar by remember { mutableStateOf(false) }
     var mostrarMenu by remember { mutableStateOf(false) }
+    var mostrarMenuWA by remember { mutableStateOf(false) }
     var mostrarConfirmarRecalcular by remember { mutableStateOf(false) }
     var mostrarVistaCliente by remember { mutableStateOf(false) }
 
@@ -129,6 +126,57 @@ fun PantallaDetalleCliente(
                     }
                     Spacer(Modifier.weight(1f))
                     if (cliente != null && !esEmpleado) {
+                        if (cliente.telefono.isNotBlank()) {
+                            Box {
+                                IconButton(onClick = { mostrarMenuWA = true }) {
+                                    Icon(Icons.Default.Send, "WhatsApp")
+                                }
+                                DropdownMenu(expanded = mostrarMenuWA, onDismissRequest = { mostrarMenuWA = false }) {
+                                    if (cliente.deudaTotal > 0) {
+                                        DropdownMenuItem(
+                                            text = { Text("Recordar deuda") },
+                                            leadingIcon = { Icon(Icons.Default.Send, null) },
+                                            onClick = {
+                                                mostrarMenuWA = false
+                                                WhatsAppUtil.abrirWhatsApp(
+                                                    context = context,
+                                                    telefono = cliente.telefono,
+                                                    mensaje = WhatsAppUtil.mensajeResumen(
+                                                        nombreCliente = cliente.nombre,
+                                                        nombreLocal = localData?.nombre ?: "el local",
+                                                        deudaTotal = cliente.deudaTotal
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    }
+                                    if (movimientos.isNotEmpty()) {
+                                        DropdownMenuItem(
+                                            text = { Text("Compartir historial") },
+                                            leadingIcon = { Icon(Icons.Default.PictureAsPdf, null) },
+                                            onClick = {
+                                                mostrarMenuWA = false
+                                                scope.launch {
+                                                    try {
+                                                        val intent = withContext(Dispatchers.IO) {
+                                                            PdfExportUtil.generarHistorialCliente(
+                                                                context = context,
+                                                                localNombre = localData?.nombre ?: "Mi local",
+                                                                cliente = cliente,
+                                                                movimientos = movimientos
+                                                            )
+                                                        }
+                                                        context.startActivity(Intent.createChooser(intent, "Compartir historial"))
+                                                    } catch (e: Exception) {
+                                                        CrashLogger.log(e, "compartirPDFCliente")
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         IconButton(onClick = { mostrarEditar = true }) {
                             Icon(Icons.Default.Edit, "Editar cliente")
                         }
@@ -276,7 +324,25 @@ fun PantallaDetalleCliente(
                     )
                 }
                 items(extracto, key = { "ext_${it.fecha.time}_${it.conceptos.firstOrNull()}" }) { visita ->
-                    FilaExtracto(visita, onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) })
+                    FilaExtracto(
+                        visita = visita,
+                        onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) },
+                        onEnviarTicket = if (!esEmpleado && cliente?.telefono?.isNotBlank() == true && visita.tipo != "pago") ({
+                            val hora = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(visita.fecha)
+                            val items = visita.conceptos.map { Triple(it, 0.0, 1) }
+                            WhatsAppUtil.abrirWhatsApp(
+                                context = context,
+                                telefono = cliente.telefono,
+                                mensaje = WhatsAppUtil.ticketVisita(
+                                    nombreCliente = cliente.nombre,
+                                    nombreLocal = localData?.nombre ?: "el local",
+                                    items = items,
+                                    tipo = "cargo",
+                                    hora = hora
+                                )
+                            )
+                        }) else null
+                    )
                 }
                 if (movimientos.size >= 1000) {
                     item {

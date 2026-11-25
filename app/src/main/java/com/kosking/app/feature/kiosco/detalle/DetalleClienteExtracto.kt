@@ -5,8 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -92,7 +91,11 @@ private fun formatearFechaExtracto(fecha: Date): String {
 }
 
 @Composable
-fun FilaExtracto(visita: VisitaExtracto, onClick: () -> Unit) {
+fun FilaExtracto(
+    visita: VisitaExtracto,
+    onClick: () -> Unit,
+    onEnviarTicket: (() -> Unit)? = null
+) {
     val esCargo = visita.tipo != "pago"
     val conceptoStr = visita.conceptos.joinToString(", ")
 
@@ -153,19 +156,31 @@ fun FilaExtracto(visita: VisitaExtracto, onClick: () -> Unit) {
             }
         }
 
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                "${if (esCargo) "+" else "-"}$${"%,.0f".format(visita.monto)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C),
-                fontSize = 15.sp
-            )
-            Text(
-                "Saldo $${"%,.0f".format(visita.saldoAcumulado)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "${if (esCargo) "+" else "-"}$${"%,.0f".format(visita.monto)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (esCargo) MaterialTheme.colorScheme.error else Color(0xFF388E3C),
+                    fontSize = 15.sp
+                )
+                Text(
+                    "Saldo $${"%,.0f".format(visita.saldoAcumulado)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (onEnviarTicket != null && esCargo) {
+                IconButton(onClick = onEnviarTicket, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = "Enviar ticket",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
     }
 

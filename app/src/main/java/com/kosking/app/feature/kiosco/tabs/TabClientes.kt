@@ -35,6 +35,7 @@ fun TabClientes(
     onAgregarCliente: () -> Unit,
     vm: DuenoViewModel? = null,
     onAnotarRapido: ((Cliente, String) -> Unit)? = null,
+    onWhatsAppCliente: ((Cliente) -> Unit)? = null,
     esEmpleado: Boolean = false,
     onVolver: (() -> Unit)? = null
 ) {
@@ -247,14 +248,34 @@ fun TabClientes(
                                         else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        trailingContent = if (cliente.deudaTotal > 0) ({
-                            Text(
-                                "$${"%.0f".format(cliente.deudaTotal)}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }) else null,
+                        trailingContent = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (cliente.deudaTotal > 0) {
+                                    Text(
+                                        "$${"%.0f".format(cliente.deudaTotal)}",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                if (onWhatsAppCliente != null && cliente.telefono.isNotBlank() && cliente.deudaTotal > 0) {
+                                    IconButton(
+                                        onClick = { onWhatsAppCliente(cliente) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Send,
+                                            contentDescription = "WhatsApp",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        },
                         modifier = Modifier.clickable { onVerCliente(cliente.id) }
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp))

@@ -35,6 +35,8 @@ import com.kosking.app.ajustes.PantallaApariencia
 import com.kosking.app.ajustes.PantallaExportar
 import com.kosking.app.ajustes.PantallaEstadisticas
 import com.kosking.app.ajustes.PantallaSoporte
+import com.kosking.app.util.WhatsAppUtil
+import androidx.compose.ui.platform.LocalContext
 
 private sealed class VistaExtra {
     object Ninguna : VistaExtra()
@@ -119,6 +121,21 @@ fun PantallaHome(
     val movimientos by duenoVm.movimientosLocal.collectAsState()
     val clientes by duenoVm.clientes.collectAsState()
     val cargandoInicial by duenoVm.cargandoInicial.collectAsState()
+    val localData by duenoVm.localData.collectAsState()
+    val context = LocalContext.current
+
+    val onWhatsAppClienteDeuda: (com.kosking.app.modelo.Cliente) -> Unit = { cliente ->
+        val nombreLocal = localData?.nombre ?: "el local"
+        WhatsAppUtil.abrirWhatsApp(
+            context = context,
+            telefono = cliente.telefono,
+            mensaje = WhatsAppUtil.mensajeResumen(
+                nombreCliente = cliente.nombre,
+                nombreLocal = nombreLocal,
+                deudaTotal = cliente.deudaTotal
+            )
+        )
+    }
 
     var mostrarPerfilSheet by remember { mutableStateOf(false) }
 
@@ -280,6 +297,7 @@ fun PantallaHome(
                             onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             vm = duenoVm,
+                            onWhatsAppCliente = onWhatsAppClienteDeuda,
                             onAnotarRapido = { cliente, tipo ->
                                 vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                             },
@@ -384,6 +402,7 @@ fun PantallaHome(
                         onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                         onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                         vm = duenoVm,
+                        onWhatsAppCliente = onWhatsAppClienteDeuda,
                         onAnotarRapido = { cliente, tipo ->
                             vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                         }

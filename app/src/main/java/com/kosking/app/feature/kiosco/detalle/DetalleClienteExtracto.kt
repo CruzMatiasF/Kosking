@@ -8,6 +8,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.kosking.app.feature.kiosco.ColorWhatsApp
+import com.kosking.app.feature.kiosco.ConfirmarMensajeWADialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -94,9 +100,19 @@ private fun formatearFechaExtracto(fecha: Date): String {
 fun FilaExtracto(
     visita: VisitaExtracto,
     onClick: () -> Unit,
-    onEnviarTicket: (() -> Unit)? = null
+    onEnviarTicket: (() -> Unit)? = null,
+    mensajeTicket: String? = null
 ) {
     val esCargo = visita.tipo != "pago"
+    var mostrarPreviewTicket by remember { mutableStateOf(false) }
+
+    if (mostrarPreviewTicket && mensajeTicket != null && onEnviarTicket != null) {
+        ConfirmarMensajeWADialog(
+            mensaje = mensajeTicket,
+            onConfirmar = { onEnviarTicket(); mostrarPreviewTicket = false },
+            onDismiss = { mostrarPreviewTicket = false }
+        )
+    }
     val conceptoStr = visita.conceptos.joinToString(", ")
 
     Row(
@@ -171,13 +187,16 @@ fun FilaExtracto(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (onEnviarTicket != null && esCargo && visita.conceptos.size > 1) {
-                IconButton(onClick = onEnviarTicket, modifier = Modifier.size(32.dp)) {
+            if (onEnviarTicket != null && mensajeTicket != null && esCargo && visita.conceptos.size > 1) {
+                IconButton(
+                    onClick = { mostrarPreviewTicket = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         Icons.Default.Chat,
-                        contentDescription = "Enviar ticket",
+                        contentDescription = "Reenviar ticket por WhatsApp",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        tint = ColorWhatsApp
                     )
                 }
             }

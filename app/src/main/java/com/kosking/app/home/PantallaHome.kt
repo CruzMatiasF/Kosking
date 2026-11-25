@@ -298,6 +298,7 @@ fun PantallaHome(
                             onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                             vm = duenoVm,
                             onWhatsAppCliente = onWhatsAppClienteDeuda,
+                            nombreLocal = localData?.nombre ?: "",
                             onAnotarRapido = { cliente, tipo ->
                                 vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                             },
@@ -403,6 +404,7 @@ fun PantallaHome(
                         onAgregarCliente = { vistaDueno = NavDueno.AgregarCliente },
                         vm = duenoVm,
                         onWhatsAppCliente = onWhatsAppClienteDeuda,
+                        nombreLocal = localData?.nombre ?: "",
                         onAnotarRapido = { cliente, tipo ->
                             vistaDueno = NavDueno.AgregarFiado(cliente.id, tipo, volverAPanel = false)
                         }

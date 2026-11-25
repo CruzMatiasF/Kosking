@@ -306,22 +306,31 @@ fun PantallaDetalleCliente(
                     )
                 }
                 items(extracto, key = { "ext_${it.fecha.time}_${it.conceptos.firstOrNull()}" }) { visita ->
+                    val puedeEnviarTicket = !esEmpleado &&
+                        cliente?.telefono?.isNotBlank() == true &&
+                        visita.tipo != "pago" &&
+                        visita.conceptos.size > 1
+                    val hora = remember(visita.fecha) {
+                        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(visita.fecha)
+                    }
+                    val mensajeTicket = if (puedeEnviarTicket && cliente != null) {
+                        WhatsAppUtil.ticketVisita(
+                            nombreCliente = cliente.nombre,
+                            nombreLocal = localData?.nombre ?: "el local",
+                            items = visita.conceptos.map { Triple(it, 0.0, 1) },
+                            tipo = "cargo",
+                            hora = hora
+                        )
+                    } else null
                     FilaExtracto(
                         visita = visita,
                         onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) },
-                        onEnviarTicket = if (!esEmpleado && cliente?.telefono?.isNotBlank() == true && visita.tipo != "pago") ({
-                            val hora = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(visita.fecha)
-                            val items = visita.conceptos.map { Triple(it, 0.0, 1) }
+                        mensajeTicket = mensajeTicket,
+                        onEnviarTicket = if (puedeEnviarTicket && cliente != null && mensajeTicket != null) ({
                             WhatsAppUtil.abrirWhatsApp(
                                 context = context,
                                 telefono = cliente.telefono,
-                                mensaje = WhatsAppUtil.ticketVisita(
-                                    nombreCliente = cliente.nombre,
-                                    nombreLocal = localData?.nombre ?: "el local",
-                                    items = items,
-                                    tipo = "cargo",
-                                    hora = hora
-                                )
+                                mensaje = mensajeTicket
                             )
                         }) else null
                     )

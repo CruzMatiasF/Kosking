@@ -20,8 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.feature.kiosco.ConfirmarMensajeWADialog
+import com.kosking.app.feature.kiosco.ColorWhatsApp
 import com.kosking.app.feature.kiosco.ImportarContactosSheet
 import com.kosking.app.modelo.Cliente
+import com.kosking.app.util.WhatsAppUtil
 import com.kosking.app.modelo.Movimiento
 import java.util.Calendar
 
@@ -36,11 +39,13 @@ fun TabClientes(
     vm: DuenoViewModel? = null,
     onAnotarRapido: ((Cliente, String) -> Unit)? = null,
     onWhatsAppCliente: ((Cliente) -> Unit)? = null,
+    nombreLocal: String = "",
     esEmpleado: Boolean = false,
     onVolver: (() -> Unit)? = null
 ) {
     if (onVolver != null) BackHandler(onBack = onVolver)
     var mostrarImportarContactos by remember { mutableStateOf(false) }
+    var clienteWAPreview by remember { mutableStateOf<Cliente?>(null) }
     var filtro by rememberSaveable { mutableStateOf("deuda") }
     var busqueda by rememberSaveable { mutableStateOf("") }
     var orden by rememberSaveable { mutableStateOf("deuda") }
@@ -91,6 +96,23 @@ fun TabClientes(
                 "visita" -> compareByDescending { ultimaVisita[it.id]?.time ?: 0L }
                 else -> compareByDescending { it.deudaTotal }
             })
+    }
+
+    clienteWAPreview?.let { cliente ->
+        if (onWhatsAppCliente != null) {
+            ConfirmarMensajeWADialog(
+                mensaje = WhatsAppUtil.mensajeResumen(
+                    nombreCliente = cliente.nombre,
+                    nombreLocal = nombreLocal.ifBlank { "el local" },
+                    deudaTotal = cliente.deudaTotal
+                ),
+                onConfirmar = {
+                    onWhatsAppCliente(cliente)
+                    clienteWAPreview = null
+                },
+                onDismiss = { clienteWAPreview = null }
+            )
+        }
     }
 
     Column(modifier.fillMaxSize()) {
@@ -263,14 +285,14 @@ fun TabClientes(
                                 }
                                 if (onWhatsAppCliente != null && cliente.telefono.isNotBlank() && cliente.deudaTotal > 0) {
                                     IconButton(
-                                        onClick = { onWhatsAppCliente(cliente) },
+                                        onClick = { clienteWAPreview = cliente },
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
                                             Icons.Default.Chat,
-                                            contentDescription = "WhatsApp",
+                                            contentDescription = "Recordar deuda por WhatsApp",
                                             modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = ColorWhatsApp
                                         )
                                     }
                                 }

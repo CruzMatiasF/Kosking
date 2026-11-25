@@ -32,8 +32,6 @@ fun PantallaDetalleCliente(
     clienteId: String,
     onVolver: () -> Unit,
     onVerMovimiento: (String) -> Unit = {},
-    onAnotarFiado: (String) -> Unit = {},
-    onCobrar: (String) -> Unit = {},
     vm: DuenoViewModel,
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true

@@ -34,15 +34,15 @@ fun ConfirmarMensajeWADialog(
         text = {
             Surface(
                 shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.heightIn(max = 200.dp)
             ) {
                 Text(
                     mensaje,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier
-                        .padding(12.dp)
                         .verticalScroll(rememberScrollState())
-                        .heightIn(max = 200.dp)
+                        .padding(12.dp)
                 )
             }
         },

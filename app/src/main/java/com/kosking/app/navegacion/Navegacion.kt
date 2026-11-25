@@ -23,14 +23,6 @@ import com.kosking.app.home.PantallaHome
 import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.datos.StartupUseCase
 import com.kosking.app.datos.StartupDestino
-import com.kosking.app.ajustes.PantallaAcercaDe
-import com.kosking.app.ajustes.PantallaApariencia
-import com.kosking.app.ajustes.PantallaConfiguracion
-import com.kosking.app.ajustes.PantallaSeguridad
-import com.kosking.app.ajustes.PantallaNotificaciones
-import com.kosking.app.ajustes.PantallaSoporte
-import com.kosking.app.perfil.PantallaConfigurarPerfil
-import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.feature.kiosco.PanelDuenoEmbedido
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
 import com.kosking.app.autenticacion.PantallaOnboarding
@@ -137,7 +129,6 @@ fun KoskingNavHost(
                     StartupDestino.PanelEmpleado ->
                         nav.navigate(Rutas.PANEL_EMPLEADO) { popUpTo(Rutas.EXPLORAR) }
                     StartupDestino.PanelDueno -> mostrarPanelDueno = true
-                    is StartupDestino.PanelDuenoConTab -> mostrarPanelDueno = true
                     else -> {}
                 }
                 startupResuelto = true
@@ -424,22 +415,6 @@ fun KoskingNavHost(
                     }
                 )
             }
-        }
-
-        composable(Rutas.CLIENTES_EMPLEADO) {
-            val puedeVerDeuda by empleadoVm.puedeVerDeuda.collectAsState()
-            val clientes by duenoVm.clientes.collectAsState()
-            val movimientosEmpleado by duenoVm.movimientosLocal.collectAsState()
-            val cargandoInicialEmpleado by duenoVm.cargandoInicial.collectAsState()
-            TabClientes(
-                clientes = clientes,
-                movimientos = movimientosEmpleado,
-                cargandoInicial = cargandoInicialEmpleado,
-                onVerCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
-                onAgregarCliente = {},
-                esEmpleado = true,
-                onVolver = { nav.popBackStack() }
-            )
         }
 
         composable(

@@ -298,7 +298,20 @@ fun TabClientes(
                                 }
                             }
                         },
-                        modifier = Modifier.clickable { onVerCliente(cliente.id) }
+                        modifier = Modifier.clickable { onVerCliente(cliente.id) },
+                        leadingContent = if (onAnotarRapido != null) ({
+                            IconButton(
+                                onClick = { onAnotarRapido(cliente, "cargo") },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Anotar",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }) else null
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
                 }

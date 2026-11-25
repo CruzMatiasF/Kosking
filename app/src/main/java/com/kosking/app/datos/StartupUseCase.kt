@@ -11,7 +11,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 sealed class StartupDestino {
     object PanelEmpleado : StartupDestino()
     object PanelDueno : StartupDestino()
-    data class PanelDuenoConTab(val tab: Int) : StartupDestino()
 }
 
 object StartupUseCase {

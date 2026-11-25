@@ -11,7 +11,6 @@ object Rutas {
     const val DETALLE_MOVIMIENTO = "detalle_movimiento/{movimientoId}"
     const val ONBOARDING = "onboarding"
     const val CONFIGURAR_LOCAL = "configurar_local"
-    const val CLIENTES_EMPLEADO = "clientes_empleado"
     const val ELEGIR_RUBRO = "elegir_rubro"
     const val DESCARGANDO_RUBRO = "descargando_rubro/{tipo}"
 

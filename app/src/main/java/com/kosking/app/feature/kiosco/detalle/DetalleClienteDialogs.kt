@@ -117,40 +117,6 @@ internal fun DialogEditarLimite(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun DialogEditarFechaPago(
-    fechaActual: Date?,
-    onGuardar: (Date?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = (fechaActual ?: run {
-            Calendar.getInstance().apply { add(Calendar.WEEK_OF_YEAR, 1) }.time
-        }).time
-    )
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val selectedMs = datePickerState.selectedDateMillis
-                onGuardar(if (selectedMs != null) Date(selectedMs) else null)
-            }) { Text("Guardar") }
-        },
-        dismissButton = {
-            Row {
-                if (fechaActual != null) {
-                    TextButton(onClick = { onGuardar(null) }) { Text("Quitar fecha", color = MaterialTheme.colorScheme.error) }
-                }
-                TextButton(onClick = onDismiss) { Text("Cancelar") }
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState)
-    }
-}
-
 @Composable
 internal fun DialogEditarCliente(
     cliente: Cliente,

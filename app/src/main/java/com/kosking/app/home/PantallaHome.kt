@@ -265,8 +265,6 @@ fun PantallaHome(
                         onVerMovimiento = { movId ->
                             vistaDueno = NavDueno.DetalleMovimiento(movId, clienteId = vista.id)
                         },
-                        onAnotarFiado = { clienteId -> vistaDueno = NavDueno.AgregarFiado(clienteId, "cargo") },
-                        onCobrar = { clienteId -> vistaDueno = NavDueno.AgregarFiado(clienteId, "pago") },
                         vm = duenoVm
                     )
                     is NavDueno.AgregarFiado -> PantallaAgregarFiado(

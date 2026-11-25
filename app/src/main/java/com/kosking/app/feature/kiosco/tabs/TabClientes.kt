@@ -267,7 +267,7 @@ fun TabClientes(
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
-                                            Icons.Default.Send,
+                                            Icons.Default.Chat,
                                             contentDescription = "WhatsApp",
                                             modifier = Modifier.size(18.dp),
                                             tint = MaterialTheme.colorScheme.primary

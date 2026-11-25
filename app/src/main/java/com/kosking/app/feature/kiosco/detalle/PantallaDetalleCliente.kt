@@ -129,27 +129,9 @@ fun PantallaDetalleCliente(
                         if (cliente.telefono.isNotBlank()) {
                             Box {
                                 IconButton(onClick = { mostrarMenuWA = true }) {
-                                    Icon(Icons.Default.Send, "WhatsApp")
+                                    Icon(Icons.Default.Chat, "WhatsApp")
                                 }
                                 DropdownMenu(expanded = mostrarMenuWA, onDismissRequest = { mostrarMenuWA = false }) {
-                                    if (cliente.deudaTotal > 0) {
-                                        DropdownMenuItem(
-                                            text = { Text("Recordar deuda") },
-                                            leadingIcon = { Icon(Icons.Default.Send, null) },
-                                            onClick = {
-                                                mostrarMenuWA = false
-                                                WhatsAppUtil.abrirWhatsApp(
-                                                    context = context,
-                                                    telefono = cliente.telefono,
-                                                    mensaje = WhatsAppUtil.mensajeResumen(
-                                                        nombreCliente = cliente.nombre,
-                                                        nombreLocal = localData?.nombre ?: "el local",
-                                                        deudaTotal = cliente.deudaTotal
-                                                    )
-                                                )
-                                            }
-                                        )
-                                    }
                                     if (movimientos.isNotEmpty()) {
                                         DropdownMenuItem(
                                             text = { Text("Compartir historial") },

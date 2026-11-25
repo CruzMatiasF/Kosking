@@ -171,10 +171,10 @@ fun FilaExtracto(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (onEnviarTicket != null && esCargo) {
+            if (onEnviarTicket != null && esCargo && visita.conceptos.size > 1) {
                 IconButton(onClick = onEnviarTicket, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        Icons.Default.Send,
+                        Icons.Default.Chat,
                         contentDescription = "Enviar ticket",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)

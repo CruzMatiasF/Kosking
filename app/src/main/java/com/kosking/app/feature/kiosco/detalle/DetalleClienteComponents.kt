@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -24,8 +23,6 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.ui.theme.Verde
 import com.kosking.app.ui.theme.VerdeClaro
-import com.kosking.app.util.WhatsAppUtil
-import com.kosking.app.feature.kiosco.ConfirmarMensajeWADialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,32 +31,8 @@ private val fmtCompromiso = SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLangu
 
 @Composable
 internal fun HeroCliente(cliente: Cliente, localNombre: String = "") {
-    val context = LocalContext.current
-    var mostrarPreviewWA by remember { mutableStateOf(false) }
     val sinDeuda = cliente.deudaTotal <= 0
 
-    if (mostrarPreviewWA && cliente.deudaTotal > 0) {
-        ConfirmarMensajeWADialog(
-            mensaje = WhatsAppUtil.mensajeResumen(
-                nombreCliente = cliente.nombre,
-                nombreLocal = localNombre.ifBlank { "el local" },
-                deudaTotal = cliente.deudaTotal
-            ),
-            onConfirmar = {
-                mostrarPreviewWA = false
-                WhatsAppUtil.abrirWhatsApp(
-                    context = context,
-                    telefono = cliente.telefono,
-                    mensaje = WhatsAppUtil.mensajeResumen(
-                        nombreCliente = cliente.nombre,
-                        nombreLocal = localNombre.ifBlank { "el local" },
-                        deudaTotal = cliente.deudaTotal
-                    )
-                )
-            },
-            onDismiss = { mostrarPreviewWA = false }
-        )
-    }
     val bgColor = if (sinDeuda) MaterialTheme.colorScheme.tertiaryContainer
                   else MaterialTheme.colorScheme.errorContainer
     val onBgColor = if (sinDeuda) MaterialTheme.colorScheme.onTertiaryContainer
@@ -88,14 +61,6 @@ internal fun HeroCliente(cliente: Cliente, localNombre: String = "") {
                 fontWeight = FontWeight.Bold,
                 color = onBgColor
             )
-            if (cliente.telefono.isNotBlank() && cliente.deudaTotal > 0) {
-                FilledTonalIconButton(
-                    onClick = { mostrarPreviewWA = true },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(Icons.Default.Send, "Recordar por WhatsApp", Modifier.size(18.dp))
-                }
-            }
         }
 
         if (cliente.limiteCredito > 0) {

@@ -129,7 +129,7 @@ private fun CardDeudaTotal(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
-                    AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar)
+                    AtajoBtn(Icons.Default.Edit, "Anotar / Cobrar", onAnotar)
                     AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
                 }
             }
@@ -181,7 +181,7 @@ private fun CardDeudaTotal(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
-                    AtajoBtn(Icons.Default.Edit, "Anotar", onAnotar)
+                    AtajoBtn(Icons.Default.Edit, "Anotar / Cobrar", onAnotar)
                     AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
                 }
             }

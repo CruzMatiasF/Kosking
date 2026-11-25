@@ -247,23 +247,13 @@ fun TabClientes(
                                         else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        trailingContent = if (onAnotarRapido != null && cliente.habilitado) ({
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                FilledTonalButton(
-                                    onClick = { onAnotarRapido(cliente, "cargo") },
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Text("Debe", style = MaterialTheme.typography.labelSmall)
-                                }
-                                OutlinedButton(
-                                    onClick = { onAnotarRapido(cliente, "pago") },
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Text("Cobrar", style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
+                        trailingContent = if (cliente.deudaTotal > 0) ({
+                            Text(
+                                "$${"%.0f".format(cliente.deudaTotal)}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }) else null,
                         modifier = Modifier.clickable { onVerCliente(cliente.id) }
                     )

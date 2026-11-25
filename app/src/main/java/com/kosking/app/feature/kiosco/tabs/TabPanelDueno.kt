@@ -156,7 +156,7 @@ internal fun TabPanelDueno(
                         Button(onClick = onAnotar, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Anotar")
+                            Text("Anotar / Cobrar")
                         }
                         OutlinedButton(onClick = onAbrirProductos) {
                             Icon(Icons.Default.Sell, null, Modifier.size(16.dp))

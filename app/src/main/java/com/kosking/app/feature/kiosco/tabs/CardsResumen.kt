@@ -30,6 +30,7 @@ internal fun CardsResumenDueno(
     totalDeuda: Double,
     ventasHoy: Double = 0.0,
     clientesConDeuda: List<Cliente>,
+    clientesAlDia: Int = 0,
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
@@ -60,6 +61,7 @@ internal fun CardsResumenDueno(
             totalDeuda = totalDeuda,
             ventasHoy = ventasHoy,
             clientesConDeuda = clientesConDeuda,
+            clientesAlDia = clientesAlDia,
             onAnotar = onAnotar,
             onVender = onVender,
             onAbrirProductos = onAbrirProductos,
@@ -80,6 +82,7 @@ private fun CardDeudaTotal(
     totalDeuda: Double,
     ventasHoy: Double = 0.0,
     clientesConDeuda: List<Cliente>,
+    clientesAlDia: Int = 0,
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
@@ -87,7 +90,7 @@ private fun CardDeudaTotal(
     puedeVerDeuda: Boolean = true,
     modifier: Modifier = Modifier
 ) {
-    val alDia = remember(clientesConDeuda) { clientesConDeuda.count { it.deudaTotal <= 0 } }
+    val alDia = clientesAlDia
     var montoVisible by rememberSaveable { mutableStateOf(!esEmpleado) }
 
     if (esEmpleado) {

@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -292,7 +291,7 @@ internal fun ZonaResumen(
                 }
             },
             enabled = puedeGuardar,
-            colors = if (exito) ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+            colors = if (exito) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                      else ButtonDefaults.buttonColors(),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).height(52.dp)
         ) {

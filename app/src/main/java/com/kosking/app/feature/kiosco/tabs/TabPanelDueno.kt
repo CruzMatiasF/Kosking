@@ -135,11 +135,13 @@ internal fun TabPanelDueno(
         }
 
         item {
+            val clientesAlDia = remember(clientes) { clientes.count { it.deudaTotal <= 0 && it.habilitado } }
             CardsResumenDueno(
                 localData = localData,
                 totalDeuda = totalDeuda,
                 ventasHoy = ventasHoy,
                 clientesConDeuda = clientesConDeuda,
+                clientesAlDia = clientesAlDia,
                 onAnotar = onAnotar,
                 onVender = onVender,
                 onAbrirProductos = onAbrirProductos,

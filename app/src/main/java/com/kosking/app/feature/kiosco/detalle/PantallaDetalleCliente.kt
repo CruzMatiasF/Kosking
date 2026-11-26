@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.kosking.app.util.CrashLogger
-import com.kosking.app.util.WhatsAppUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -312,33 +311,9 @@ fun PantallaDetalleCliente(
                     )
                 }
                 items(extracto, key = { "ext_${it.fecha.time}_${it.conceptos.firstOrNull()}" }) { visita ->
-                    val puedeEnviarTicket = !esEmpleado &&
-                        cliente?.telefono?.isNotBlank() == true &&
-                        visita.tipo != "pago" &&
-                        visita.conceptos.size > 1
-                    val hora = remember(visita.fecha) {
-                        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(visita.fecha)
-                    }
-                    val mensajeTicket = if (puedeEnviarTicket && cliente != null) {
-                        WhatsAppUtil.ticketVisita(
-                            nombreCliente = cliente.nombre,
-                            nombreLocal = localData?.nombre ?: "el local",
-                            items = visita.conceptos.map { Triple(it, 0.0, 1) },
-                            tipo = "cargo",
-                            hora = hora
-                        )
-                    } else null
                     FilaExtracto(
                         visita = visita,
-                        onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) },
-                        mensajeTicket = mensajeTicket,
-                        onEnviarTicket = if (puedeEnviarTicket && cliente != null && mensajeTicket != null) ({
-                            WhatsAppUtil.abrirWhatsApp(
-                                context = context,
-                                telefono = cliente.telefono,
-                                mensaje = mensajeTicket
-                            )
-                        }) else null
+                        onClick = { visita.movimientoIds.firstOrNull()?.let(onVerMovimiento) }
                     )
                 }
                 if (movimientos.size >= 1000) {

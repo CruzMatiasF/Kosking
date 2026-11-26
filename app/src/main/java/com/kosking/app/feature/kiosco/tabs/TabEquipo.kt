@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.Movimiento
@@ -43,7 +42,6 @@ fun TabEquipo(
     var mostrarDialogInvitar by remember { mutableStateOf(false) }
     var codigoGenerado by remember { mutableStateOf<String?>(null) }
     var empleadoAEliminar by remember { mutableStateOf<Empleado?>(null) }
-    var mostrarResumen by remember { mutableStateOf(false) }
     var busqueda by remember { mutableStateOf("") }
 
     val empleadosFiltrados = remember(empleados, busqueda) {
@@ -51,35 +49,12 @@ fun TabEquipo(
         else empleados.filter { it.nombre.contains(busqueda, ignoreCase = true) }
     }
 
-    val duenoUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
-
     val inicioDia = remember {
         Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
     }
-
-    val movsHoy = remember(movimientos, inicioDia) {
-        movimientos.filter { !it.anulado && it.fecha.toDate().time >= inicioDia }
-    }
-
-    val statsHoy = remember(movsHoy, duenoUid) {
-        val map = mutableMapOf<String, StatPersona>()
-        movsHoy.forEach { mov ->
-            val uid = mov.anotadoPorUid.ifBlank { duenoUid }
-            val nombre = if (uid == duenoUid) "Vos"
-                         else mov.anotadoPorNombre.ifBlank { "Empleado" }
-            val actual = map[uid] ?: StatPersona(uid, nombre, 0, 0.0)
-            map[uid] = actual.copy(
-                anoto = actual.anoto + 1,
-                cobro = actual.cobro + if (mov.tipo == "pago") mov.monto else 0.0
-            )
-        }
-        map.values.sortedByDescending { if (it.uid == duenoUid) Int.MAX_VALUE else it.anoto }
-    }
-
-    val totalCobradoHoy = remember(statsHoy) { statsHoy.sumOf { it.cobro } }
 
     val fmtFecha = remember { SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()) }
     val ultimoMovPorUid = remember(movimientos) {
@@ -102,17 +77,6 @@ fun TabEquipo(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (statsHoy.isNotEmpty()) {
-            item {
-                CardCajaHoy(
-                    statsHoy = statsHoy,
-                    totalCobradoHoy = totalCobradoHoy,
-                    duenoUid = duenoUid,
-                    onVerPeriodo = { mostrarResumen = true }
-                )
-            }
-        }
-
         if (empleados.size > 3) {
             item {
                 Row(
@@ -226,7 +190,7 @@ fun TabEquipo(
                     emp = emp,
                     ultimoMov = ultimoMov,
                     reclamos = reclamos,
-                    esActivoHoy = esActivoHoy,
+                    esActivoHoy = ultimoMov != null && ultimoMov.fecha.toDate().time >= inicioDia,
                     inicioDia = inicioDia,
                     fmtFecha = fmtFecha,
                     fmtHora = fmtHora,
@@ -308,13 +272,4 @@ fun TabEquipo(
         )
     }
 
-    if (mostrarResumen) {
-        ResumenPeriodoSheet(
-            movimientos = movimientos,
-            clientes = clientes,
-            duenoUid = duenoUid,
-            nombreLocal = nombreLocal,
-            onDismiss = { mostrarResumen = false }
-        )
-    }
 }

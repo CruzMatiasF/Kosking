@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Venta
 import com.kosking.app.ui.theme.Verde
 import java.text.SimpleDateFormat
 import java.util.*
@@ -32,6 +33,7 @@ internal fun TabHistorial(
     onVerCliente: (String) -> Unit = {}
 ) {
     val movimientosLocal by vm.movimientosLocal.collectAsState()
+    val ventasLocal by vm.ventasLocal.collectAsState()
 
     val inicioMes = remember {
         Calendar.getInstance().apply {
@@ -44,6 +46,18 @@ internal fun TabHistorial(
     val clientesMap = remember(clientes) { clientes.associateBy { it.id } }
     val fmtHora    = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val fmtDiaLong = remember { SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es-AR")) }
+
+    val ventasPorDia = remember(ventasLocal) {
+        val cal = Calendar.getInstance()
+        ventasLocal
+            .filter { it.fecha.toDate().time >= inicioMes }
+            .groupBy { venta ->
+                cal.time = venta.fecha.toDate()
+                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+                cal.timeInMillis
+            }
+    }
 
     // Solo días con movimientos, más reciente primero (página 0 = hoy)
     val paginas = remember(movimientosLocal) {
@@ -177,12 +191,14 @@ internal fun TabHistorial(
             val pagina = paginas[pageIndex]
             val anotadoDia = pagina.movimientos.filter { it.tipo == "cargo" }.sumOf { it.monto }
             val cobradoDia = pagina.movimientos.filter { it.tipo == "pago" }.sumOf { it.monto }
+            val ventasDia = ventasPorDia[pagina.diaMs] ?: emptyList()
+            val totalVentasDia = ventasDia.sumOf { it.total }
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                // Subtotal del día
+                // Subtotales del día
                 item {
                     Row(
                         modifier = Modifier
@@ -204,10 +220,17 @@ internal fun TabHistorial(
                             onColor = MaterialTheme.colorScheme.onTertiaryContainer,
                             modifier = Modifier.weight(1f)
                         )
+                        if (totalVentasDia > 0) ResumenTile(
+                            label = "Ventas",
+                            monto = totalVentasDia,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            onColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
 
-                // Movimientos del día
+                // Movimientos de fiado del día
                 items(pagina.movimientos, key = { it.id }) { mov ->
                     val nombreCliente = clientesMap[mov.clienteId]?.nombre ?: "Cliente"
                     val esPago = mov.tipo == "pago"
@@ -237,6 +260,41 @@ internal fun TabHistorial(
                         modifier = Modifier.clickable { onVerCliente(mov.clienteId) }
                     )
                     HorizontalDivider()
+                }
+
+                // Ventas en efectivo del día
+                if (ventasDia.isNotEmpty()) {
+                    item {
+                        Text(
+                            "VENTAS EN EFECTIVO · ${ventasDia.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    items(ventasDia.sortedByDescending { it.fecha.seconds }, key = { it.id }) { venta ->
+                        val resumenItems = venta.items.take(3).joinToString(", ")
+                            .let { if (venta.items.size > 3) "$it…" else it }
+                        ListItem(
+                            headlineContent = {
+                                Text("$${"%.0f".format(venta.total)}",
+                                    fontWeight = FontWeight.Medium,
+                                    color = Verde)
+                            },
+                            supportingContent = if (resumenItems.isNotBlank()) {
+                                { Text(resumenItems, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                            } else null,
+                            trailingContent = {
+                                Text(fmtHora.format(venta.fecha.toDate()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        )
+                        HorizontalDivider()
+                    }
                 }
             }
         }

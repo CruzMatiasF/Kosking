@@ -290,7 +290,8 @@ fun PantallaHome(
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },
                             onAbrirProductos = { vistaDueno = NavDueno.Productos },
                             onAbrirPerfil = { mostrarPerfilSheet = true },
-                            onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas }
+                            onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas },
+                            onVerCuaderno = { tabNav = TabNav.HISTORIAL }
                         )
                         esEmpleado -> {
                             // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion

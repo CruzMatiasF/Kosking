@@ -19,70 +19,82 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Venta
 import com.kosking.app.ui.theme.Verde
 import java.text.SimpleDateFormat
 import java.util.Date
 
 internal fun LazyListScope.seccionHoy(
-    clientes: List<Cliente>,
-    movimientosHoy: List<Movimiento>,
-    fiadoHoy: Double,
-    cobradoHoy: Double,
-    ventasHoy: Double = 0.0,
-    visitasHoy: List<VisitaResumen>,
-    onVerClientes: () -> Unit,
-    onAbrirVisita: (VisitaResumen) -> Unit,
+    ventas: List<Venta> = emptyList(),
+    onVerCuaderno: () -> Unit = {},
     esEmpleado: Boolean = false
 ) {
     item {
+        val totalVentas = ventas.sumOf { it.total }
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Hoja del día", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (fiadoHoy > 0) Text("-$${"%.0f".format(fiadoHoy)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                if (cobradoHoy > 0) Text("+$${"%.0f".format(cobradoHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
-                if (ventasHoy > 0) Text("🛒$${"%.0f".format(ventasHoy)}", style = MaterialTheme.typography.labelSmall, color = Verde)
-            }
+            Text("Ventas del día", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            if (totalVentas > 0) Text(
+                "🛒$${"%.0f".format(totalVentas)}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Verde
+            )
         }
-        if (clientes.isEmpty()) {
+        if (ventas.isEmpty()) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(Icons.Default.People, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
-                Text("Todavía no hay clientes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("Sumá tu primer cliente y empezá a anotar.", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                Button(onClick = onVerClientes) {
-                    Icon(Icons.Default.PersonAdd, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Agregar cliente")
-                }
-            }
-        } else if (movimientosHoy.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Default.EditNote, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                Text("Todavía nada hoy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.ShoppingCart, null, Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                Text("Sin ventas hoy", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    if (esEmpleado) "Usá el Escáner o Anotar para registrar una venta."
-                    else "Tocá el botón + para anotar o cobrar.",
+                    if (esEmpleado) "Usá el Escáner para registrar una venta."
+                    else "Usá el Escáner o el botón Vender.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
         } else {
-            visitasHoy.take(5).forEach { visita ->
-                FilaVisitaMP(visita, onClick = { onAbrirVisita(visita) })
+            val fmtHora = remember { SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
+            ventas.take(5).forEach { venta ->
+                val resumenItems = venta.items.take(3).joinToString(", ")
+                    .let { if (venta.items.size > 3) "$it…" else it }
+                ListItem(
+                    headlineContent = {
+                        Text("$${"%.0f".format(venta.total)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Verde)
+                    },
+                    supportingContent = if (resumenItems.isNotBlank()) {
+                        { Text(resumenItems, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                    } else null,
+                    trailingContent = {
+                        Text(fmtHora.format(venta.fecha.toDate()),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                )
+                HorizontalDivider()
+            }
+            if (ventas.size > 5) {
+                TextButton(
+                    onClick = onVerCuaderno,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Ver todas (${ventas.size})", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
         HorizontalDivider()

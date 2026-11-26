@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Venta
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -28,6 +29,7 @@ internal fun TabPanelDueno(
     clientes: List<Cliente>,
     movimientosLocal: List<Movimiento>,
     ventasHoy: Double = 0.0,
+    ventasDeHoy: List<Venta> = emptyList(),
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     localData: Local?,
@@ -46,26 +48,10 @@ internal fun TabPanelDueno(
     puedeVerDeuda: Boolean = true,
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
-    onAgregarCliente: () -> Unit = {}
+    onAgregarCliente: () -> Unit = {},
+    onVerCuaderno: () -> Unit = {}
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
-    val fmtHora = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val movimientosHoy = remember(movimientosLocal) {
-        val hoy = Calendar.getInstance()
-        val hoyYear = hoy.get(Calendar.YEAR)
-        val hoyDia  = hoy.get(Calendar.DAY_OF_YEAR)
-        val c = Calendar.getInstance()
-        movimientosLocal.filter { mov ->
-            if (mov.anulado) return@filter false
-            c.time = mov.fecha.toDate()
-            c.get(Calendar.YEAR) == hoyYear && c.get(Calendar.DAY_OF_YEAR) == hoyDia
-        }.sortedByDescending { it.fecha.toDate().time }
-    }
-    val (fiadoHoy, cobradoHoy) = remember(movimientosHoy) {
-        var fiado = 0.0; var cobrado = 0.0
-        movimientosHoy.forEach { if (it.tipo == "cargo") fiado += it.monto else cobrado += it.monto }
-        fiado to cobrado
-    }
 
     val diasSinPagar = remember(movimientosLocal, clientesConDeuda) {
         val hoyNorm = Calendar.getInstance().apply {
@@ -95,11 +81,6 @@ internal fun TabPanelDueno(
             } else null
         }
     }
-
-    val visitasHoy = remember(movimientosHoy, clienteMap) {
-        agruparVisitas(movimientosHoy, clienteMap, fmtHora)
-    }
-    var visitaDetalle by remember { mutableStateOf<VisitaResumen?>(null) }
 
     val hoy = remember { Date() }
     val fmtCompromiso = remember { SimpleDateFormat("d MMM", Locale.forLanguageTag("es-AR")) }
@@ -203,14 +184,8 @@ internal fun TabPanelDueno(
         }
 
         seccionHoy(
-            clientes = clientes,
-            movimientosHoy = movimientosHoy,
-            fiadoHoy = fiadoHoy,
-            cobradoHoy = cobradoHoy,
-            ventasHoy = ventasHoy,
-            visitasHoy = visitasHoy,
-            onVerClientes = onVerClientes,
-            onAbrirVisita = { visitaDetalle = it },
+            ventas = ventasDeHoy,
+            onVerCuaderno = onVerCuaderno,
             esEmpleado = esEmpleado
         )
 
@@ -267,10 +242,6 @@ internal fun TabPanelDueno(
         }
 
         item { Spacer(Modifier.height(16.dp)) }
-    }
-
-    visitaDetalle?.let { visita ->
-        DetalleVisitaSheet(visita = visita, onDismiss = { visitaDetalle = null })
     }
 
 }

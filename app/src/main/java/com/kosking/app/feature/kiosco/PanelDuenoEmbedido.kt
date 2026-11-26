@@ -37,11 +37,13 @@ fun PanelDuenoEmbedido(
     onCerrarSesionEmpleado: () -> Unit = {},
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
+    onVerCuaderno: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
     val ventasHoy by vm.ventasHoy.collectAsState()
+    val ventasLocal by vm.ventasLocal.collectAsState()
     val productos by vm.productos.collectAsState()
     val empleados by vm.empleados.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
@@ -53,6 +55,16 @@ fun PanelDuenoEmbedido(
 
     val clientesConDeuda = remember(clientes) {
         clientes.filter { it.deudaTotal > 0 }.sortedByDescending { it.deudaTotal }
+    }
+
+    val ventasDeHoy = remember(ventasLocal) {
+        val inicioDia = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        ventasLocal
+            .filter { it.fecha.toDate().time >= inicioDia }
+            .sortedByDescending { it.fecha.seconds }
     }
 
     val context = LocalContext.current
@@ -120,6 +132,7 @@ fun PanelDuenoEmbedido(
                 clientes = clientes,
                 movimientosLocal = movimientosLocal,
                 ventasHoy = ventasHoy,
+                ventasDeHoy = ventasDeHoy,
                 totalDeuda = totalDeuda,
                 clientesConDeuda = clientesConDeuda,
                 localData = localData,
@@ -140,7 +153,8 @@ fun PanelDuenoEmbedido(
                 esEmpleado = esEmpleado,
                 onAbrirPerfil = onAbrirPerfil,
                 onAbrirNotificaciones = onAbrirNotificaciones,
-                onAgregarCliente = onAbrirAgregarCliente
+                onAgregarCliente = onAbrirAgregarCliente,
+                onVerCuaderno = onVerCuaderno
             )
         }
     }

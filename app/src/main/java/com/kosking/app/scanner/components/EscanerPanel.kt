@@ -30,7 +30,6 @@ internal fun EscanerPanel(
     busquedaCliente: String,
     filtradosCliente: List<Cliente>,
     cargandoAnotacion: Boolean,
-    carritoIdx: Int = 0,
     onAgregarSugerencia: (ItemAnotado) -> Unit,
     onCambiarCantidad: (ItemAnotado, Int) -> Unit,
     onCobrar: () -> Unit,
@@ -38,12 +37,9 @@ internal fun EscanerPanel(
     onClienteSelected: (Cliente) -> Unit,
     onBusquedaChange: (String) -> Unit,
     onLimpiarCliente: () -> Unit,
-    onNuevoCliente: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(carritoIdx) { categoriaSeleccionada = null }
 
     var mostrarAlertaCliente by remember { mutableStateOf(false) }
 
@@ -101,6 +97,47 @@ internal fun EscanerPanel(
     }
 
     Column(modifier = modifier.fillMaxSize().imePadding()) {
+
+        // ── Selector de cliente (siempre visible arriba) ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PanelClientePicker(
+                clienteSeleccionado = clienteSeleccionado,
+                busquedaCliente = busquedaCliente,
+                onBusquedaChange = onBusquedaChange,
+                onLimpiarCliente = onLimpiarCliente,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // Sugerencias de cliente
+        if (!tieneCliente && busquedaCliente.isNotBlank()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column {
+                    filtradosCliente.take(5).forEach { cliente ->
+                        ListItem(
+                            headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
+                            supportingContent = if (cliente.telefono.isNotBlank()) {
+                                { Text(cliente.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            } else null,
+                            modifier = Modifier.clickable { onClienteSelected(cliente) }
+                        )
+                        HorizontalDivider()
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider()
 
         // ── Chips de categoría / fila de productos ──
         if (productos.isNotEmpty()) {
@@ -189,88 +226,11 @@ internal fun EscanerPanel(
                         }
                     }
 
-                    // Sugerencias de cliente superpuestas
-                    if (!tieneCliente && busquedaCliente.isNotBlank()) {
-                        Card(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                        ) {
-                            Column {
-                                filtradosCliente.take(5).forEach { cliente ->
-                                    ListItem(
-                                        headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
-                                        supportingContent = if (cliente.telefono.isNotBlank()) {
-                                            { Text(cliente.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                        } else null,
-                                        modifier = Modifier.clickable { onClienteSelected(cliente) }
-                                    )
-                                    HorizontalDivider()
-                                }
-                                val nombreBusqueda = busquedaCliente.trim()
-                                val yaExiste = filtradosCliente.any { it.nombre.equals(nombreBusqueda, ignoreCase = true) }
-                                if (nombreBusqueda.length >= 2 && !yaExiste && onNuevoCliente != null) {
-                                    ListItem(
-                                        headlineContent = {
-                                            Text(
-                                                "Crear \"$nombreBusqueda\"",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        },
-                                        leadingContent = {
-                                            Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                        },
-                                        modifier = Modifier.clickable { onNuevoCliente(nombreBusqueda) }
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
 
         HorizontalDivider()
-
-        // ── Selector de cliente (visible cuando hay ítems) ──
-        if (tieneItems) {
-            Column {
-                if (!tieneCliente) {
-                    Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(Icons.Default.Person, null, Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                            Text(
-                                "Agregá un cliente para anotar en cuenta",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PanelClientePicker(
-                        clienteSeleccionado = clienteSeleccionado,
-                        busquedaCliente = busquedaCliente,
-                        onBusquedaChange = onBusquedaChange,
-                        onLimpiarCliente = onLimpiarCliente,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
 
         // ── Botonera ──
         Column(

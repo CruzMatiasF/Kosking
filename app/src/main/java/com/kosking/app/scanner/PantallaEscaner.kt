@@ -5,14 +5,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.ui.graphics.Brush
@@ -32,83 +28,6 @@ import androidx.core.content.ContextCompat
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.scanner.components.*
 import com.kosking.app.util.WhatsAppUtil
-
-@Composable
-private fun SelectorCarrito(
-    carritos: List<CarritoState>,
-    activoIdx: Int,
-    onSeleccionar: (Int) -> Unit,
-    onAgregar: () -> Unit,
-    onCerrar: (Int) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        carritos.forEachIndexed { idx, carrito ->
-            val esActivo = idx == activoIdx
-            val cantItems = carrito.itemsAnotados.sumOf { it.cantidad }
-            Surface(
-                onClick = { onSeleccionar(idx) },
-                shape = RoundedCornerShape(50),
-                color = if (esActivo) MaterialTheme.colorScheme.secondaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.height(30.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val label = carrito.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
-                        ?: "Cliente ${idx + 1}"
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 100.dp)
-                    )
-                    if (cantItems > 0) {
-                        Text(
-                            "·$cantItems",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                    if (esActivo && carritos.size > 1) {
-                        Icon(
-                            Icons.Default.Close, null,
-                            Modifier
-                                .size(12.dp)
-                                .clickable { onCerrar(idx) },
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            }
-        }
-        if (carritos.size < 3) {
-            IconButton(
-                onClick = onAgregar,
-                modifier = Modifier.size(30.dp)
-            ) {
-                Icon(
-                    Icons.Default.Add, null,
-                    Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -273,55 +192,35 @@ fun PantallaEscaner(
 
             // Panel inferior
             Surface(modifier = Modifier.fillMaxWidth().weight(0.60f), color = MaterialTheme.colorScheme.surface) {
-                Column(modifier = Modifier.fillMaxSize()) {
-
-                    SelectorCarrito(
-                        carritos = escanerVm.carritos,
-                        activoIdx = escanerVm.carritoActivoIdx,
-                        onSeleccionar = { escanerVm.seleccionarCarrito(it) },
-                        onAgregar = { escanerVm.agregarCarrito() },
-                        onCerrar = { escanerVm.cerrarCarrito(it) }
-                    )
-
-                    HorizontalDivider()
-
-                    val onCambiarCantidad: (com.kosking.app.modelo.ItemAnotado, Int) -> Unit = { item, nueva ->
-                        escanerVm.itemsAnotados = if (nueva <= 0)
-                            escanerVm.itemsAnotados - item
-                        else
-                            escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
-                    }
-
-                    EscanerPanel(
-                        itemsAnotados = escanerVm.itemsAnotados,
-                        productos = productos,
-                        clienteSeleccionado = escanerVm.clienteSeleccionado,
-                        busquedaCliente = escanerVm.busquedaCliente,
-                        filtradosCliente = filtradosCliente,
-                        cargandoAnotacion = escanerVm.cargandoAnotacion,
-                        carritoIdx = escanerVm.carritoActivoIdx,
-                        onAgregarSugerencia = { escanerVm.agregarALista(it) },
-                        onCambiarCantidad = onCambiarCantidad,
-                        onCobrar = {
-                            escanerVm.tipoMovimiento = TipoMovimiento.VENTA
-                            escanerVm.mostrarConfirmar = true
-                        },
-                        onAnotar = {
-                            escanerVm.tipoMovimiento = TipoMovimiento.CARGO
-                            escanerVm.mostrarConfirmar = true
-                        },
-                        onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.busquedaCliente = "" },
-                        onBusquedaChange = { escanerVm.busquedaCliente = it },
-                        onLimpiarCliente = { escanerVm.clienteSeleccionado = null; escanerVm.busquedaCliente = "" },
-                        onNuevoCliente = if (esEmpleado) null else ({
-                            escanerVm.nombreNuevoCliente = it
-                            escanerVm.telefonoNuevoCliente = ""
-                            escanerVm.busquedaCliente = ""
-                            escanerVm.mostrarRegistroCliente = true
-                        }),
-                        modifier = Modifier.weight(1f)
-                    )
+                val onCambiarCantidad: (com.kosking.app.modelo.ItemAnotado, Int) -> Unit = { item, nueva ->
+                    escanerVm.itemsAnotados = if (nueva <= 0)
+                        escanerVm.itemsAnotados - item
+                    else
+                        escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
                 }
+
+                EscanerPanel(
+                    itemsAnotados = escanerVm.itemsAnotados,
+                    productos = productos,
+                    clienteSeleccionado = escanerVm.clienteSeleccionado,
+                    busquedaCliente = escanerVm.busquedaCliente,
+                    filtradosCliente = filtradosCliente,
+                    cargandoAnotacion = escanerVm.cargandoAnotacion,
+                    onAgregarSugerencia = { escanerVm.agregarALista(it) },
+                    onCambiarCantidad = onCambiarCantidad,
+                    onCobrar = {
+                        escanerVm.tipoMovimiento = TipoMovimiento.VENTA
+                        escanerVm.mostrarConfirmar = true
+                    },
+                    onAnotar = {
+                        escanerVm.tipoMovimiento = TipoMovimiento.CARGO
+                        escanerVm.mostrarConfirmar = true
+                    },
+                    onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.busquedaCliente = "" },
+                    onBusquedaChange = { escanerVm.busquedaCliente = it },
+                    onLimpiarCliente = { escanerVm.clienteSeleccionado = null; escanerVm.busquedaCliente = "" },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
 

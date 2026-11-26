@@ -1,11 +1,13 @@
 package com.kosking.app.scanner.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -77,11 +79,16 @@ internal fun EscanerPanel(
         productos.map { it.categoria.ifBlank { "Otros" } }.distinct().sorted()
     }
 
-    val productosMostrados = remember(productos, categoriaSeleccionada) {
+    var busquedaCategoria by remember { mutableStateOf("") }
+    LaunchedEffect(categoriaSeleccionada) { busquedaCategoria = "" }
+
+    val productosMostrados = remember(productos, categoriaSeleccionada, busquedaCategoria) {
         val cat = categoriaSeleccionada
-        if (cat == null) productos.sortedByDescending { it.vecesUsado }
-        else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }
-            .sortedByDescending { it.vecesUsado }
+        val base = if (cat == null) productos.sortedByDescending { it.vecesUsado }
+                   else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }
+                       .sortedByDescending { it.vecesUsado }
+        if (busquedaCategoria.isBlank()) base
+        else base.filter { it.nombre.contains(busquedaCategoria, ignoreCase = true) }
     }
 
     val total = itemsAnotados.sumOf { it.precio * it.cantidad }
@@ -108,25 +115,61 @@ internal fun EscanerPanel(
                     }
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (categorias.size > 1) {
-                        IconButton(
-                            onClick = { categoriaSeleccionada = null },
-                            modifier = Modifier.size(36.dp)
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (categorias.size > 1) {
+                            IconButton(
+                                onClick = { categoriaSeleccionada = null },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack, "Volver",
+                                    Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Text(
+                            categoriaSeleccionada ?: "",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(30.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack, "Volver",
-                                Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            BasicTextField(
+                                value = busquedaCategoria,
+                                onValueChange = { busquedaCategoria = it },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                                decorationBox = { inner ->
+                                    Box {
+                                        if (busquedaCategoria.isEmpty()) Text("Buscar...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        inner()
+                                    }
+                                }
                             )
+                            if (busquedaCategoria.isNotEmpty()) {
+                                Icon(Icons.Default.Close, "Limpiar", Modifier.size(14.dp).clickable { busquedaCategoria = "" }, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                     LazyRow(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(end = 10.dp),
+                        contentPadding = PaddingValues(start = 4.dp, end = 10.dp, bottom = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(productosMostrados, key = { it.id }) { prod ->

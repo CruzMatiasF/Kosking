@@ -306,11 +306,6 @@ fun PantallaEscaner(
                         escanerVm.tipoMovimiento = TipoMovimiento.CARGO
                         escanerVm.mostrarConfirmar = true
                     },
-                    onCargarNuevo = {
-                        escanerVm.productoParaCargar = ProductoDetectado("", 0.0)
-                        escanerVm.nombreCarga = ""
-                        escanerVm.precioCarga = ""
-                    },
                     onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.busquedaCliente = "" },
                     onBusquedaChange = { escanerVm.busquedaCliente = it },
                     onLimpiarCliente = { escanerVm.clienteSeleccionado = null; escanerVm.busquedaCliente = "" },

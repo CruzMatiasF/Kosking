@@ -34,7 +34,6 @@ internal fun EscanerPanel(
     onCambiarCantidad: (ItemAnotado, Int) -> Unit,
     onCobrar: () -> Unit,
     onAnotar: () -> Unit,
-    onCargarNuevo: () -> Unit,
     onClienteSelected: (Cliente) -> Unit,
     onBusquedaChange: (String) -> Unit,
     onLimpiarCliente: () -> Unit,
@@ -89,47 +88,6 @@ internal fun EscanerPanel(
     val tieneCliente = clienteSeleccionado != null
 
     Column(modifier = modifier.fillMaxSize().imePadding()) {
-
-        // ── Selector de cliente (siempre visible arriba) ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PanelClientePicker(
-                clienteSeleccionado = clienteSeleccionado,
-                busquedaCliente = busquedaCliente,
-                onBusquedaChange = onBusquedaChange,
-                onLimpiarCliente = onLimpiarCliente,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Sugerencias de cliente
-        if (!tieneCliente && busquedaCliente.isNotBlank()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column {
-                    filtradosCliente.take(5).forEach { cliente ->
-                        ListItem(
-                            headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
-                            supportingContent = if (cliente.telefono.isNotBlank()) {
-                                { Text(cliente.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                            } else null,
-                            modifier = Modifier.clickable { onClienteSelected(cliente) }
-                        )
-                        HorizontalDivider()
-                    }
-                }
-            }
-        }
-
-        HorizontalDivider()
 
         // ── Chips de categoría / fila de productos ──
         if (productos.isNotEmpty()) {
@@ -224,58 +182,69 @@ internal fun EscanerPanel(
 
         HorizontalDivider()
 
-        // ── Botonera ──
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp)
-                .padding(bottom = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            if (tieneItems) {
-                Button(
-                    onClick = {
-                        val alerta = clienteSeleccionado != null &&
-                            (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
-                        if (alerta) mostrarAlertaCliente = true else onAnotar()
-                    },
-                    enabled = !cargandoAnotacion && tieneCliente,
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    if (cargandoAnotacion) {
-                        CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                    } else {
-                        Text(
-                            if (tieneCliente) "Anotar a ${clienteSeleccionado!!.nombre.split(" ").first()}"
-                            else "Anotar en cuenta (elegí cliente)",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
+        // ── Sugerencias de cliente (superpuestas sobre la barra) ──
+        if (!tieneCliente && busquedaCliente.isNotBlank()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column {
+                    filtradosCliente.take(5).forEach { cliente ->
+                        ListItem(
+                            headlineContent = { Text(cliente.nombre, style = MaterialTheme.typography.bodyMedium) },
+                            supportingContent = if (cliente.telefono.isNotBlank()) {
+                                { Text(cliente.telefono, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            } else null,
+                            modifier = Modifier.clickable { onClienteSelected(cliente) }
                         )
+                        HorizontalDivider()
                     }
                 }
-                OutlinedButton(
-                    onClick = { onCobrar() },
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    Text(
-                        when {
-                            total > 0 && totalCantidad > 1 -> "Cobrar \$${total.toInt()}  ·  $totalCantidad productos"
-                            else -> "Cobrar \$${total.toInt()}"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+            }
+        }
+
+        // ── Barra inferior: [picker cliente] [Continuar] [$total] ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PanelClientePicker(
+                clienteSeleccionado = clienteSeleccionado,
+                busquedaCliente = busquedaCliente,
+                onBusquedaChange = onBusquedaChange,
+                onLimpiarCliente = onLimpiarCliente,
+                modifier = Modifier.weight(1f)
+            )
+            Button(
+                onClick = {
+                    if (!tieneItems) return@Button
+                    val alerta = clienteSeleccionado != null &&
+                        (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
+                    if (alerta) mostrarAlertaCliente = true
+                    else if (tieneCliente) onAnotar()
+                    else onCobrar()
+                },
+                enabled = tieneItems && !cargandoAnotacion,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                modifier = Modifier.height(42.dp)
+            ) {
+                if (cargandoAnotacion) {
+                    CircularProgressIndicator(Modifier.size(14.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                } else {
+                    Text("Continuar", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
-            OutlinedButton(
-                onClick = onCargarNuevo,
-                modifier = Modifier.fillMaxWidth().height(44.dp)
-            ) {
-                Icon(Icons.Default.Add, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Cargar nuevo producto", style = MaterialTheme.typography.bodyMedium)
-            }
+            Text(
+                if (total > 0) "\$${total.toInt()}" else "-",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (tieneItems) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            )
         }
     }
 }

@@ -32,9 +32,10 @@ internal fun EscanerPanel(
     cargandoAnotacion: Boolean,
     onAgregarSugerencia: (ItemAnotado) -> Unit,
     onCambiarCantidad: (ItemAnotado, Int) -> Unit,
-    modoEsAnotar: Boolean,
+    tipoMovimiento: com.kosking.app.scanner.TipoMovimiento,
     onCobrar: () -> Unit,
     onAnotar: () -> Unit,
+    onCargarNuevo: () -> Unit,
     onClienteSelected: (Cliente) -> Unit,
     onBusquedaChange: (String) -> Unit,
     onLimpiarCliente: () -> Unit,
@@ -217,7 +218,7 @@ internal fun EscanerPanel(
         ) {
             // Zona cliente — solo activa en modo Anotar
             Box(modifier = Modifier.weight(1f)) {
-                if (modoEsAnotar) {
+                if (tipoMovimiento == com.kosking.app.scanner.TipoMovimiento.CARGO) {
                     PanelClientePicker(
                         clienteSeleccionado = clienteSeleccionado,
                         busquedaCliente = busquedaCliente,
@@ -229,14 +230,21 @@ internal fun EscanerPanel(
             }
             Button(
                 onClick = {
-                    if (!tieneItems) return@Button
-                    val alerta = modoEsAnotar && clienteSeleccionado != null &&
-                        (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
-                    if (alerta) mostrarAlertaCliente = true
-                    else if (modoEsAnotar) onAnotar()
-                    else onCobrar()
+                    when (tipoMovimiento) {
+                        com.kosking.app.scanner.TipoMovimiento.CARGO -> {
+                            val alerta = clienteSeleccionado != null &&
+                                (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
+                            if (alerta) mostrarAlertaCliente = true else onAnotar()
+                        }
+                        com.kosking.app.scanner.TipoMovimiento.VENTA -> onCobrar()
+                        com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> onCargarNuevo()
+                    }
                 },
-                enabled = tieneItems && !cargandoAnotacion && (!modoEsAnotar || tieneCliente),
+                enabled = !cargandoAnotacion && when (tipoMovimiento) {
+                    com.kosking.app.scanner.TipoMovimiento.CARGO -> tieneCliente
+                    com.kosking.app.scanner.TipoMovimiento.VENTA -> tieneItems
+                    com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> true
+                },
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                 modifier = Modifier.height(42.dp)
             ) {

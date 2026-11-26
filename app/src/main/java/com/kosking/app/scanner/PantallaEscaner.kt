@@ -4,16 +4,16 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCode
@@ -36,39 +36,73 @@ import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.scanner.components.*
 import com.kosking.app.util.WhatsAppUtil
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SelectorModo(
     modo: TipoMovimiento,
-    onModo: (TipoMovimiento) -> Unit,
-    onCargarNuevo: () -> Unit
+    onModo: (TipoMovimiento) -> Unit
 ) {
-    Row(
+    val opciones = listOf(
+        TipoMovimiento.CARGO to "Anotar",
+        TipoMovimiento.VENTA to "Vender",
+        TipoMovimiento.CARGAR_NUEVO to "Cargar nuevo"
+    )
+    val pagerState = rememberPagerState(
+        initialPage = opciones.indexOfFirst { it.first == modo }.coerceAtLeast(0)
+    ) { opciones.size }
+
+    // Cuando cambia el tab activo, sincronizar el pager
+    LaunchedEffect(modo) {
+        val target = opciones.indexOfFirst { it.first == modo }.coerceAtLeast(0)
+        if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
+    }
+
+    // Cuando el pager queda quieto, actualizar el modo
+    LaunchedEffect(pagerState.settledPage) {
+        onModo(opciones[pagerState.settledPage].first)
+    }
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+            .height(40.dp)
     ) {
-        listOf(
-            Triple(TipoMovimiento.CARGO, "Anotar", Icons.Default.AccountBalance),
-            Triple(TipoMovimiento.VENTA, "Vender", Icons.Default.AttachMoney),
-        ).forEach { (tipo, label, icon) ->
-            val activo = modo == tipo
-            FilterChip(
-                selected = activo,
-                onClick = { onModo(tipo) },
-                label = { Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) },
-                leadingIcon = { Icon(icon, null, Modifier.size(14.dp)) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-        OutlinedButton(
-            onClick = onCargarNuevo,
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-            modifier = Modifier.weight(1f).height(32.dp)
-        ) {
-            Icon(Icons.Default.Add, null, Modifier.size(14.dp))
-            Spacer(Modifier.width(4.dp))
-            Text("Cargar", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        val itemW = maxWidth / 3
+
+        // Indicador central fijo
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .width(itemW)
+                .fillMaxHeight()
+                .background(
+                    MaterialTheme.colorScheme.primaryContainer,
+                    androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                )
+        )
+
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = itemW),
+            pageSize = androidx.compose.foundation.pager.PageSize.Fixed(itemW),
+            modifier = Modifier.fillMaxSize(),
+            pageSpacing = 0.dp
+        ) { page ->
+            Box(
+                modifier = Modifier
+                    .width(itemW)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                val esActivo = page == pagerState.currentPage
+                Text(
+                    opciones[page].second,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (esActivo) FontWeight.Bold else FontWeight.Normal,
+                    color = if (esActivo) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                )
+            }
         }
     }
 }
@@ -331,12 +365,7 @@ fun PantallaEscaner(
                     HorizontalDivider()
                     SelectorModo(
                         modo = escanerVm.tipoMovimiento,
-                        onModo = { escanerVm.tipoMovimiento = it },
-                        onCargarNuevo = {
-                            escanerVm.productoParaCargar = ProductoDetectado("", 0.0)
-                            escanerVm.nombreCarga = ""
-                            escanerVm.precioCarga = ""
-                        }
+                        onModo = { escanerVm.tipoMovimiento = it }
                     )
                     HorizontalDivider()
                     EscanerPanel(
@@ -348,14 +377,13 @@ fun PantallaEscaner(
                     cargandoAnotacion = escanerVm.cargandoAnotacion,
                     onAgregarSugerencia = { escanerVm.agregarALista(it) },
                     onCambiarCantidad = onCambiarCantidad,
-                    modoEsAnotar = escanerVm.tipoMovimiento == TipoMovimiento.CARGO,
-                    onCobrar = {
-                        escanerVm.tipoMovimiento = TipoMovimiento.VENTA
-                        escanerVm.mostrarConfirmar = true
-                    },
-                    onAnotar = {
-                        escanerVm.tipoMovimiento = TipoMovimiento.CARGO
-                        escanerVm.mostrarConfirmar = true
+                    tipoMovimiento = escanerVm.tipoMovimiento,
+                    onCobrar = { escanerVm.mostrarConfirmar = true },
+                    onAnotar = { escanerVm.mostrarConfirmar = true },
+                    onCargarNuevo = {
+                        escanerVm.productoParaCargar = ProductoDetectado("", 0.0)
+                        escanerVm.nombreCarga = ""
+                        escanerVm.precioCarga = ""
                     },
                     onClienteSelected = { escanerVm.clienteSeleccionado = it; escanerVm.busquedaCliente = "" },
                     onBusquedaChange = { escanerVm.busquedaCliente = it },

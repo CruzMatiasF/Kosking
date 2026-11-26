@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal const val PREFIJO_CLIENTE_QR = "ksk_c_"
 
 /** Usado internamente solo para distinguir "cobrar" vs "anotar" al confirmar. */
-enum class TipoMovimiento { VENTA, CARGO }
+enum class TipoMovimiento { VENTA, CARGO, CARGAR_NUEVO }
 
 internal data class ProductoDetectado(
     val nombre: String,

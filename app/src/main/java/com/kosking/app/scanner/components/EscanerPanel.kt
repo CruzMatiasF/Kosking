@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -16,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
@@ -50,7 +48,6 @@ internal fun EscanerPanel(
         busquedaProducto = ""
         categoriaSeleccionada = null
     }
-    var montoRapido by remember { mutableStateOf("") }
     var mostrarAlertaCliente by remember { mutableStateOf(false) }
 
     val categorias = remember(productos) {
@@ -74,16 +71,9 @@ internal fun EscanerPanel(
     val tieneItems = itemsAnotados.isNotEmpty()
     val tieneCliente = clienteSeleccionado != null
     val buscandoProducto = busquedaProducto.isNotBlank()
-    val montoRapidoDouble = montoRapido.toLongOrNull()?.toDouble() ?: 0.0
-    val montoRapidoValido = !tieneItems && montoRapidoDouble > 0
 
     LaunchedEffect(busquedaProducto) {
         if (buscandoProducto) categoriaSeleccionada = null
-    }
-
-    // Reset monto al cambiar de modo (p.ej. después de una venta)
-    LaunchedEffect(tieneItems) {
-        if (!tieneItems) montoRapido = ""
     }
 
     if (mostrarAlertaCliente && clienteSeleccionado != null) {
@@ -112,10 +102,6 @@ internal fun EscanerPanel(
             confirmButton = {
                 TextButton(onClick = {
                     mostrarAlertaCliente = false
-                    if (montoRapidoValido) {
-                        onAgregarSugerencia(ItemAnotado("Venta", montoRapidoDouble, null))
-                        montoRapido = ""
-                    }
                     onAnotar()
                 }) {
                     Text("Anotar igual", color = MaterialTheme.colorScheme.error)
@@ -254,15 +240,23 @@ internal fun EscanerPanel(
                 }
 
                 !tieneItems -> {
-                    // ── Cobro rápido (carrito vacío) ──
-                    CobroRapidoSection(
-                        monto = montoRapido,
-                        onMontoChange = { montoRapido = it },
-                        onAgregarAtajo = { delta ->
-                            val actual = montoRapido.toLongOrNull() ?: 0L
-                            montoRapido = (actual + delta).toString()
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.QrCodeScanner, null,
+                                Modifier.size(36.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            )
+                            Text(
+                                "Escaneá o buscá un producto",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
                         }
-                    )
+                    }
                 }
 
                 else -> {
@@ -322,8 +316,8 @@ internal fun EscanerPanel(
 
         HorizontalDivider()
 
-        // ── Selector de cliente (visible cuando hay ítems O hay monto rápido) ──
-        if (tieneItems || montoRapidoValido) {
+        // ── Selector de cliente (visible cuando hay ítems) ──
+        if (tieneItems) {
             Column {
                 if (!tieneCliente) {
                     Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
@@ -366,7 +360,7 @@ internal fun EscanerPanel(
                 .padding(bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            if (tieneItems || montoRapidoValido) {
+            if (tieneItems) {
                 Button(
                     onClick = {
                         val clienteAlertado = clienteSeleccionado != null &&
@@ -374,10 +368,6 @@ internal fun EscanerPanel(
                         if (clienteAlertado) {
                             mostrarAlertaCliente = true
                         } else {
-                            if (montoRapidoValido) {
-                                onAgregarSugerencia(ItemAnotado("Venta", montoRapidoDouble, null))
-                                montoRapido = ""
-                            }
                             onAnotar()
                         }
                     },
@@ -397,20 +387,13 @@ internal fun EscanerPanel(
                     }
                 }
             }
-            if (tieneItems || montoRapidoValido) {
+            if (tieneItems) {
                 OutlinedButton(
-                    onClick = {
-                        if (montoRapidoValido) {
-                            onAgregarSugerencia(ItemAnotado("Venta", montoRapidoDouble, null))
-                            montoRapido = ""
-                        }
-                        onCobrar()
-                    },
+                    onClick = { onCobrar() },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
                     Text(
                         when {
-                            montoRapidoValido -> "Cobrar \$${montoRapidoDouble.toLong()}"
                             total > 0 && totalCantidad > 1 -> "Cobrar \$${total.toInt()}  ·  $totalCantidad productos"
                             else -> "Cobrar \$${total.toInt()}"
                         },
@@ -423,71 +406,6 @@ internal fun EscanerPanel(
     }
 }
 
-/** Área de cobro rápido por monto, mostrada cuando el carrito está vacío. */
-@Composable
-private fun CobroRapidoSection(
-    monto: String,
-    onMontoChange: (String) -> Unit,
-    onAgregarAtajo: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 0.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        OutlinedTextField(
-            value = monto,
-            onValueChange = { new ->
-                onMontoChange(new.filter { it.isDigit() }.take(7))
-            },
-            placeholder = {
-                Text(
-                    "0",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-            },
-            prefix = {
-                Text(
-                    "$",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Light,
-                    color = if (monto.isNotBlank()) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                )
-            },
-            trailingIcon = {
-                if (monto.isNotBlank()) {
-                    IconButton(onClick = { onMontoChange("") }) {
-                        Icon(Icons.Default.Clear, null, Modifier.size(20.dp))
-                    }
-                }
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            textStyle = MaterialTheme.typography.headlineMedium,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(10.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            listOf(500L to "+$500", 1000L to "+$1k", 2000L to "+$2k", 5000L to "+$5k").forEach { (valor, label) ->
-                SuggestionChip(
-                    onClick = { onAgregarAtajo(valor) },
-                    label = { Text(label, style = MaterialTheme.typography.labelMedium) }
-                )
-            }
-        }
-    }
-}
 
 /** Fila de resultado en la búsqueda vertical de productos. */
 @Composable

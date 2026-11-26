@@ -32,6 +32,7 @@ internal fun EscanerPanel(
     cargandoAnotacion: Boolean,
     onAgregarSugerencia: (ItemAnotado) -> Unit,
     onCambiarCantidad: (ItemAnotado, Int) -> Unit,
+    modoEsAnotar: Boolean,
     onCobrar: () -> Unit,
     onAnotar: () -> Unit,
     onClienteSelected: (Cliente) -> Unit,
@@ -226,7 +227,7 @@ internal fun EscanerPanel(
                     val alerta = clienteSeleccionado != null &&
                         (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
                     if (alerta) mostrarAlertaCliente = true
-                    else if (tieneCliente) onAnotar()
+                    else if (modoEsAnotar) onAnotar()
                     else onCobrar()
                 },
                 enabled = tieneItems && !cargandoAnotacion,

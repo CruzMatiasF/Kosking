@@ -7,10 +7,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCode
@@ -32,6 +35,43 @@ import androidx.core.content.ContextCompat
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.scanner.components.*
 import com.kosking.app.util.WhatsAppUtil
+
+@Composable
+private fun SelectorModo(
+    modo: TipoMovimiento,
+    onModo: (TipoMovimiento) -> Unit,
+    onCargarNuevo: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        listOf(
+            Triple(TipoMovimiento.CARGO, "Anotar", Icons.Default.AccountBalance),
+            Triple(TipoMovimiento.VENTA, "Vender", Icons.Default.AttachMoney),
+        ).forEach { (tipo, label, icon) ->
+            val activo = modo == tipo
+            FilterChip(
+                selected = activo,
+                onClick = { onModo(tipo) },
+                label = { Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) },
+                leadingIcon = { Icon(icon, null, Modifier.size(14.dp)) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        OutlinedButton(
+            onClick = onCargarNuevo,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            modifier = Modifier.weight(1f).height(32.dp)
+        ) {
+            Icon(Icons.Default.Add, null, Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Cargar", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
 
 @Composable
 private fun SelectorCarrito(
@@ -289,6 +329,16 @@ fun PantallaEscaner(
                         onCerrar = { escanerVm.cerrarCarrito(it) }
                     )
                     HorizontalDivider()
+                    SelectorModo(
+                        modo = escanerVm.tipoMovimiento,
+                        onModo = { escanerVm.tipoMovimiento = it },
+                        onCargarNuevo = {
+                            escanerVm.productoParaCargar = ProductoDetectado("", 0.0)
+                            escanerVm.nombreCarga = ""
+                            escanerVm.precioCarga = ""
+                        }
+                    )
+                    HorizontalDivider()
                     EscanerPanel(
                     itemsAnotados = escanerVm.itemsAnotados,
                     productos = productos,
@@ -298,6 +348,7 @@ fun PantallaEscaner(
                     cargandoAnotacion = escanerVm.cargandoAnotacion,
                     onAgregarSugerencia = { escanerVm.agregarALista(it) },
                     onCambiarCantidad = onCambiarCantidad,
+                    modoEsAnotar = escanerVm.tipoMovimiento == TipoMovimiento.CARGO,
                     onCobrar = {
                         escanerVm.tipoMovimiento = TipoMovimiento.VENTA
                         escanerVm.mostrarConfirmar = true

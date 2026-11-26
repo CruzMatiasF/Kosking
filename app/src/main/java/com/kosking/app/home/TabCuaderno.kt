@@ -1,11 +1,14 @@
 package com.kosking.app.home
 
+import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,6 +26,7 @@ import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.ui.theme.Verde
+import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,8 +34,10 @@ import java.util.*
 internal fun TabCuaderno(
     vm: DuenoViewModel,
     clientes: List<Cliente>,
+    nombreLocal: String = "",
     onVerCliente: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val movimientosLocal by vm.movimientosLocal.collectAsState()
 
     val inicioMes = remember {
@@ -112,6 +119,8 @@ internal fun TabCuaderno(
         return
     }
 
+    var empleadoFiltro by remember { mutableStateOf("") }
+
     val pagerState = rememberPagerState(pageCount = { paginas.size })
     val scope = rememberCoroutineScope()
 
@@ -172,9 +181,45 @@ internal fun TabCuaderno(
 
         HorizontalDivider()
 
+        // Chips de filtro por empleado (solo si hay más de uno en la página actual)
+        val paginaActualEmpleados = remember(pagerState.currentPage, paginas) {
+            paginas.getOrNull(pagerState.currentPage)
+                ?.visitas
+                ?.map { it.anotadoPor }
+                ?.filter { it.isNotBlank() }
+                ?.distinct()
+                ?.sorted()
+                ?: emptyList()
+        }
+        if (paginaActualEmpleados.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChip(
+                    selected = empleadoFiltro.isEmpty(),
+                    onClick = { empleadoFiltro = "" },
+                    label = { Text("Todos") }
+                )
+                paginaActualEmpleados.forEach { emp ->
+                    FilterChip(
+                        selected = empleadoFiltro == emp,
+                        onClick = { empleadoFiltro = if (empleadoFiltro == emp) "" else emp },
+                        label = { Text(emp) }
+                    )
+                }
+            }
+            HorizontalDivider()
+        }
+
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { pageIndex ->
             val pagina = paginas[pageIndex]
-            val anotadoDia = pagina.visitas.sumOf { it.total }
+            val visitasFiltradas = if (empleadoFiltro.isEmpty()) pagina.visitas
+                                   else pagina.visitas.filter { it.anotadoPor == empleadoFiltro }
+            val anotadoDia = visitasFiltradas.sumOf { it.total }
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -199,8 +244,9 @@ internal fun TabCuaderno(
                 }
 
                 // Visitas agrupadas
-                items(pagina.visitas, key = { it.horaMs.toString() + it.clienteId }) { visita ->
+                items(visitasFiltradas, key = { it.horaMs.toString() + it.clienteId }) { visita ->
                     val nombreCliente = clientesMap[visita.clienteId]?.nombre ?: "Cliente"
+                    val telefonoCliente = clientesMap[visita.clienteId]?.telefono ?: ""
 
                     Column(
                         modifier = Modifier
@@ -208,7 +254,7 @@ internal fun TabCuaderno(
                             .clickable { onVerCliente(visita.clienteId) }
                             .padding(horizontal = 16.dp, vertical = 10.dp)
                     ) {
-                        // Encabezado: nombre + hora + total
+                        // Encabezado: nombre + hora + total + ticket
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -231,24 +277,52 @@ internal fun TabCuaderno(
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    "-$${"%.0f".format(visita.total)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Text(
-                                    fmtHora.format(Date(visita.horaMs * 1000)),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (visita.anotadoPor.isNotBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (telefonoCliente.isNotBlank() && visita.movimientos.isNotEmpty()) {
+                                    val hora = fmtHora.format(Date(visita.horaMs * 1000))
+                                    IconButton(
+                                        onClick = {
+                                            val mensaje = WhatsAppUtil.ticketVisita(
+                                                nombreCliente = nombreCliente,
+                                                nombreLocal = nombreLocal,
+                                                items = visita.movimientos.map { Triple(it.producto, it.monto, it.cantidad) },
+                                                tipo = "cargo",
+                                                hora = hora
+                                            )
+                                            WhatsAppUtil.abrirWhatsApp(context, telefonoCliente, mensaje)
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Chat,
+                                            contentDescription = "Enviar ticket",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = com.kosking.app.feature.kiosco.ColorWhatsApp
+                                        )
+                                    }
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        visita.anotadoPor,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        "-$${"%.0f".format(visita.total)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
                                     )
+                                    Text(
+                                        fmtHora.format(Date(visita.horaMs * 1000)),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (visita.anotadoPor.isNotBlank()) {
+                                        Text(
+                                            visita.anotadoPor,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
                                 }
                             }
                         }

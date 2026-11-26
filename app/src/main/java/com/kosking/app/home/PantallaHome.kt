@@ -404,6 +404,7 @@ fun PantallaHome(
                     TabCuaderno(
                         vm = duenoVm,
                         clientes = clientes,
+                        nombreLocal = localData?.nombre ?: "",
                         onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) }
                     )
                 }

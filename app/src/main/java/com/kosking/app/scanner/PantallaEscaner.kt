@@ -194,15 +194,19 @@ private fun SelectorCarrito(
             }
         }
         if (carritos.size < 3) {
-            Box(
-                modifier = Modifier.size(36.dp).clickable { onAgregar() },
-                contentAlignment = Alignment.Center
+            Surface(
+                onClick = onAgregar,
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.weight(1f).height(32.dp)
             ) {
-                Icon(
-                    Icons.Default.Add, null,
-                    Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Add, null,
+                        Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

@@ -51,15 +51,15 @@ private fun SelectorModo(
         initialPage = opciones.indexOfFirst { it.first == modo }.coerceAtLeast(0)
     ) { opciones.size }
 
-    // Cuando cambia el tab activo, sincronizar el pager
+    // Cuando cambia el tab activo, sincronizar el pager al instante (sin animación)
     LaunchedEffect(modo) {
         val target = opciones.indexOfFirst { it.first == modo }.coerceAtLeast(0)
-        if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
+        if (pagerState.currentPage != target) pagerState.scrollToPage(target)
     }
 
-    // Cuando el pager queda quieto, actualizar el modo
-    LaunchedEffect(pagerState.settledPage) {
-        onModo(opciones[pagerState.settledPage].first)
+    // Activar el modo en cuanto el item cruza el centro, sin esperar el snap
+    LaunchedEffect(pagerState.currentPage) {
+        onModo(opciones[pagerState.currentPage].first)
     }
 
     BoxWithConstraints(

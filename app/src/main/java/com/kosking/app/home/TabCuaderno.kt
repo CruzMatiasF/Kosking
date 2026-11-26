@@ -1,6 +1,5 @@
 package com.kosking.app.home
 
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -25,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.ui.theme.Verde
 import com.kosking.app.util.WhatsAppUtil
 import java.text.SimpleDateFormat
 import java.util.*

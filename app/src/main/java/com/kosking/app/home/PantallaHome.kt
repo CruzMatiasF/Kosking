@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.feature.kiosco.NavDueno
 import com.kosking.app.feature.kiosco.PanelDuenoEmbedido
+import com.kosking.app.feature.kiosco.PantallaHistorialVentas
 import com.kosking.app.feature.kiosco.PantallaAgregarCliente
 import com.kosking.app.feature.kiosco.PantallaAgregarFiado
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
@@ -87,9 +88,12 @@ fun PantallaHome(
     var tabNav by rememberSaveable { mutableStateOf(TabNav.MI_LOCAL) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
     var escanerModoInicial by remember { mutableStateOf(TipoMovimiento.VENTA) }
+    // true = entró al escáner desde el widget (no hay pantalla anterior a la que volver)
+    var escanerDesdeWidget by remember { mutableStateOf(false) }
     LaunchedEffect(abrirEscaner) {
         if (abrirEscaner) {
             tabNav = TabNav.ESCANER
+            escanerDesdeWidget = true
             onEscanerConsumido()
         }
     }
@@ -112,6 +116,12 @@ fun PantallaHome(
             is VistaExtra.PoliticaPrivacidad -> VistaExtra.Privacidad
             else -> VistaExtra.Ninguna
         }
+    }
+
+    // Solo intercepta Atrás si el escáner fue abierto desde la app (no desde el widget)
+    BackHandler(enabled = tabNav == TabNav.ESCANER && !escanerDesdeWidget) {
+        tabNav = TabNav.MI_LOCAL
+        escanerModoInicial = TipoMovimiento.VENTA
     }
 
     val enSubPantalla = vistaDueno !is NavDueno.Panel || vistaExtra !is VistaExtra.Ninguna
@@ -158,7 +168,7 @@ fun PantallaHome(
                         if (tab == TabNav.ESCANER) {
                             NavigationBarItem(
                                 selected = false,
-                                onClick = { tabNav = TabNav.ESCANER },
+                                onClick = { tabNav = TabNav.ESCANER; escanerDesdeWidget = false },
                                 icon = {
                                     Surface(
                                         shape = androidx.compose.foundation.shape.CircleShape,
@@ -223,6 +233,9 @@ fun PantallaHome(
                         onVerMovimiento = { movId ->
                             vistaDueno = NavDueno.DetalleMovimiento(movId, clienteId = vista.id)
                         },
+                        onCobrar = {
+                            vistaDueno = NavDueno.AgregarFiado(vista.id, tipoInicial = "pago", volverAPanel = false)
+                        },
                         vm = duenoVm
                     )
                     is NavDueno.AgregarFiado -> PantallaAgregarFiado(
@@ -261,6 +274,13 @@ fun PantallaHome(
                             onVolver = { vistaDueno = NavDueno.Panel }
                         )
                     }
+                    is NavDueno.HistorialVentas -> {
+                        val ventasLocal by duenoVm.ventasLocal.collectAsState()
+                        PantallaHistorialVentas(
+                            ventas = ventasLocal,
+                            onVolver = { vistaDueno = NavDueno.Panel }
+                        )
+                    }
                     is NavDueno.Productos -> {
                         val productos by duenoVm.productos.collectAsState()
                         val cargando by duenoVm.cargando.collectAsState()
@@ -269,7 +289,7 @@ fun PantallaHome(
                             cargando = cargando,
                             vm = duenoVm,
                             onBuscarGlobal = { query -> duenoVm.buscarProductosGlobales(query) },
-                            onAbrirEscanerCargar = { escanerModoInicial = TipoMovimiento.CARGAR_NUEVO; vistaDueno = NavDueno.Panel; tabNav = TabNav.ESCANER },
+                            onAbrirEscanerCargar = { escanerModoInicial = TipoMovimiento.CARGAR_NUEVO; vistaDueno = NavDueno.Panel; escanerDesdeWidget = false; tabNav = TabNav.ESCANER },
                             onGuardar = { nombre, precio, _, productoId, uri, presentacion, codigoBarras, onExito ->
                                 duenoVm.guardarProducto(nombre, precio, productoId, "", uri, codigoBarras = codigoBarras, presentacion = presentacion, onExito = onExito)
                             },
@@ -291,7 +311,8 @@ fun PantallaHome(
                             onAbrirProductos = { vistaDueno = NavDueno.Productos },
                             onAbrirPerfil = { mostrarPerfilSheet = true },
                             onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas },
-                            onVerCuaderno = { tabNav = TabNav.HISTORIAL }
+                            onVerCuaderno = { tabNav = TabNav.HISTORIAL },
+                            onVerTodasVentas = { vistaDueno = NavDueno.HistorialVentas }
                         )
                         esEmpleado -> {
                             // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion
@@ -380,7 +401,7 @@ fun PantallaHome(
 
                 // Tab Historial
                 tabNav == TabNav.HISTORIAL -> {
-                    TabHistorial(
+                    TabCuaderno(
                         vm = duenoVm,
                         clientes = clientes,
                         onVerCliente = { vistaDueno = NavDueno.DetalleCliente(it) }

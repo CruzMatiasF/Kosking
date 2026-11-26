@@ -38,6 +38,7 @@ fun PanelDuenoEmbedido(
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
     onVerCuaderno: () -> Unit = {},
+    onVerTodasVentas: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
@@ -154,7 +155,8 @@ fun PanelDuenoEmbedido(
                 onAbrirPerfil = onAbrirPerfil,
                 onAbrirNotificaciones = onAbrirNotificaciones,
                 onAgregarCliente = onAbrirAgregarCliente,
-                onVerCuaderno = onVerCuaderno
+                onVerCuaderno = onVerCuaderno,
+                onVerTodasVentas = onVerTodasVentas
             )
         }
     }

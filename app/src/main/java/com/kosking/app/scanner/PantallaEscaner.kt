@@ -43,7 +43,7 @@ private fun SelectorModo(
     onModo: (TipoMovimiento) -> Unit
 ) {
     val opciones = listOf(
-        TipoMovimiento.CARGO to "Anotar",
+        TipoMovimiento.ANOTAR to "Anotar escáner",
         TipoMovimiento.VENTA to "Vender",
         TipoMovimiento.CARGAR_NUEVO to "Cargar nuevo"
     )

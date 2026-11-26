@@ -49,7 +49,8 @@ internal fun TabPanelDueno(
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
     onAgregarCliente: () -> Unit = {},
-    onVerCuaderno: () -> Unit = {}
+    onVerCuaderno: () -> Unit = {},
+    onVerTodasVentas: () -> Unit = {}
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
 
@@ -139,7 +140,7 @@ internal fun TabPanelDueno(
                         Button(onClick = onAnotar, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Anotar / Cobrar")
+                            Text("Anotar manual")
                         }
                         OutlinedButton(onClick = onAbrirProductos) {
                             Icon(Icons.Default.Sell, null, Modifier.size(16.dp))
@@ -186,6 +187,7 @@ internal fun TabPanelDueno(
         seccionHoy(
             ventas = ventasDeHoy,
             onVerCuaderno = onVerCuaderno,
+            onVerTodasVentas = onVerTodasVentas,
             esEmpleado = esEmpleado
         )
 

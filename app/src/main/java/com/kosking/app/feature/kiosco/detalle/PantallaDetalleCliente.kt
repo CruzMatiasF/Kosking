@@ -32,6 +32,7 @@ fun PantallaDetalleCliente(
     clienteId: String,
     onVolver: () -> Unit,
     onVerMovimiento: (String) -> Unit = {},
+    onCobrar: () -> Unit = {},
     vm: DuenoViewModel,
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true
@@ -111,6 +112,15 @@ fun PantallaDetalleCliente(
     }
 
     Scaffold(
+        floatingActionButton = {
+            if (!esEmpleado && (cliente?.deudaTotal ?: 0.0) > 0) {
+                ExtendedFloatingActionButton(
+                    onClick = onCobrar,
+                    icon = { Icon(Icons.Default.AttachMoney, null) },
+                    text = { Text("Cobrar") }
+                )
+            }
+        },
         topBar = {
             Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                 Row(

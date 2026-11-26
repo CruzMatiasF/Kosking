@@ -27,6 +27,7 @@ import java.util.Date
 internal fun LazyListScope.seccionHoy(
     ventas: List<Venta> = emptyList(),
     onVerCuaderno: () -> Unit = {},
+    onVerTodasVentas: () -> Unit = {},
     esEmpleado: Boolean = false
 ) {
     item {
@@ -90,7 +91,7 @@ internal fun LazyListScope.seccionHoy(
             }
             if (ventas.size > 5) {
                 TextButton(
-                    onClick = onVerCuaderno,
+                    onClick = onVerTodasVentas,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Ver todas (${ventas.size})", style = MaterialTheme.typography.labelMedium)

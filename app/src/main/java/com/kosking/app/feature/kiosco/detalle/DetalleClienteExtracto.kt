@@ -17,6 +17,7 @@ import com.kosking.app.feature.kiosco.ConfirmarMensajeWADialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,13 +38,14 @@ data class VisitaExtracto(
     val monto: Double,
     val saldoAcumulado: Double,
     val anotadoPor: String = "",
-    val movimientoIds: List<String> = emptyList()
+    val movimientoIds: List<String> = emptyList(),
+    val tachado: Boolean = false
 )
 
 fun construirExtracto(movimientos: List<Movimiento>): List<VisitaExtracto> {
     val fmtKey = SimpleDateFormat("HH:mm_ddMMyyyy", Locale.getDefault())
     var saldo = 0.0
-    return movimientos
+    val entradas = movimientos
         .filter { !it.anulado }
         .sortedBy { it.fecha.toDate() }
         .groupBy { mov -> mov.grupoId.ifBlank { fmtKey.format(mov.fecha.toDate()) } }
@@ -56,7 +58,7 @@ fun construirExtracto(movimientos: List<Movimiento>): List<VisitaExtracto> {
             saldo += totalCargo - totalPago
             val esTodoPago = movs.all { it.tipo == "pago" }
             val conceptos = if (esTodoPago) {
-                listOf("Pago")
+                listOf("Pago recibido")
             } else {
                 movs.filter { it.tipo != "pago" }
                     .map { it.producto.ifBlank { "Anotación" } }
@@ -71,7 +73,17 @@ fun construirExtracto(movimientos: List<Movimiento>): List<VisitaExtracto> {
                 movimientoIds = movs.map { it.id }
             )
         }
-        .reversed()
+
+    // Un cargo queda tachado si existe algún pago que ocurrió en igual o posterior fecha
+    val fechaUltimoPago = entradas.filter { it.tipo == "pago" }.maxOfOrNull { it.fecha.time }
+    val resultado = if (fechaUltimoPago != null) {
+        entradas.map { e ->
+            if (e.tipo == "cargo" && e.fecha.time <= fechaUltimoPago) e.copy(tachado = true)
+            else e
+        }
+    } else entradas
+
+    return resultado.reversed()
 }
 
 private fun formatearFechaExtracto(fecha: Date): String {
@@ -103,6 +115,7 @@ fun FilaExtracto(
     mensajeTicket: String? = null
 ) {
     val esCargo = visita.tipo != "pago"
+    val tachado = visita.tachado
     var mostrarPreviewTicket by remember { mutableStateOf(false) }
 
     if (mostrarPreviewTicket && mensajeTicket != null && onEnviarTicket != null) {
@@ -113,6 +126,24 @@ fun FilaExtracto(
         )
     }
     val conceptoStr = visita.conceptos.joinToString(", ")
+
+    val iconBg = when {
+        tachado -> MaterialTheme.colorScheme.surfaceVariant
+        esCargo -> MaterialTheme.colorScheme.errorContainer
+        else    -> MaterialTheme.colorScheme.tertiaryContainer
+    }
+    val iconTint = when {
+        tachado -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        esCargo -> MaterialTheme.colorScheme.error
+        else    -> MaterialTheme.colorScheme.tertiary
+    }
+    val textColor = if (tachado) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    else MaterialTheme.colorScheme.onSurface
+    val montoColor = when {
+        tachado -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        esCargo -> MaterialTheme.colorScheme.error
+        else    -> MaterialTheme.colorScheme.tertiary
+    }
 
     Row(
         modifier = Modifier
@@ -125,18 +156,14 @@ fun FilaExtracto(
         Box(
             modifier = Modifier
                 .size(38.dp)
-                .background(
-                    color = if (esCargo) MaterialTheme.colorScheme.errorContainer
-                            else MaterialTheme.colorScheme.tertiaryContainer,
-                    shape = RoundedCornerShape(10.dp)
-                ),
+                .background(color = iconBg, shape = RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = if (esCargo) Icons.Default.Add else Icons.Default.Remove,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp),
-                tint = if (esCargo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                tint = iconTint
             )
         }
 
@@ -146,7 +173,9 @@ fun FilaExtracto(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                color = textColor,
+                textDecoration = if (tachado) TextDecoration.LineThrough else TextDecoration.None
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -155,15 +184,15 @@ fun FilaExtracto(
                 Text(
                     formatearFechaExtracto(visita.fecha),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (tachado) 0.4f else 1f)
                 )
                 if (visita.anotadoPor.isNotBlank()) {
                     Text("·", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (tachado) 0.4f else 1f))
                     Text(
                         visita.anotadoPor,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (tachado) 0.4f else 1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -177,16 +206,19 @@ fun FilaExtracto(
                     "${if (esCargo) "+" else "-"}$${"%,.0f".format(visita.monto)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (esCargo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                    fontSize = 15.sp
+                    color = montoColor,
+                    fontSize = 15.sp,
+                    textDecoration = if (tachado) TextDecoration.LineThrough else TextDecoration.None
                 )
-                Text(
-                    "Saldo $${"%,.0f".format(visita.saldoAcumulado)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (!esCargo && visita.saldoAcumulado > 0) {
+                    Text(
+                        "Saldo $${ "%,.0f".format(visita.saldoAcumulado) }",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
-            if (onEnviarTicket != null && mensajeTicket != null && esCargo && visita.conceptos.size > 1) {
+            if (onEnviarTicket != null && mensajeTicket != null && esCargo && !tachado && visita.conceptos.size > 1) {
                 IconButton(
                     onClick = { mostrarPreviewTicket = true },
                     modifier = Modifier.size(32.dp)

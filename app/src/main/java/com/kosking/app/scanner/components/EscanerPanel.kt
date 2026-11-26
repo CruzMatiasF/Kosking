@@ -276,7 +276,7 @@ internal fun EscanerPanel(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 contentAlignment = Alignment.CenterStart
             ) {
-                if (tipoMovimiento == com.kosking.app.scanner.TipoMovimiento.CARGO) {
+                if (tipoMovimiento == com.kosking.app.scanner.TipoMovimiento.ANOTAR) {
                     PanelClientePicker(
                         clienteSeleccionado = clienteSeleccionado,
                         busquedaCliente = busquedaCliente,
@@ -294,7 +294,7 @@ internal fun EscanerPanel(
                 Button(
                     onClick = {
                         when (tipoMovimiento) {
-                            com.kosking.app.scanner.TipoMovimiento.CARGO -> {
+                            com.kosking.app.scanner.TipoMovimiento.ANOTAR -> {
                                 val alerta = clienteSeleccionado != null &&
                                     (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
                                 if (alerta) mostrarAlertaCliente = true else onAnotar()
@@ -304,7 +304,7 @@ internal fun EscanerPanel(
                         }
                     },
                     enabled = !cargandoAnotacion && when (tipoMovimiento) {
-                        com.kosking.app.scanner.TipoMovimiento.CARGO -> tieneCliente
+                        com.kosking.app.scanner.TipoMovimiento.ANOTAR -> tieneCliente
                         com.kosking.app.scanner.TipoMovimiento.VENTA -> tieneItems
                         com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> true
                     },

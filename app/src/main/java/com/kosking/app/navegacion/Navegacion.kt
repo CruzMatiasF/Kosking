@@ -1,5 +1,6 @@
 package com.kosking.app.navegacion
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -274,6 +275,11 @@ fun KoskingNavHost(
             var tabEmpleado by rememberSaveable { mutableStateOf(0) } // 0=panel, 1=escaner, 2=clientes
             var mostrarProductosEmpleado by rememberSaveable { mutableStateOf(false) }
             var escanerModoInicialEmpleado by remember { mutableStateOf(TipoMovimiento.VENTA) }
+
+            BackHandler(enabled = tabEmpleado != 0) {
+                tabEmpleado = 0
+                escanerModoInicialEmpleado = TipoMovimiento.VENTA
+            }
 
             when (tabEmpleado) {
                 1 -> Scaffold(

@@ -529,56 +529,62 @@ private fun SelectorCarritoManual(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        carritos.forEachIndexed { idx, c ->
-            val esActivo = idx == activoIdx
-            val cantItems = c.items.sumOf { it.cantidad }
-            Surface(
-                onClick = { onSeleccionar(idx) },
-                shape = RoundedCornerShape(50),
-                color = if (esActivo) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.height(32.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val label = c.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
-                        ?: "Cliente ${idx + 1}"
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (esActivo) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 100.dp)
-                    )
-                    if (cantItems > 0) {
-                        Text(
-                            "·$cantItems",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+        // Siempre 3 slots fijos
+        repeat(3) { idx ->
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    idx < carritos.size -> {
+                        val c = carritos[idx]
+                        val esActivo = idx == activoIdx
+                        val cantItems = c.items.sumOf { it.cantidad }
+                        Surface(
+                            onClick = { onSeleccionar(idx) },
+                            shape = RoundedCornerShape(50),
+                            color = if (esActivo) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.fillMaxWidth().height(32.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val label = c.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
+                                    ?: "Cliente ${idx + 1}"
+                                Text(label, style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (esActivo) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f))
+                                if (cantItems > 0) {
+                                    Text("·$cantItems", style = MaterialTheme.typography.labelSmall,
+                                        color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                }
+                                if (esActivo && carritos.size > 1) {
+                                    Icon(Icons.Default.Close, null,
+                                        Modifier.size(12.dp).clickable { onCerrar(idx) },
+                                        tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
                     }
-                    if (esActivo && carritos.size > 1) {
-                        Icon(
-                            Icons.Default.Close, null,
-                            Modifier
-                                .size(12.dp)
-                                .clickable { onCerrar(idx) },
-                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
-                        )
+                    idx == carritos.size -> {
+                        Surface(
+                            onClick = onAgregar,
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth().height(32.dp)
+                        ) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Add, null, Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
+                    else -> Spacer(modifier = Modifier.fillMaxWidth().height(32.dp))
                 }
-            }
-        }
-        if (carritos.size < 3) {
-            IconButton(onClick = onAgregar, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

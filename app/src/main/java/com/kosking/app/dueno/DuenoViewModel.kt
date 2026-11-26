@@ -345,7 +345,7 @@ class DuenoViewModel : ViewModel() {
         viewModelScope.launch {
             _cargando.value = true
             try {
-                val uid = auth.currentUser?.uid ?: return@launch
+                val uid = auth.currentUser?.uid ?: run { onError(); return@launch }
                 val total = items.sumOf { it.precio * it.cantidad }
                 val venta = Venta(
                     localId = _localId.value,
@@ -383,7 +383,7 @@ class DuenoViewModel : ViewModel() {
             _cargando.value = true
             _error.value = null
             try {
-                val uid = auth.currentUser?.uid ?: return@launch
+                val uid = auth.currentUser?.uid ?: run { onError(); return@launch }
                 val grupoId = java.util.UUID.randomUUID().toString()
                 val movs = items.map { (producto, monto, cantidad) ->
                     Movimiento(

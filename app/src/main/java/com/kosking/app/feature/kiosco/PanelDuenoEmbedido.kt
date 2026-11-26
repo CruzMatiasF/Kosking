@@ -166,15 +166,16 @@ fun PanelDuenoEmbedido(
             productos = productos,
             clientes = clientes,
             cargando = cargando,
-            onConfirmarVenta = { items, onExito ->
-                vm.registrarVenta(items = items, onError = {}, onExito = onExito)
+            onConfirmarVenta = { items, onExito, onError ->
+                vm.registrarVenta(items = items, onError = onError, onExito = onExito)
             },
-            onConfirmarAnotacion = { clienteId, items, onExito ->
+            onConfirmarAnotacion = { clienteId, items, onExito, onError ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,
                     items = items.map { Triple(it.nombre, it.precio * it.cantidad, it.cantidad) },
                     tipo = "cargo",
-                    onExito = onExito
+                    onExito = onExito,
+                    onError = onError
                 )
             },
             onDismiss = { modoManual = null }

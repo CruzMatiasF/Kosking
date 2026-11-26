@@ -55,8 +55,8 @@ fun PantallaManual(
     productos: List<Producto>,
     clientes: List<Cliente>,
     cargando: Boolean,
-    onConfirmarVenta: (items: List<ItemAnotado>, onExito: () -> Unit) -> Unit,
-    onConfirmarAnotacion: (clienteId: String, items: List<ItemAnotado>, onExito: () -> Unit) -> Unit,
+    onConfirmarVenta: (items: List<ItemAnotado>, onExito: () -> Unit, onError: () -> Unit) -> Unit,
+    onConfirmarAnotacion: (clienteId: String, items: List<ItemAnotado>, onExito: () -> Unit, onError: () -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
     var modoActual by remember { mutableStateOf(modo) }
@@ -118,9 +118,13 @@ fun PantallaManual(
             tipo = if (modoActual == ModoManual.VENDER) "venta" else "cargo",
             cargando = cargando,
             onConfirmar = {
+                val onErr = {
+                    scope.launch { snackbarHostState.showSnackbar("No se pudo guardar. Verificá tu conexión.", duration = SnackbarDuration.Long) }
+                    mostrarConfirmar = false
+                }
                 if (modoActual == ModoManual.VENDER) {
                     val itemsConfirmados = carrito.items
-                    onConfirmarVenta(itemsConfirmados) {
+                    onConfirmarVenta(itemsConfirmados, {
                         mostrarConfirmar = false
                         if (carritos.size > 1) {
                             val idx = carritoActivoIdx
@@ -131,11 +135,11 @@ fun PantallaManual(
                             exitoItems = itemsConfirmados
                             mostrarExito = true
                         }
-                    }
+                    }, onErr)
                 } else {
                     val cliente = carrito.clienteSeleccionado ?: return@PantallaConfirmar
                     val itemsConfirmados = carrito.items
-                    onConfirmarAnotacion(cliente.id, itemsConfirmados) {
+                    onConfirmarAnotacion(cliente.id, itemsConfirmados, {
                         mostrarConfirmar = false
                         if (carritos.size > 1) {
                             val idx = carritoActivoIdx
@@ -147,7 +151,7 @@ fun PantallaManual(
                             exitoCliente = cliente
                             mostrarExito = true
                         }
-                    }
+                    }, onErr)
                 }
             },
             onCancelar = { mostrarConfirmar = false }

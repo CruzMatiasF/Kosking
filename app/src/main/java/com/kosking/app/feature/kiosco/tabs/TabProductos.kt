@@ -158,24 +158,34 @@ fun TabProductos(
             }
             } // cierre Row interno
             if (!esEmpleado) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (onAbrirEscanerCargar != null) {
-                        OutlinedButton(
-                            onClick = onAbrirEscanerCargar,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Icon(Icons.Default.QrCodeScanner, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Escanear")
-                        }
-                    }
+                var menuNuevo by remember { mutableStateOf(false) }
+                Box {
                     Button(
-                        onClick = { editando = null; mostrarDialog = true },
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                        onClick = { menuNuevo = true },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
                     ) {
                         Icon(Icons.Default.Add, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Agregar")
+                        Text("Nuevo producto")
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.ArrowDropDown, null, Modifier.size(18.dp))
+                    }
+                    DropdownMenu(
+                        expanded = menuNuevo,
+                        onDismissRequest = { menuNuevo = false }
+                    ) {
+                        if (onAbrirEscanerCargar != null) {
+                            DropdownMenuItem(
+                                text = { Text("Escanear") },
+                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, null, Modifier.size(18.dp)) },
+                                onClick = { menuNuevo = false; onAbrirEscanerCargar() }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Cargar manual") },
+                            leadingIcon = { Icon(Icons.Default.Edit, null, Modifier.size(18.dp)) },
+                            onClick = { menuNuevo = false; editando = null; mostrarDialog = true }
+                        )
                     }
                 }
             }

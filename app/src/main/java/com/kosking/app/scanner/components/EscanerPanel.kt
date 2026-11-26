@@ -241,7 +241,7 @@ internal fun EscanerPanel(
             Card(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 10.dp, bottom = 56.dp)
+                    .padding(start = 10.dp, end = 10.dp, bottom = 56.dp)
                     .fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {

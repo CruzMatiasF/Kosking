@@ -384,7 +384,6 @@ fun KoskingNavHost(
                     onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
                     onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) },
                     onAbrirProductos = { mostrarProductosEmpleado = true },
-                    onAbrirEscanerCargar = { escanerModoInicialEmpleado = TipoMovimiento.CARGAR_NUEVO; tabEmpleado = 1 },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(

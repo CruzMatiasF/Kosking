@@ -30,7 +30,6 @@ internal fun CardsResumenDueno(
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
-    onAbrirEscanerCargar: () -> Unit = {},
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true
 ) {
@@ -83,7 +82,6 @@ private fun CardDeudaTotal(
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
-    onAbrirEscanerCargar: () -> Unit = {},
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
     modifier: Modifier = Modifier

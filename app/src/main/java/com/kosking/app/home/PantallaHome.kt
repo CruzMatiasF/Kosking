@@ -333,7 +333,6 @@ fun PantallaHome(
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },
                             onAbrirProductos = { vistaDueno = NavDueno.Productos },
-                            onAbrirEscanerCargar = { escanerModoInicial = TipoMovimiento.CARGAR_NUEVO; tabNav = TabNav.ESCANER },
                             onAbrirPerfil = { mostrarPerfilSheet = true },
                             onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas }
                         )

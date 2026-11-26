@@ -98,143 +98,151 @@ internal fun EscanerPanel(
     val tieneItems = itemsAnotados.isNotEmpty()
     val tieneCliente = clienteSeleccionado != null
 
-    Column(modifier = modifier.fillMaxSize().imePadding()) {
+    Box(modifier = modifier.fillMaxSize().imePadding()) {
 
-        // ── Chips de categoría / fila de productos ──
-        if (productos.isNotEmpty()) {
-            if (categoriaSeleccionada == null && categorias.size > 1) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(categorias) { cat ->
-                        ScannerCategoriaCard(
-                            nombre = cat,
-                            imagenUrl = primeraImagenCategoria(productos, cat),
-                            onClick = { categoriaSeleccionada = cat }
-                        )
-                    }
-                }
-            } else {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        // ── Contenido principal (categorías + carrito) ──
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // ── Chips de categoría / fila de productos ──
+            if (productos.isNotEmpty()) {
+                if (categoriaSeleccionada == null && categorias.size > 1) {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (categorias.size > 1) {
-                            IconButton(
-                                onClick = { categoriaSeleccionada = null },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack, "Volver",
-                                    Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        items(categorias) { cat ->
+                            ScannerCategoriaCard(
+                                nombre = cat,
+                                imagenUrl = primeraImagenCategoria(productos, cat),
+                                onClick = { categoriaSeleccionada = cat }
+                            )
                         }
-                        Text(
-                            categoriaSeleccionada ?: "",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    }
+                } else {
+                    Column {
                         Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(30.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            BasicTextField(
-                                value = busquedaCategoria,
-                                onValueChange = { busquedaCategoria = it },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
-                                decorationBox = { inner ->
-                                    Box {
-                                        if (busquedaCategoria.isEmpty()) Text("Buscar...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        inner()
-                                    }
+                            if (categorias.size > 1) {
+                                IconButton(
+                                    onClick = { categoriaSeleccionada = null },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack, "Volver",
+                                        Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
+                            }
+                            Text(
+                                categoriaSeleccionada ?: "",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            if (busquedaCategoria.isNotEmpty()) {
-                                Icon(Icons.Default.Close, "Limpiar", Modifier.size(14.dp).clickable { busquedaCategoria = "" }, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Search, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                BasicTextField(
+                                    value = busquedaCategoria,
+                                    onValueChange = { busquedaCategoria = it },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                                    decorationBox = { inner ->
+                                        Box {
+                                            if (busquedaCategoria.isEmpty()) Text("Buscar...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            inner()
+                                        }
+                                    }
+                                )
+                                if (busquedaCategoria.isNotEmpty()) {
+                                    Icon(Icons.Default.Close, "Limpiar", Modifier.size(14.dp).clickable { busquedaCategoria = "" }, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        LazyRow(
+                            contentPadding = PaddingValues(start = 4.dp, end = 10.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(productosMostrados, key = { it.id }) { prod ->
+                                val cant = itemsAnotados.firstOrNull { it.productoId == prod.id }?.cantidad ?: 0
+                                ScannerProductoCard(
+                                    prod = prod,
+                                    cantEnCarrito = cant,
+                                    onClick = { onAgregarSugerencia(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }
+                                )
                             }
                         }
                     }
-                    LazyRow(
-                        contentPadding = PaddingValues(start = 4.dp, end = 10.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(productosMostrados, key = { it.id }) { prod ->
-                            val cant = itemsAnotados.firstOrNull { it.productoId == prod.id }?.cantidad ?: 0
-                            ScannerProductoCard(
-                                prod = prod,
-                                cantEnCarrito = cant,
-                                onClick = { onAgregarSugerencia(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id)) }
-                            )
+                }
+            }
+
+            HorizontalDivider()
+
+            // ── Área central: carrito / empty state ──
+            Box(modifier = Modifier.weight(1f)) {
+
+                when {
+                    !tieneItems -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.QrCodeScanner, null,
+                                    Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                )
+                                Text(
+                                    "Escaneá un producto o elegilo de arriba",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
                         }
+                    }
+
+                    else -> {
+                        // ── Lista del carrito ──
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(itemsAnotados) { item ->
+                                val presentacion = productos.firstOrNull { it.id == item.productoId }?.presentacion ?: ""
+                                ItemRemitoRow(item = item, presentacion = presentacion, onCambiarCantidad = onCambiarCantidad)
+                                HorizontalDivider()
+                            }
+                        }
+
                     }
                 }
             }
+
+            HorizontalDivider()
+
+            // Espacio reservado para la barra inferior fija
+            Spacer(modifier = Modifier.height(56.dp))
         }
 
-        HorizontalDivider()
-
-        // ── Área central: carrito / empty state ──
-        Box(modifier = Modifier.weight(1f)) {
-
-            when {
-                !tieneItems -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.QrCodeScanner, null,
-                                Modifier.size(36.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                            )
-                            Text(
-                                "Escaneá un producto o elegilo de arriba",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    // ── Lista del carrito ──
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(itemsAnotados) { item ->
-                            val presentacion = productos.firstOrNull { it.id == item.productoId }?.presentacion ?: ""
-                            ItemRemitoRow(item = item, presentacion = presentacion, onCambiarCantidad = onCambiarCantidad)
-                            HorizontalDivider()
-                        }
-                    }
-
-                }
-            }
-        }
-
-        HorizontalDivider()
-
-        // ── Sugerencias de cliente (superpuestas sobre la barra) ──
+        // ── Sugerencias de cliente (flotando sobre la barra) ──
         if (!tieneCliente && busquedaCliente.isNotBlank()) {
             Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp),
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 10.dp, bottom = 56.dp)
+                    .fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column {
@@ -255,6 +263,7 @@ internal fun EscanerPanel(
         // ── Barra inferior fija: [cliente] [Continuar] [total] — tercios iguales ──
         Row(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(horizontal = 8.dp),

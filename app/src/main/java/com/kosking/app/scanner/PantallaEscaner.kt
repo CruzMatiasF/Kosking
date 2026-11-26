@@ -126,54 +126,69 @@ private fun SelectorCarrito(
         carritos.forEachIndexed { idx, carrito ->
             val esActivo = idx == activoIdx
             val cantItems = carrito.itemsAnotados.sumOf { it.cantidad }
-            Surface(
-                onClick = { onSeleccionar(idx) },
-                shape = RoundedCornerShape(50),
-                color = if (esActivo) MaterialTheme.colorScheme.secondaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.weight(1f).height(32.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(start = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+            // Box externo para poder superponer el badge de cantidad
+            Box(modifier = Modifier.weight(1f)) {
+                Surface(
+                    onClick = { onSeleccionar(idx) },
+                    shape = RoundedCornerShape(50),
+                    color = if (esActivo) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth().height(32.dp)
                 ) {
-                    val label = carrito.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
-                        ?: "Cliente ${idx + 1}"
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (cantItems > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(start = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val label = carrito.clienteSeleccionado?.nombre?.split(" ")?.take(2)?.joinToString(" ")
+                            ?: "Cliente ${idx + 1}"
                         Text(
-                            "·$cantItems",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            label,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
                         )
-                    }
-                    // Zona táctil amplia para la X — mínimo 36dp
-                    if (esActivo && carritos.size > 1) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clickable { onCerrar(idx) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Close, null,
-                                Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                            )
+                        // Zona táctil amplia para la X
+                        if (esActivo && carritos.size > 1) {
+                            Box(
+                                modifier = Modifier.size(36.dp).clickable { onCerrar(idx) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Close, null,
+                                    Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        } else {
+                            Spacer(Modifier.width(12.dp))
                         }
-                    } else {
-                        Spacer(Modifier.width(8.dp))
+                    }
+                }
+                // Badge de cantidad — esquina superior derecha, solo si hay items
+                if (cantItems > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 2.dp, y = (-4).dp)
+                            .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(50)
+                            )
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "$cantItems",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            maxLines = 1
+                        )
                     }
                 }
             }

@@ -438,14 +438,6 @@ private fun CobroRapidoSection(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            "O ingresá un monto directo",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-        )
-
-        Spacer(Modifier.height(8.dp))
-
         OutlinedTextField(
             value = monto,
             onValueChange = { new ->

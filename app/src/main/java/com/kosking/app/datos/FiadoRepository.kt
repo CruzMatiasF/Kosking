@@ -142,7 +142,7 @@ object FiadoRepository {
             .whereEqualTo("localId", localId)
             .whereGreaterThan("fecha", desdeTs)
             .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(300)
+            .limit(1500)
             .addSnapshotListener { snap, _ ->
                 trySend(snap?.toObjects(Movimiento::class.java) ?: emptyList())
             }

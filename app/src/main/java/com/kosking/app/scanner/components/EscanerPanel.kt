@@ -348,43 +348,68 @@ private fun PanelClientePicker(
     if (clienteSeleccionado != null) {
         Row(
             modifier = modifier
-                .clip(RoundedCornerShape(50))
                 .height(42.dp)
-                .padding(horizontal = 10.dp),
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(start = 10.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Icon(Icons.Default.Person, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Default.Person, null, Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer)
             Text(
                 clienteSeleccionado.nombre,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.weight(1f)
             )
             Icon(
                 Icons.Default.Close, null,
-                Modifier.size(14.dp).clickable { onLimpiarCliente() },
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Modifier.size(16.dp).clickable { onLimpiarCliente() },
+                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
             )
         }
     } else {
-        OutlinedTextField(
-            value = busquedaCliente,
-            onValueChange = onBusquedaChange,
-            placeholder = { Text("Cliente…", style = MaterialTheme.typography.bodySmall) },
-            leadingIcon = { Icon(Icons.Default.Person, null, Modifier.size(14.dp)) },
-            trailingIcon = {
-                if (busquedaCliente.isNotBlank()) {
-                    IconButton(onClick = { onBusquedaChange("") }) {
-                        Icon(Icons.Default.Clear, null, Modifier.size(13.dp))
+        Row(
+            modifier = modifier
+                .height(42.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(Icons.Default.Person, null, Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            BasicTextField(
+                value = busquedaCliente,
+                onValueChange = onBusquedaChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                decorationBox = { inner ->
+                    Box {
+                        if (busquedaCliente.isEmpty()) Text(
+                            "Cliente…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        inner()
                     }
                 }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(50),
-            modifier = modifier.height(42.dp),
-            textStyle = MaterialTheme.typography.bodySmall
-        )
+            )
+            if (busquedaCliente.isNotEmpty()) {
+                Icon(
+                    Icons.Default.Close, "Limpiar",
+                    Modifier.size(14.dp).clickable { onBusquedaChange("") },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

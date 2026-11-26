@@ -118,8 +118,9 @@ private fun SelectorCarrito(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .height(40.dp)
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         carritos.forEachIndexed { idx, carrito ->
@@ -130,10 +131,10 @@ private fun SelectorCarrito(
                 shape = RoundedCornerShape(50),
                 color = if (esActivo) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.height(30.dp)
+                modifier = Modifier.weight(1f).height(32.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp),
+                    modifier = Modifier.fillMaxSize().padding(start = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -147,7 +148,7 @@ private fun SelectorCarrito(
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 100.dp)
+                        modifier = Modifier.weight(1f)
                     )
                     if (cantItems > 0) {
                         Text(
@@ -157,26 +158,34 @@ private fun SelectorCarrito(
                                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
+                    // Zona táctil amplia para la X — mínimo 36dp
                     if (esActivo && carritos.size > 1) {
-                        Icon(
-                            Icons.Default.Close, null,
-                            Modifier
-                                .size(12.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
                                 .clickable { onCerrar(idx) },
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
-                        )
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Close, null,
+                                Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                    } else {
+                        Spacer(Modifier.width(8.dp))
                     }
                 }
             }
         }
         if (carritos.size < 3) {
-            IconButton(
-                onClick = onAgregar,
-                modifier = Modifier.size(30.dp)
+            Box(
+                modifier = Modifier.size(36.dp).clickable { onAgregar() },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Add, null,
-                    Modifier.size(16.dp),
+                    Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

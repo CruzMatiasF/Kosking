@@ -130,7 +130,7 @@ private fun CardDeudaTotal(
                 ) {
                     AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
                     AtajoBtn(Icons.Default.Edit, "Anotar / Cobrar", onAnotar)
-                    AtajoBtn(Icons.Default.QrCodeScanner, "Escanear", onAbrirEscanerCargar)
+                    AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
                 }
             }
         }
@@ -183,7 +183,6 @@ private fun CardDeudaTotal(
                     AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
                     AtajoBtn(Icons.Default.Edit, "Anotar / Cobrar", onAnotar)
                     AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
-                    AtajoBtn(Icons.Default.QrCodeScanner, "Escanear", onAbrirEscanerCargar)
                 }
             }
         }

@@ -53,6 +53,7 @@ fun TabProductos(
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     esEmpleado: Boolean = false,
     vm: DuenoViewModel? = null,
+    onAbrirEscanerCargar: (() -> Unit)? = null,
     onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
@@ -177,6 +178,16 @@ fun TabProductos(
                             Icon(Icons.Default.PriceChange, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Precios")
+                        }
+                    }
+                    if (onAbrirEscanerCargar != null) {
+                        OutlinedButton(
+                            onClick = onAbrirEscanerCargar,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Escanear")
                         }
                     }
                     Button(

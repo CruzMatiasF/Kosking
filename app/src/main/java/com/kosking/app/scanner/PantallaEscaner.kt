@@ -315,7 +315,7 @@ fun PantallaEscaner(
         Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
 
             // Área de cámara
-            Box(modifier = Modifier.fillMaxWidth().weight(0.40f)) {
+            Box(modifier = Modifier.fillMaxWidth().weight(0.30f)) {
                 if (permiso) {
                     CamaraEscaner(
                         onCodigo = { escanerVm.onCodigo(it) },

@@ -281,7 +281,7 @@ fun AnotarRapidoSheet(
                         focusRequester = clienteFocusRequester,
                         onBusquedaChange = { busquedaCliente = it },
                         onClienteSeleccionado = { cliente ->
-                            if (!cliente.habilitado || cliente.alertaEmpleado) {
+                            if (!cliente.habilitado || cliente.notaInterna.isNotBlank()) {
                                 clienteConAlerta = cliente
                             } else {
                                 clienteSeleccionado = cliente

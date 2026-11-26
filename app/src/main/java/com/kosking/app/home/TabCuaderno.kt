@@ -298,7 +298,7 @@ internal fun TabCuaderno(
                                             Icons.Default.Chat,
                                             contentDescription = "Enviar ticket",
                                             modifier = Modifier.size(16.dp),
-                                            tint = com.kosking.app.feature.kiosco.ColorWhatsApp
+                                            tint = com.kosking.app.util.ColorWhatsApp
                                         )
                                     }
                                 }

@@ -20,8 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.feature.kiosco.ConfirmarMensajeWADialog
-import com.kosking.app.feature.kiosco.ColorWhatsApp
+import com.kosking.app.util.ColorWhatsApp
 import com.kosking.app.feature.kiosco.ImportarContactosSheet
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.util.WhatsAppUtil
@@ -45,7 +44,6 @@ fun TabClientes(
 ) {
     if (onVolver != null) BackHandler(onBack = onVolver)
     var mostrarImportarContactos by remember { mutableStateOf(false) }
-    var clienteWAPreview by remember { mutableStateOf<Cliente?>(null) }
     var filtro by rememberSaveable { mutableStateOf("deuda") }
     var busqueda by rememberSaveable { mutableStateOf("") }
     var orden by rememberSaveable { mutableStateOf("deuda") }
@@ -98,24 +96,7 @@ fun TabClientes(
             })
     }
 
-    clienteWAPreview?.let { cliente ->
-        if (onWhatsAppCliente != null) {
-            ConfirmarMensajeWADialog(
-                mensaje = WhatsAppUtil.mensajeResumen(
-                    nombreCliente = cliente.nombre,
-                    nombreLocal = nombreLocal.ifBlank { "el local" },
-                    deudaTotal = cliente.deudaTotal
-                ),
-                onConfirmar = {
-                    onWhatsAppCliente(cliente)
-                    clienteWAPreview = null
-                },
-                onDismiss = { clienteWAPreview = null }
-            )
-        }
-    }
-
-    Column(modifier.fillMaxSize()) {
+Column(modifier.fillMaxSize()) {
         if (onVolver != null) {
             Row(
                 modifier = Modifier
@@ -285,7 +266,7 @@ fun TabClientes(
                                 }
                                 if (onWhatsAppCliente != null && cliente.telefono.isNotBlank() && cliente.deudaTotal > 0) {
                                     IconButton(
-                                        onClick = { clienteWAPreview = cliente },
+                                        onClick = { onWhatsAppCliente?.invoke(cliente) },
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(

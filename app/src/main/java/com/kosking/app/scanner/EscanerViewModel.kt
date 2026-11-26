@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal const val PREFIJO_CLIENTE_QR = "ksk_c_"
 
 /** Usado internamente solo para distinguir "cobrar" vs "anotar" al confirmar. */
-enum class TipoMovimiento { VENTA, ANOTAR, CARGAR_NUEVO }
+enum class TipoMovimiento { ANOTAR, CARGAR_NUEVO }
 
 internal data class ProductoDetectado(
     val nombre: String,
@@ -32,7 +32,7 @@ data class CarritoState(
     val itemsAnotados: List<ItemAnotado> = emptyList(),
     val clienteSeleccionado: Cliente? = null,
     val busquedaCliente: String = "",
-    val tipoMovimiento: TipoMovimiento = TipoMovimiento.VENTA
+    val tipoMovimiento: TipoMovimiento = TipoMovimiento.ANOTAR
 )
 
 internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel() {
@@ -93,7 +93,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     var nombreCarga by mutableStateOf("")
     var mostrarConfirmar by mutableStateOf(false)
     var anotacionExitosa by mutableStateOf<Triple<Cliente, List<ItemAnotado>, String>?>(null)
-    var ventaExitosa by mutableStateOf<Pair<List<ItemAnotado>, Double>?>(null)
     var escaneoExitoso by mutableStateOf(false)
     var irAInicio by mutableStateOf(false)
 
@@ -105,7 +104,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         carritos = listOf(CarritoState(id = 1))
         carritoActivoIdx = 0
         mostrarConfirmar = false
-        ventaExitosa = null
         anotacionExitosa = null
         irAInicio = false
         queryBusqueda = ""
@@ -138,22 +136,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
                 cargandoAnotacion = false
                 mostrarConfirmar = false
                 anotacionExitosa = Triple(cliente, itemsSnap, tipo)
-                eliminarCarritoActivo()
-            }
-        )
-    }
-
-    fun registrarVenta() {
-        val itemsSnap = itemsAnotados.toList()
-        cargandoAnotacion = true
-        duenoVm.registrarVenta(
-            items = itemsSnap,
-            onError = { cargandoAnotacion = false },
-            onExito = {
-                cargandoAnotacion = false
-                mostrarConfirmar = false
-                val total = itemsSnap.sumOf { it.precio * it.cantidad }
-                ventaExitosa = itemsSnap to total
                 eliminarCarritoActivo()
             }
         )

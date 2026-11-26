@@ -11,7 +11,6 @@ import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
 import com.kosking.app.modelo.Usuario
-import com.kosking.app.modelo.Venta
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -103,7 +102,6 @@ object FiadoRepository {
                 "limiteCredito" to cliente.limiteCredito,
                 "fechaPago" to cliente.fechaPago,
                 "notaInterna" to cliente.notaInterna,
-                "alertaEmpleado" to cliente.alertaEmpleado,
                 "fechaCompromiso" to cliente.fechaCompromiso
             )
         ).await()
@@ -178,25 +176,6 @@ object FiadoRepository {
         val clienteRef = db.collection("clientes").document(clienteId)
         batch.update(clienteRef, "deudaTotal", com.google.firebase.firestore.FieldValue.increment(delta))
         batch.commit().await()
-    }
-
-    suspend fun registrarVenta(venta: Venta) {
-        val ref = db.collection("ventas").document()
-        ref.set(venta.copy(id = ref.id)).await()
-    }
-
-    fun ventasLocalFlow(localId: String, diasAtras: Int = 7): Flow<List<Venta>> = callbackFlow {
-        val desdeTs = com.google.firebase.Timestamp(System.currentTimeMillis() / 1000 - diasAtras * 86400L, 0)
-        val sub = db.collection("ventas")
-            .whereEqualTo("localId", localId)
-            .whereGreaterThan("fecha", desdeTs)
-            .orderBy("fecha", Query.Direction.DESCENDING)
-            .limit(200)
-            .addSnapshotListener { snap, err ->
-                if (err != null) { trySend(emptyList()); return@addSnapshotListener }
-                trySend(snap?.toObjects(Venta::class.java) ?: emptyList())
-            }
-        awaitClose { sub.remove() }
     }
 
     suspend fun anularMovimiento(movimientoId: String, clienteId: String, monto: Double, tipo: String, motivo: String) {

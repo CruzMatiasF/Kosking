@@ -44,10 +44,9 @@ fun PantallaAgregarFiado(
         limiteCredito = cliente?.limiteCredito ?: 0.0,
         nombreCliente = cliente?.nombre ?: "",
         notaInterna = cliente?.notaInterna ?: "",
-        mostrarVisitante = true,
         productos = productos,
-        onConfirmar = { items, tipo, visitante ->
-            vm.agregarMovimientos(clienteId, items, tipo, visitante, onGuardado)
+        onConfirmar = { items, tipo ->
+            vm.agregarMovimientos(clienteId, items, tipo, onGuardado)
         }
     )
 }
@@ -65,19 +64,16 @@ private fun PantallaAgregarFiadoUI(
     nombreCliente: String = "",
     nombreEmpleado: String = "",
     notaInterna: String = "",
-    mostrarVisitante: Boolean = false,
     productos: List<Producto> = emptyList(),
-    onConfirmar: (items: List<Triple<String, Double, Int>>, tipo: String, visitante: String) -> Unit
+    onConfirmar: (items: List<Triple<String, Double, Int>>, tipo: String) -> Unit
 ) {
     val tipo = tipoInicial
     var monto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
-    var visitante by remember { mutableStateOf("") }
     val carrito = remember { mutableStateListOf<Pair<Producto, Int>>() }
     var modoOtro by remember { mutableStateOf(false) }
     val montoFocus = remember { FocusRequester() }
     val descripcionFocus = remember { FocusRequester() }
-    val visitanteFocus = remember { FocusRequester() }
     val tieneProductos = tipo == "cargo" && productos.isNotEmpty()
 
     LaunchedEffect(Unit) { if (!tieneProductos) montoFocus.requestFocus() }
@@ -145,7 +141,7 @@ private fun PantallaAgregarFiadoUI(
                                 if (tipo == "pago" && montoDouble > 0)
                                     add(Triple("", montoDouble, 1))
                             }
-                            onConfirmar(items, tipo, visitante.trim())
+                            onConfirmar(items, tipo)
                         },
                         enabled = !cargando && !superaLimite && montoEfectivo > 0,
                         modifier = Modifier.fillMaxWidth().height(52.dp)
@@ -250,8 +246,7 @@ private fun PantallaAgregarFiadoUI(
                     imeAction = if (tipo == "cargo" && (modoOtro || !tieneProductos)) ImeAction.Next else ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = { descripcionFocus.requestFocus() },
-                    onDone = { if (mostrarVisitante) visitanteFocus.requestFocus() }
+                    onNext = { descripcionFocus.requestFocus() }
                 ),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().focusRequester(montoFocus),
@@ -269,12 +264,7 @@ private fun PantallaAgregarFiadoUI(
                     label = { Text("Descripción (opcional)") },
                     placeholder = { Text("Ej: pan, leche, aceite...") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = if (mostrarVisitante) ImeAction.Next else ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { visitanteFocus.requestFocus() }
-                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth().focusRequester(descripcionFocus),
                     trailingIcon = if (descripcion.isNotBlank()) ({
                         IconButton(onClick = { descripcion = ""; monto = "" }) {
@@ -289,20 +279,6 @@ private fun PantallaAgregarFiadoUI(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            if (mostrarVisitante) {
-                OutlinedTextField(
-                    value = visitante,
-                    onValueChange = { visitante = it },
-                    label = { Text("¿Quién vino? (opcional)") },
-                    placeholder = { Text("Ej: María, la hija") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth().focusRequester(visitanteFocus),
-                    trailingIcon = if (visitante.isNotBlank()) {
-                        { IconButton(onClick = { visitante = "" }) { Icon(Icons.Default.Clear, null, Modifier.size(16.dp)) } }
-                    } else null
-                )
-            }
         }
     }
 }

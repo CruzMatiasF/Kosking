@@ -15,92 +15,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Movimiento
-import com.kosking.app.modelo.Venta
 import com.kosking.app.ui.theme.Verde
 import java.text.SimpleDateFormat
 import java.util.Date
-
-internal fun LazyListScope.seccionHoy(
-    ventas: List<Venta> = emptyList(),
-    onVerCuaderno: () -> Unit = {},
-    onVerTodasVentas: () -> Unit = {},
-    esEmpleado: Boolean = false
-) {
-    item {
-        val totalVentas = ventas.sumOf { it.total }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Ventas del día", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-            if (totalVentas > 0) Text(
-                "🛒$${"%.0f".format(totalVentas)}",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = Verde
-            )
-        }
-        if (ventas.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(Icons.Default.ShoppingCart, null, Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-                Text("Sin ventas hoy", style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    if (esEmpleado) "Usá el Escáner para registrar una venta."
-                    else "Usá el Escáner o el botón Vender.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            val fmtHora = remember { SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
-            ventas.take(5).forEach { venta ->
-                val resumenItems = venta.items.take(3).joinToString(", ")
-                    .let { if (venta.items.size > 3) "$it…" else it }
-                ListItem(
-                    headlineContent = {
-                        Text("$${"%.0f".format(venta.total)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Verde)
-                    },
-                    supportingContent = if (resumenItems.isNotBlank()) {
-                        { Text(resumenItems, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
-                    } else null,
-                    trailingContent = {
-                        Text(fmtHora.format(venta.fecha.toDate()),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                )
-                HorizontalDivider()
-            }
-            if (ventas.size > 5) {
-                TextButton(
-                    onClick = onVerTodasVentas,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Ver todas (${ventas.size})", style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
-        HorizontalDivider()
-    }
-}
 
 internal fun LazyListScope.seccionAcuerdosVencidos(
     clientesVencidos: List<Cliente>,

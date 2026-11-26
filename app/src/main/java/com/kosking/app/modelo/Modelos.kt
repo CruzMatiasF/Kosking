@@ -41,7 +41,6 @@ data class Cliente(
     val limiteCredito: Double = 0.0,
     val fechaPago: Timestamp? = null,
     val notaInterna: String = "",
-    val alertaEmpleado: Boolean = false,
     val fechaCompromiso: Timestamp? = null
 )
 
@@ -60,7 +59,6 @@ data class Movimiento(
     val motivoAnulacion: String = "",
     val disputado: Boolean = false,
     val grupoId: String = "",
-    val visitante: String = "",
     val cantidad: Int = 1
 )
 
@@ -84,17 +82,6 @@ data class Producto(
     val imagenUrl: String = "",
     val codigoBarras: String = "",
     val presentacion: String = ""
-)
-
-@Immutable
-data class Venta(
-    val id: String = "",
-    val localId: String = "",
-    val items: List<String> = emptyList(), // "nombre x cantidad"
-    val total: Double = 0.0,
-    val fecha: com.google.firebase.Timestamp = com.google.firebase.Timestamp.now(),
-    val registradoPorUid: String = "",
-    val registradoPorNombre: String = ""
 )
 
 @Immutable

@@ -18,17 +18,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
-import com.kosking.app.ui.theme.Verde
 
 @Composable
 internal fun CardsResumenDueno(
     localData: Local?,
     totalDeuda: Double,
-    ventasHoy: Double = 0.0,
     clientesConDeuda: List<Cliente>,
     clientesAlDia: Int = 0,
     onAnotar: () -> Unit,
-    onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true
@@ -55,11 +52,9 @@ internal fun CardsResumenDueno(
 
         CardDeudaTotal(
             totalDeuda = totalDeuda,
-            ventasHoy = ventasHoy,
             clientesConDeuda = clientesConDeuda,
             clientesAlDia = clientesAlDia,
             onAnotar = onAnotar,
-            onVender = onVender,
             onAbrirProductos = onAbrirProductos,
             esEmpleado = esEmpleado,
             puedeVerDeuda = puedeVerDeuda,
@@ -76,11 +71,9 @@ internal fun CardsResumenDueno(
 @Composable
 private fun CardDeudaTotal(
     totalDeuda: Double,
-    ventasHoy: Double = 0.0,
     clientesConDeuda: List<Cliente>,
     clientesAlDia: Int = 0,
     onAnotar: () -> Unit,
-    onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
@@ -90,7 +83,7 @@ private fun CardDeudaTotal(
 
     if (esEmpleado) {
         Card(
-            modifier = modifier.height(220.dp),
+            modifier = modifier.height(180.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -101,32 +94,11 @@ private fun CardDeudaTotal(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (ventasHoy > 0) {
-                    Text(
-                        "\$${"%.0f".format(ventasHoy)}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Verde
-                    )
-                } else {
-                    Text(
-                        "\$0",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    if (ventasHoy > 0) "vendido en este turno" else "todavía nada vendido hoy",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 HorizontalDivider()
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
                     AtajoBtn(Icons.Default.Edit, "Anotar manual", onAnotar)
                     AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
                 }
@@ -134,30 +106,17 @@ private fun CardDeudaTotal(
         }
     } else {
         Card(
-            modifier = modifier.height(220.dp),
+            modifier = modifier.height(180.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Te deben en total",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (ventasHoy > 0) {
-                        Text(
-                            "Vendido hoy \$${"%.0f".format(ventasHoy)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Verde
-                        )
-                    }
-                }
+                Text(
+                    "Te deben en total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text(
                     "$${"%.0f".format(totalDeuda)}",
                     style = MaterialTheme.typography.headlineMedium,
@@ -178,7 +137,6 @@ private fun CardDeudaTotal(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
                     AtajoBtn(Icons.Default.Edit, "Anotar manual", onAnotar)
                     AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
                 }

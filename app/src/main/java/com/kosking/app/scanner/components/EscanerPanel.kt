@@ -296,16 +296,14 @@ internal fun EscanerPanel(
                         when (tipoMovimiento) {
                             com.kosking.app.scanner.TipoMovimiento.ANOTAR -> {
                                 val alerta = clienteSeleccionado != null &&
-                                    (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
+                                    (!clienteSeleccionado.habilitado || clienteSeleccionado.notaInterna.isNotBlank())
                                 if (alerta) mostrarAlertaCliente = true else onAnotar()
                             }
-                            com.kosking.app.scanner.TipoMovimiento.VENTA -> onCobrar()
                             com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> onCargarNuevo()
                         }
                     },
                     enabled = !cargandoAnotacion && when (tipoMovimiento) {
                         com.kosking.app.scanner.TipoMovimiento.ANOTAR -> tieneCliente
-                        com.kosking.app.scanner.TipoMovimiento.VENTA -> tieneItems
                         com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> true
                     },
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),

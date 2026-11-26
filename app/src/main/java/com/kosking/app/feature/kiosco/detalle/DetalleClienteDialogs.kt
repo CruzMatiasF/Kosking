@@ -26,50 +26,31 @@ import java.util.Date
 @Composable
 internal fun DialogEditarNota(
     notaActual: String,
-    alertaActual: Boolean,
-    onGuardar: (String, Boolean) -> Unit,
+    onGuardar: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nota by remember { mutableStateOf(notaActual) }
-    var alerta by remember { mutableStateOf(alertaActual) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Nota interna") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = nota,
-                    onValueChange = { nota = it },
-                    label = { Text("Nota") },
-                    placeholder = { Text("Ej: No anotarle a los hijos") },
-                    minLines = 2,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Mostrar como alerta", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "El empleado ve un aviso antes de anotar",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = alerta, onCheckedChange = { alerta = it })
-                }
-            }
+            OutlinedTextField(
+                value = nota,
+                onValueChange = { nota = it },
+                label = { Text("Nota") },
+                placeholder = { Text("Ej: No anotarle a los hijos") },
+                minLines = 2,
+                maxLines = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
         },
         confirmButton = {
-            Button(onClick = { onGuardar(nota.trim(), alerta) }) { Text("Guardar") }
+            Button(onClick = { onGuardar(nota.trim()) }) { Text("Guardar") }
         },
         dismissButton = {
             Row {
                 if (notaActual.isNotBlank()) {
-                    TextButton(onClick = { onGuardar("", false) }) {
+                    TextButton(onClick = { onGuardar("") }) {
                         Text("Borrar", color = MaterialTheme.colorScheme.error)
                     }
                 }

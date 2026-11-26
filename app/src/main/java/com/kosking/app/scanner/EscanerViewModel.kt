@@ -31,7 +31,8 @@ data class CarritoState(
     val id: Int,
     val itemsAnotados: List<ItemAnotado> = emptyList(),
     val clienteSeleccionado: Cliente? = null,
-    val busquedaCliente: String = ""
+    val busquedaCliente: String = "",
+    val tipoMovimiento: TipoMovimiento = TipoMovimiento.CARGO
 )
 
 internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel() {
@@ -76,6 +77,10 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
         get() = carritoActivo.busquedaCliente
         set(value) { actualizarCarritoActivo { copy(busquedaCliente = value) } }
 
+    var tipoMovimiento: TipoMovimiento
+        get() = carritoActivo.tipoMovimiento
+        set(value) { actualizarCarritoActivo { copy(tipoMovimiento = value) } }
+
     // ── Estado global ─────────────────────────────────────────────────────────
     var mostrarRegistroCliente by mutableStateOf(false)
     var nombreNuevoCliente by mutableStateOf("")
@@ -87,7 +92,6 @@ internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel
     var precioCarga by mutableStateOf("")
     var nombreCarga by mutableStateOf("")
     var mostrarConfirmar by mutableStateOf(false)
-    var tipoMovimiento by mutableStateOf(TipoMovimiento.VENTA)
     var anotacionExitosa by mutableStateOf<Triple<Cliente, List<ItemAnotado>, String>?>(null)
     var ventaExitosa by mutableStateOf<Pair<List<ItemAnotado>, Double>?>(null)
     var escaneoExitoso by mutableStateOf(false)

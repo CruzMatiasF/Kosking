@@ -3,6 +3,7 @@ package com.kosking.app.scanner
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,9 +11,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +54,7 @@ private fun SelectorCarrito(
             Surface(
                 onClick = { onSeleccionar(idx) },
                 shape = RoundedCornerShape(50),
-                color = if (esActivo) MaterialTheme.colorScheme.primary
+                color = if (esActivo) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.height(30.dp)
             ) {
@@ -66,7 +69,7 @@ private fun SelectorCarrito(
                         label,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (esActivo) MaterialTheme.colorScheme.onPrimary
+                        color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -76,7 +79,7 @@ private fun SelectorCarrito(
                         Text(
                             "·$cantItems",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (esActivo) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                            color = if (esActivo) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
@@ -86,7 +89,7 @@ private fun SelectorCarrito(
                             Modifier
                                 .size(12.dp)
                                 .clickable { onCerrar(idx) },
-                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -219,12 +222,42 @@ fun PantallaEscaner(
                         MarcaEscaner(escaneoExitoso = escanerVm.escaneoExitoso, modifier = Modifier.size(220.dp))
                     }
                 } else {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
-                            Text("Dar permiso de cámara")
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CameraAlt, null,
+                            Modifier.size(44.dp),
+                            tint = Color.White.copy(alpha = 0.35f)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Se necesita acceso a la cámara",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.55f)
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        OutlinedButton(
+                            onClick = { launcher.launch(Manifest.permission.CAMERA) },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                        ) {
+                            Text("Permitir cámara")
                         }
                     }
                 }
+                // Gradiente suave en el borde inferior para fundir con el panel
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)))
+                        )
+                )
                 IconButton(onClick = onCerrar, modifier = Modifier.padding(4.dp)) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                 }

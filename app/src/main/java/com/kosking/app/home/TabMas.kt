@@ -40,7 +40,6 @@ internal fun TabMas(
     onNotificaciones: () -> Unit = {},
     onApariencia: () -> Unit = {},
     onExportar: () -> Unit = {},
-    onEstadisticas: () -> Unit = {},
     onMiEquipo: () -> Unit = {},
     onSoporte: () -> Unit = {},
     onAcercaDe: () -> Unit,
@@ -238,9 +237,6 @@ internal fun TabMas(
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     MasItem(Icons.Default.Groups, "Mi Equipo",
                         "Empleados, accesos y actividad", onMiEquipo)
-                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
-                    MasItem(Icons.Default.BarChart, "Estadísticas",
-                        "Deuda total, cobros del mes, actividad", onEstadisticas)
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     MasItem(Icons.Default.PictureAsPdf, "Exportar datos",
                         "Generá PDFs del resumen del día o historial", onExportar)

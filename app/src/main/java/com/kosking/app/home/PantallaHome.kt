@@ -34,7 +34,6 @@ import com.kosking.app.ajustes.PantallaAcercaDe
 import com.kosking.app.ajustes.PantallaNotificaciones
 import com.kosking.app.ajustes.PantallaApariencia
 import com.kosking.app.ajustes.PantallaExportar
-import com.kosking.app.ajustes.PantallaEstadisticas
 import com.kosking.app.ajustes.PantallaSoporte
 import com.kosking.app.util.WhatsAppUtil
 import androidx.compose.ui.platform.LocalContext
@@ -50,7 +49,6 @@ private sealed class VistaExtra {
     object Notificaciones : VistaExtra()
     object Apariencia : VistaExtra()
     object Exportar : VistaExtra()
-    object Estadisticas : VistaExtra()
     object MiEquipo : VistaExtra()
     object Soporte : VistaExtra()
     object AcercaDe : VistaExtra()
@@ -405,7 +403,6 @@ fun PantallaHome(
                     onNotificaciones = { vistaExtra = VistaExtra.Notificaciones },
                     onApariencia = { vistaExtra = VistaExtra.Apariencia },
                     onExportar = { vistaExtra = VistaExtra.Exportar },
-                    onEstadisticas = { vistaExtra = VistaExtra.Estadisticas },
                     onMiEquipo = { vistaExtra = VistaExtra.MiEquipo },
                     onSoporte = { vistaExtra = VistaExtra.Soporte },
                     onAcercaDe = { vistaExtra = VistaExtra.AcercaDe },
@@ -466,10 +463,6 @@ fun PantallaHome(
                     onTemaChanged = onTemaChanged
                 )
                 is VistaExtra.Exportar -> PantallaExportar(
-                    vm = duenoVm,
-                    onVolver = { vistaExtra = VistaExtra.Ninguna }
-                )
-                is VistaExtra.Estadisticas -> PantallaEstadisticas(
                     vm = duenoVm,
                     onVolver = { vistaExtra = VistaExtra.Ninguna }
                 )

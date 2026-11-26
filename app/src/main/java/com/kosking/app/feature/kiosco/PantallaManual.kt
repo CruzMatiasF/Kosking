@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +36,7 @@ import com.kosking.app.scanner.PantallaConfirmar
 import com.kosking.app.scanner.components.MovimientoExitosoScreen
 import kotlinx.coroutines.launch
 
-enum class ModoManual { ANOTAR }
+enum class ModoManual { VENDER, ANOTAR }
 
 /** Estado inmutable de un carrito en la pantalla manual. */
 private data class CarritoManual(
@@ -50,14 +51,15 @@ private data class CarritoManual(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaManual(
-    modo: ModoManual = ModoManual.ANOTAR,
+    modo: ModoManual,  // valor inicial; el usuario puede cambiarlo dentro
     productos: List<Producto>,
     clientes: List<Cliente>,
     cargando: Boolean,
+    onConfirmarVenta: (items: List<ItemAnotado>, onExito: () -> Unit, onError: () -> Unit) -> Unit,
     onConfirmarAnotacion: (clienteId: String, items: List<ItemAnotado>, onExito: () -> Unit, onError: () -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val modoActual = ModoManual.ANOTAR
+    var modoActual by remember { mutableStateOf(modo) }
     var carritos by remember { mutableStateOf(listOf(CarritoManual(id = 1))) }
     var carritoActivoIdx by remember { mutableStateOf(0) }
     var mostrarConfirmar by remember { mutableStateOf(false) }
@@ -118,7 +120,8 @@ fun PantallaManual(
         // ── Pantalla éxito ──────────────────────────────────────────────────
         if (mostrarExito) {
             MovimientoExitosoScreen(
-                titulo = "Anotado para ${exitoCliente?.nombre ?: ""}",
+                titulo = if (modoActual == ModoManual.VENDER) "Venta registrada"
+                         else "Anotado para ${exitoCliente?.nombre ?: ""}",
                 items = exitoItems,
                 onInicio = onDismiss,
                 onCerrar = onDismiss
@@ -129,31 +132,52 @@ fun PantallaManual(
         // ── Pantalla confirmar ──────────────────────────────────────────────
         if (mostrarConfirmar) {
             PantallaConfirmar(
-                cliente = carrito.clienteSeleccionado,
+                cliente = if (modoActual == ModoManual.ANOTAR) carrito.clienteSeleccionado else null,
                 items = carrito.items,
-                tipo = "cargo",
+                tipo = if (modoActual == ModoManual.VENDER) "venta" else "cargo",
                 cargando = cargando,
                 onConfirmar = {
-                    val cliente = carrito.clienteSeleccionado ?: return@PantallaConfirmar
-                    val itemsConfirmados = carrito.items
-                    onConfirmarAnotacion(cliente.id, itemsConfirmados, {
-                        mostrarConfirmar = false
-                        if (carritos.size > 1) {
-                            val idx = carritoActivoIdx
-                            carritos = carritos.filterIndexed { i, _ -> i != idx }
-                            carritoActivoIdx = minOf(idx, carritos.size - 1)
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    "Anotado para ${cliente.nombre}",
-                                    duration = SnackbarDuration.Short
-                                )
+                    if (modoActual == ModoManual.VENDER) {
+                        val itemsConfirmados = carrito.items
+                        onConfirmarVenta(itemsConfirmados, {
+                            mostrarConfirmar = false
+                            if (carritos.size > 1) {
+                                val idx = carritoActivoIdx
+                                carritos = carritos.filterIndexed { i, _ -> i != idx }
+                                carritoActivoIdx = minOf(idx, carritos.size - 1)
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Venta registrada",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            } else {
+                                exitoItems = itemsConfirmados
+                                mostrarExito = true
                             }
-                        } else {
-                            exitoItems = itemsConfirmados
-                            exitoCliente = cliente
-                            mostrarExito = true
-                        }
-                    }, onErr)
+                        }, onErr)
+                    } else {
+                        val cliente = carrito.clienteSeleccionado ?: return@PantallaConfirmar
+                        val itemsConfirmados = carrito.items
+                        onConfirmarAnotacion(cliente.id, itemsConfirmados, {
+                            mostrarConfirmar = false
+                            if (carritos.size > 1) {
+                                val idx = carritoActivoIdx
+                                carritos = carritos.filterIndexed { i, _ -> i != idx }
+                                carritoActivoIdx = minOf(idx, carritos.size - 1)
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Anotado para ${cliente.nombre}",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            } else {
+                                exitoItems = itemsConfirmados
+                                exitoCliente = cliente
+                                mostrarExito = true
+                            }
+                        }, onErr)
+                    }
                 },
                 onCancelar = { mostrarConfirmar = false }
             )
@@ -167,7 +191,10 @@ fun PantallaManual(
             topBar = {
                 TopAppBar(
                     title = {
-                        Text("Anotar", fontWeight = FontWeight.Bold)
+                        Text(
+                            if (modoActual == ModoManual.VENDER) "Vender" else "Anotar",
+                            fontWeight = FontWeight.Bold
+                        )
                     },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
@@ -175,6 +202,48 @@ fun PantallaManual(
                         }
                     },
                     actions = {
+                        // Toggle Vender / Anotar
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(0.dp)
+                        ) {
+                            listOf(ModoManual.VENDER to "Vender", ModoManual.ANOTAR to "Anotar")
+                                .forEach { (m, label) ->
+                                    val activo = modoActual == m
+                                    Surface(
+                                        onClick = {
+                                            if (modoActual != m) {
+                                                modoActual = m
+                                                if (m == ModoManual.VENDER) {
+                                                    updateCarrito {
+                                                        copy(clienteSeleccionado = null, busquedaCliente = "")
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(50),
+                                        color = if (activo) MaterialTheme.colorScheme.primary
+                                                else Color.Transparent,
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(horizontal = 12.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = if (activo) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (activo) MaterialTheme.colorScheme.onPrimary
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                        }
                         if (carrito.items.isNotEmpty()) {
                             TextButton(onClick = { updateCarrito { copy(items = emptyList()) } }) {
                                 Text("Limpiar", style = MaterialTheme.typography.labelSmall)
@@ -185,7 +254,8 @@ fun PantallaManual(
             },
             bottomBar = {
                 val total = carrito.items.sumOf { it.precio * it.cantidad }
-                val puedeConfirmar = carrito.items.isNotEmpty() && carrito.clienteSeleccionado != null
+                val puedeConfirmar = carrito.items.isNotEmpty() &&
+                    (modoActual == ModoManual.VENDER || carrito.clienteSeleccionado != null)
                 Surface(shadowElevation = 8.dp) {
                     Column(
                         modifier = Modifier
@@ -220,7 +290,7 @@ fun PantallaManual(
                                 .height(48.dp)
                         ) {
                             Text(
-                                "Anotar",
+                                if (modoActual == ModoManual.VENDER) "Cobrar" else "Anotar",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -255,8 +325,8 @@ fun PantallaManual(
 
                     HorizontalDivider()
 
-                    // ── Buscador de cliente ──
-                    run {
+                    // ── Buscador de cliente (solo Anotar) ──
+                    if (modoActual == ModoManual.ANOTAR) {
                         if (carrito.clienteSeleccionado == null) {
                             OutlinedTextField(
                                 value = carrito.busquedaCliente,
@@ -528,7 +598,9 @@ fun PantallaManual(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
-                            .padding(top = 68.dp)
+                            .padding(
+                                top = if (modoActual == ModoManual.ANOTAR) 68.dp else 0.dp
+                            )
                             .zIndex(10f)
                             .shadow(8.dp, RoundedCornerShape(12.dp)),
                         shape = RoundedCornerShape(12.dp),

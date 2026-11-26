@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
+import com.kosking.app.modelo.Venta
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -27,6 +28,8 @@ import java.util.Locale
 internal fun TabPanelDueno(
     clientes: List<Cliente>,
     movimientosLocal: List<Movimiento>,
+    ventasHoy: Double = 0.0,
+    ventasDeHoy: List<Venta> = emptyList(),
     totalDeuda: Double,
     clientesConDeuda: List<Cliente>,
     localData: Local?,
@@ -36,6 +39,7 @@ internal fun TabPanelDueno(
     onAbrirDetalleCliente: (String) -> Unit,
     onAbrirDetalleMovimiento: (String) -> Unit = {},
     onAnotar: () -> Unit,
+    onVender: () -> Unit = {},
     onRecordarTodos: () -> Unit,
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
@@ -45,7 +49,8 @@ internal fun TabPanelDueno(
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
     onAgregarCliente: () -> Unit = {},
-    onVerCuaderno: () -> Unit = {}
+    onVerCuaderno: () -> Unit = {},
+    onVerTodasVentas: () -> Unit = {}
 ) {
     val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
 
@@ -116,9 +121,11 @@ internal fun TabPanelDueno(
             CardsResumenDueno(
                 localData = localData,
                 totalDeuda = totalDeuda,
+                ventasHoy = ventasHoy,
                 clientesConDeuda = clientesConDeuda,
                 clientesAlDia = clientesAlDia,
                 onAnotar = onAnotar,
+                onVender = onVender,
                 onAbrirProductos = onAbrirProductos,
                 esEmpleado = esEmpleado,
                 puedeVerDeuda = puedeVerDeuda
@@ -176,6 +183,13 @@ internal fun TabPanelDueno(
                 HorizontalDivider()
             }
         }
+
+        seccionHoy(
+            ventas = ventasDeHoy,
+            onVerCuaderno = onVerCuaderno,
+            onVerTodasVentas = onVerTodasVentas,
+            esEmpleado = esEmpleado
+        )
 
         if (!esEmpleado) {
             seccionAcuerdosVencidos(

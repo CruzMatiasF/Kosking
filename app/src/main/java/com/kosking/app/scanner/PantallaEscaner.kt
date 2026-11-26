@@ -44,6 +44,7 @@ private fun SelectorModo(
 ) {
     val opciones = listOf(
         TipoMovimiento.ANOTAR to "Anotar escáner",
+        TipoMovimiento.VENTA to "Vender",
         TipoMovimiento.CARGAR_NUEVO to "Cargar nuevo"
     )
     val pagerState = rememberPagerState(
@@ -211,7 +212,7 @@ fun PantallaEscaner(
     vm: DuenoViewModel,
     onCerrar: () -> Unit,
     esEmpleado: Boolean = false,
-    modoInicial: TipoMovimiento = TipoMovimiento.ANOTAR
+    modoInicial: TipoMovimiento = TipoMovimiento.VENTA
 ) {
     val context = LocalContext.current
     val escanerVm: EscanerViewModel = viewModel(factory = EscanerViewModel.factory(vm))
@@ -242,23 +243,39 @@ fun PantallaEscaner(
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!permiso) launcher.launch(Manifest.permission.CAMERA)
         escanerVm.resetear()
-        escanerVm.tipoMovimiento = modoInicial
+        if (modoInicial != TipoMovimiento.VENTA) escanerVm.tipoMovimiento = modoInicial
     }
 
     // ── Pantalla confirmar (pantalla completa superpuesta) ──
     val clienteConfirmar = escanerVm.clienteSeleccionado
-    if (escanerVm.mostrarConfirmar && clienteConfirmar != null) {
+    val esVenta = escanerVm.tipoMovimiento == TipoMovimiento.VENTA
+    if (escanerVm.mostrarConfirmar && (esVenta || clienteConfirmar != null)) {
         Box(modifier = Modifier.fillMaxSize()) {
             PantallaConfirmar(
                 cliente = clienteConfirmar,
                 items = escanerVm.itemsAnotados,
-                tipo = "cargo",
+                tipo = if (esVenta) "venta" else "cargo",
                 cargando = cargandoVm,
-                onConfirmar = { escanerVm.confirmarAnotacion(clienteConfirmar) },
+                onConfirmar = {
+                    if (esVenta) escanerVm.registrarVenta()
+                    else escanerVm.confirmarAnotacion(clienteConfirmar!!)
+                },
                 onCancelar = { escanerVm.mostrarConfirmar = false }
             )
         }
         return
+    }
+
+    // ── Snackbar: éxito venta ──
+    LaunchedEffect(escanerVm.ventaExitosa) {
+        val ex = escanerVm.ventaExitosa ?: return@LaunchedEffect
+        val pendientes = escanerVm.carritos.count { it.itemsAnotados.isNotEmpty() }
+        val sufijo = if (pendientes > 0) " · Quedan $pendientes cliente${if (pendientes > 1) "s" else ""}" else ""
+        snackbarHostState.showSnackbar(
+            message = "Venta registrada — $${"%.0f".format(ex.second)}$sufijo",
+            duration = SnackbarDuration.Short
+        )
+        escanerVm.ventaExitosa = null
     }
 
     // ── Snackbar: éxito anotación ──

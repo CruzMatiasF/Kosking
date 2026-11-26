@@ -38,10 +38,13 @@ fun PanelDuenoEmbedido(
     onAbrirPerfil: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit = {},
     onVerCuaderno: () -> Unit = {},
+    onVerTodasVentas: () -> Unit = {},
     bottomBar: @Composable () -> Unit = {}
 ) {
     val clientes by vm.clientes.collectAsState()
     val movimientosLocal by vm.movimientosLocal.collectAsState()
+    val ventasHoy by vm.ventasHoy.collectAsState()
+    val ventasLocal by vm.ventasLocal.collectAsState()
     val productos by vm.productos.collectAsState()
     val empleados by vm.empleados.collectAsState()
     val totalDeuda by vm.totalDeuda.collectAsState()
@@ -53,6 +56,16 @@ fun PanelDuenoEmbedido(
 
     val clientesConDeuda = remember(clientes) {
         clientes.filter { it.deudaTotal > 0 }.sortedByDescending { it.deudaTotal }
+    }
+
+    val ventasDeHoy = remember(ventasLocal) {
+        val inicioDia = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        ventasLocal
+            .filter { it.fecha.toDate().time >= inicioDia }
+            .sortedByDescending { it.fecha.seconds }
     }
 
     val context = LocalContext.current
@@ -119,6 +132,8 @@ fun PanelDuenoEmbedido(
             TabPanelDueno(
                 clientes = clientes,
                 movimientosLocal = movimientosLocal,
+                ventasHoy = ventasHoy,
+                ventasDeHoy = ventasDeHoy,
                 totalDeuda = totalDeuda,
                 clientesConDeuda = clientesConDeuda,
                 localData = localData,
@@ -128,6 +143,7 @@ fun PanelDuenoEmbedido(
                 onAbrirDetalleCliente = onAbrirDetalleCliente,
                 onAbrirDetalleMovimiento = onAbrirDetalleMovimiento,
                 onAnotar = { modoManual = ModoManual.ANOTAR },
+                onVender = { modoManual = ModoManual.VENDER },
                 onRegistrarPago = { cliente ->
                     clientePreseleccionado = cliente; tipoAnotar = "pago"; mostrarAnotar = true
                 },
@@ -139,17 +155,22 @@ fun PanelDuenoEmbedido(
                 onAbrirPerfil = onAbrirPerfil,
                 onAbrirNotificaciones = onAbrirNotificaciones,
                 onAgregarCliente = onAbrirAgregarCliente,
-                onVerCuaderno = onVerCuaderno
+                onVerCuaderno = onVerCuaderno,
+                onVerTodasVentas = onVerTodasVentas
             )
         }
     }
 
-    // Pantalla manual (Anotar)
-    if (modoManual != null) {
+    // Pantalla manual (Vender o Anotar)
+    modoManual?.let { modo ->
         PantallaManual(
+            modo = modo,
             productos = productos,
             clientes = clientes,
             cargando = cargando,
+            onConfirmarVenta = { items, onExito, onError ->
+                vm.registrarVenta(items = items, onError = onError, onExito = onExito)
+            },
             onConfirmarAnotacion = { clienteId, items, onExito, onError ->
                 vm.agregarMovimientos(
                     clienteId = clienteId,

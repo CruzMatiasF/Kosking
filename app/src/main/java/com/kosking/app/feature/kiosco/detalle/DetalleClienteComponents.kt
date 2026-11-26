@@ -168,8 +168,9 @@ private fun ConfigTiles(cliente: Cliente, vm: DuenoViewModel) {
     if (mostrarEditarNota) {
         DialogEditarNota(
             notaActual = cliente.notaInterna,
-            onGuardar = { nota ->
-                vm.actualizarCliente(cliente.copy(notaInterna = nota))
+            alertaActual = cliente.alertaEmpleado,
+            onGuardar = { nota, alerta ->
+                vm.actualizarCliente(cliente.copy(notaInterna = nota, alertaEmpleado = alerta))
                 mostrarEditarNota = false
             },
             onDismiss = { mostrarEditarNota = false }

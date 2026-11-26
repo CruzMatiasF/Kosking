@@ -12,4 +12,5 @@ sealed class NavDueno {
         val volverAPanel: Boolean = false
     ) : NavDueno()
     data class DetalleMovimiento(val id: String, val clienteId: String? = null) : NavDueno()
+    object HistorialVentas : NavDueno()
 }

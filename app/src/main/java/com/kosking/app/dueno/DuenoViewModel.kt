@@ -12,6 +12,7 @@ import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.Venta
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -349,10 +350,45 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
+    fun registrarVenta(
+        items: List<ItemAnotado>,
+        onExito: () -> Unit,
+        onError: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _cargando.value = true
+            try {
+                val uid = auth.currentUser?.uid ?: run { onError(); return@launch }
+                val total = items.sumOf { it.precio * it.cantidad }
+                val venta = Venta(
+                    localId = _localId.value,
+                    items = items.map { "${it.nombre} x${it.cantidad}" },
+                    total = total,
+                    registradoPorUid = uid,
+                    registradoPorNombre = _nombreDueno.value
+                )
+                FiadoRepository.registrarVenta(venta)
+                FiadoRepository.upsertProductosBatch(
+                    _localId.value,
+                    items.map { Triple(it.nombre, it.precio * it.cantidad, it.cantidad) },
+                    productos.value
+                )
+                onExito()
+            } catch (e: Exception) {
+                CrashLogger.log(e, "registrarVenta")
+                _error.value = "No se pudo registrar la venta"
+                onError()
+            } finally {
+                _cargando.value = false
+            }
+        }
+    }
+
     fun agregarMovimientos(
         clienteId: String,
         items: List<Triple<String, Double, Int>>, // producto, monto, cantidad
         tipo: String,
+        visitante: String = "",
         onExito: () -> Unit,
         onError: () -> Unit = {}
     ) {
@@ -372,7 +408,8 @@ class DuenoViewModel : ViewModel() {
                         cantidad = cantidad,
                         anotadoPorUid = uid,
                         anotadoPorNombre = _nombreDueno.value,
-                        grupoId = grupoId
+                        grupoId = grupoId,
+                        visitante = visitante
                     )
                 }
                 FiadoRepository.agregarMovimientos(movs)
@@ -393,6 +430,22 @@ class DuenoViewModel : ViewModel() {
             if (id.isNotBlank()) FiadoRepository.movimientosLocalFlow(id) else flowOf(emptyList())
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val ventasLocal: StateFlow<List<Venta>> = _localId
+        .flatMapLatest { id ->
+            if (id.isNotBlank()) FiadoRepository.ventasLocalFlow(id) else flowOf(emptyList())
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val ventasHoy: StateFlow<Double> = ventasLocal
+        .map { ventas ->
+            val inicioDia = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            ventas.filter { it.fecha.toDate().time >= inicioDia }.sumOf { it.total }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     // ── Estadísticas derivadas (calculadas en background, no en el hilo de UI) ─
 

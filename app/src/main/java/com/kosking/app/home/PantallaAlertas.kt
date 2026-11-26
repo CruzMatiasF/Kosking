@@ -45,7 +45,7 @@ private fun generarAlertas(clientes: List<Cliente>): List<Alerta> {
     }
 
     // Clientes con alerta de empleado activa
-    clientes.filter { it.notaInterna.isNotBlank() && it.habilitado }.forEach { c ->
+    clientes.filter { it.alertaEmpleado && it.habilitado }.forEach { c ->
         alertas.add(Alerta(
             icono = Icons.Default.Warning,
             titulo = "${c.nombre} — alerta activa",
@@ -71,7 +71,7 @@ private fun generarAlertas(clientes: List<Cliente>): List<Alerta> {
         c.nombre !in yaListados &&
         c.fechaCompromiso == null &&
         (c.limiteCredito == 0.0 || c.deudaTotal < c.limiteCredito) &&
-        c.notaInterna.isBlank()
+        !c.alertaEmpleado
     }.sortedByDescending { it.deudaTotal }.take(10).forEach { c ->
         alertas.add(Alerta(
             icono = Icons.Default.AttachMoney,

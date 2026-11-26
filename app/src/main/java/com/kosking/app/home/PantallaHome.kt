@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.kosking.app.dueno.DuenoViewModel
 import com.kosking.app.feature.kiosco.NavDueno
 import com.kosking.app.feature.kiosco.PanelDuenoEmbedido
+import com.kosking.app.feature.kiosco.PantallaHistorialVentas
 import com.kosking.app.feature.kiosco.PantallaAgregarCliente
 import com.kosking.app.feature.kiosco.PantallaAgregarFiado
 import com.kosking.app.feature.kiosco.detalle.PantallaDetalleCliente
@@ -273,6 +274,13 @@ fun PantallaHome(
                             onVolver = { vistaDueno = NavDueno.Panel }
                         )
                     }
+                    is NavDueno.HistorialVentas -> {
+                        val ventasLocal by duenoVm.ventasLocal.collectAsState()
+                        PantallaHistorialVentas(
+                            ventas = ventasLocal,
+                            onVolver = { vistaDueno = NavDueno.Panel }
+                        )
+                    }
                     is NavDueno.Productos -> {
                         val productos by duenoVm.productos.collectAsState()
                         val cargando by duenoVm.cargando.collectAsState()
@@ -303,7 +311,8 @@ fun PantallaHome(
                             onAbrirProductos = { vistaDueno = NavDueno.Productos },
                             onAbrirPerfil = { mostrarPerfilSheet = true },
                             onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas },
-                            onVerCuaderno = { tabNav = TabNav.HISTORIAL }
+                            onVerCuaderno = { tabNav = TabNav.HISTORIAL },
+                            onVerTodasVentas = { vistaDueno = NavDueno.HistorialVentas }
                         )
                         esEmpleado -> {
                             // Empleado logueado — su panel se carga via PANEL_EMPLEADO en Navegacion

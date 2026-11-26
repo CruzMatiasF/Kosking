@@ -321,7 +321,7 @@ internal fun EscanerPanel(
             // Tercio derecho — total
             Box(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     if (total > 0) "\$${total.toInt()}" else "-",

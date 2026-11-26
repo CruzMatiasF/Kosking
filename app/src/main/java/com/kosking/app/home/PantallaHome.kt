@@ -142,56 +142,14 @@ fun PantallaHome(
     var mostrarPerfilSheet by remember { mutableStateOf(false) }
 
     if (mostrarPerfilSheet) {
-        @OptIn(ExperimentalMaterial3Api::class)
-        ModalBottomSheet(onDismissRequest = { mostrarPerfilSheet = false }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (estaLogueado && nombreUsuario.isNotBlank()) {
-                    Surface(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(64.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                nombreUsuario.first().uppercase(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                    Text(nombreUsuario, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        when {
-                            esDueno -> "Dueño de local"
-                            esEmpleado -> "Empleado"
-                            else -> "Sin local asignado"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Icon(Icons.Default.Person, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("No iniciaste sesión", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                HorizontalDivider()
-                Button(
-                    onClick = { mostrarPerfilSheet = false; vistaExtra = VistaExtra.Perfil },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Settings, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Configurar perfil")
-                }
-            }
-        }
+        PerfilSheet(
+            estaLogueado = estaLogueado,
+            nombreUsuario = nombreUsuario,
+            esDueno = esDueno,
+            esEmpleado = esEmpleado,
+            onDismiss = { mostrarPerfilSheet = false },
+            onConfigurarPerfil = { mostrarPerfilSheet = false; vistaExtra = VistaExtra.Perfil }
+        )
     }
 
     Scaffold(
@@ -546,6 +504,64 @@ fun PantallaHome(
                     onPrivacidad = { vistaExtra = VistaExtra.PoliticaPrivacidad }
                 )
                 else -> {}
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PerfilSheet(
+    estaLogueado: Boolean,
+    nombreUsuario: String,
+    esDueno: Boolean,
+    esEmpleado: Boolean,
+    onDismiss: () -> Unit,
+    onConfigurarPerfil: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (estaLogueado && nombreUsuario.isNotBlank()) {
+                Surface(
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            nombreUsuario.first().uppercase(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+                Text(nombreUsuario, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    when {
+                        esDueno -> "Dueño de local"
+                        esEmpleado -> "Empleado"
+                        else -> "Sin local asignado"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Icon(Icons.Default.Person, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("No iniciaste sesión", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            HorizontalDivider()
+            Button(onClick = onConfigurarPerfil, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Settings, null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Configurar perfil")
             }
         }
     }

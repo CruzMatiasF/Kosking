@@ -206,31 +206,37 @@ internal fun EscanerPanel(
             }
         }
 
-        // ── Barra inferior: [picker cliente] [Continuar] [$total] ──
+        // ── Barra inferior fija: [picker cliente] [Continuar] [$total] ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .height(56.dp)
+                .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            PanelClientePicker(
-                clienteSeleccionado = clienteSeleccionado,
-                busquedaCliente = busquedaCliente,
-                onBusquedaChange = onBusquedaChange,
-                onLimpiarCliente = onLimpiarCliente,
-                modifier = Modifier.weight(1f)
-            )
+            // Zona cliente — solo activa en modo Anotar
+            Box(modifier = Modifier.weight(1f)) {
+                if (modoEsAnotar) {
+                    PanelClientePicker(
+                        clienteSeleccionado = clienteSeleccionado,
+                        busquedaCliente = busquedaCliente,
+                        onBusquedaChange = onBusquedaChange,
+                        onLimpiarCliente = onLimpiarCliente,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
             Button(
                 onClick = {
                     if (!tieneItems) return@Button
-                    val alerta = clienteSeleccionado != null &&
+                    val alerta = modoEsAnotar && clienteSeleccionado != null &&
                         (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
                     if (alerta) mostrarAlertaCliente = true
                     else if (modoEsAnotar) onAnotar()
                     else onCobrar()
                 },
-                enabled = tieneItems && !cargandoAnotacion,
+                enabled = tieneItems && !cargandoAnotacion && (!modoEsAnotar || tieneCliente),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                 modifier = Modifier.height(42.dp)
             ) {
@@ -240,12 +246,19 @@ internal fun EscanerPanel(
                     Text("Continuar", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
             }
-            Text(
-                if (total > 0) "\$${total.toInt()}" else "-",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (tieneItems) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
+            // Zona total — siempre presente y con ancho fijo
+            Box(
+                modifier = Modifier.widthIn(min = 56.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    if (total > 0) "\$${total.toInt()}" else "-",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (tieneItems) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
+            }
         }
     }
 }

@@ -385,7 +385,7 @@ fun PantallaEscaner(
                         escanerVm.itemsAnotados.map { if (it === item) it.copy(cantidad = nueva) else it }
                 }
 
-                Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize().imePadding()) {
                     SelectorCarrito(
                         carritos = escanerVm.carritos,
                         activoIdx = escanerVm.carritoActivoIdx,

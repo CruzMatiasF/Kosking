@@ -98,7 +98,7 @@ internal fun EscanerPanel(
     val tieneItems = itemsAnotados.isNotEmpty()
     val tieneCliente = clienteSeleccionado != null
 
-    Box(modifier = modifier.fillMaxSize().imePadding()) {
+    Box(modifier = modifier.fillMaxSize()) {
 
         // ── Contenido principal (categorías + carrito) ──
         Column(modifier = Modifier.fillMaxSize()) {
@@ -266,6 +266,7 @@ internal fun EscanerPanel(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(56.dp)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)

@@ -42,39 +42,26 @@ internal fun EscanerPanel(
     modifier: Modifier = Modifier
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
-    var busquedaProducto by remember { mutableStateOf("") }
 
-    LaunchedEffect(carritoIdx) {
-        busquedaProducto = ""
-        categoriaSeleccionada = null
-    }
+    LaunchedEffect(carritoIdx) { categoriaSeleccionada = null }
+
     var mostrarAlertaCliente by remember { mutableStateOf(false) }
 
     val categorias = remember(productos) {
         productos.map { it.categoria.ifBlank { "Otros" } }.distinct().sorted()
     }
 
-    val productosMostrados = remember(productos, categoriaSeleccionada, busquedaProducto) {
-        if (busquedaProducto.isNotBlank()) {
-            productos.filter { it.nombre.contains(busquedaProducto, ignoreCase = true) }
-                .sortedByDescending { it.vecesUsado }
-        } else {
-            val cat = categoriaSeleccionada
-            if (cat == null) productos.sortedByDescending { it.vecesUsado }
-            else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }
-                .sortedByDescending { it.vecesUsado }
-        }
+    val productosMostrados = remember(productos, categoriaSeleccionada) {
+        val cat = categoriaSeleccionada
+        if (cat == null) productos.sortedByDescending { it.vecesUsado }
+        else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }
+            .sortedByDescending { it.vecesUsado }
     }
 
     val total = itemsAnotados.sumOf { it.precio * it.cantidad }
     val totalCantidad = itemsAnotados.sumOf { it.cantidad }
     val tieneItems = itemsAnotados.isNotEmpty()
     val tieneCliente = clienteSeleccionado != null
-    val buscandoProducto = busquedaProducto.isNotBlank()
-
-    LaunchedEffect(busquedaProducto) {
-        if (buscandoProducto) categoriaSeleccionada = null
-    }
 
     if (mostrarAlertaCliente && clienteSeleccionado != null) {
         val cliente = clienteSeleccionado
@@ -115,37 +102,8 @@ internal fun EscanerPanel(
 
     Column(modifier = modifier.fillMaxSize().imePadding()) {
 
-        // ── Buscador de producto ──
-        OutlinedTextField(
-            value = busquedaProducto,
-            onValueChange = { busquedaProducto = it },
-            placeholder = {
-                Text(
-                    if (productos.isEmpty()) "Sin productos cargados"
-                    else "Buscar producto…",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            },
-            leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(16.dp)) },
-            trailingIcon = {
-                if (buscandoProducto) {
-                    IconButton(onClick = { busquedaProducto = "" }) {
-                        Icon(Icons.Default.Clear, null, Modifier.size(14.dp))
-                    }
-                }
-            },
-            enabled = productos.isNotEmpty(),
-            singleLine = true,
-            shape = RoundedCornerShape(50),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-                .height(42.dp),
-            textStyle = MaterialTheme.typography.bodySmall
-        )
-
-        // ── Chips de categoría / fila de productos (solo cuando NO se busca) ──
-        if (!buscandoProducto && productos.isNotEmpty()) {
+        // ── Chips de categoría / fila de productos ──
+        if (productos.isNotEmpty()) {
             if (categoriaSeleccionada == null && categorias.size > 1) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
@@ -197,48 +155,10 @@ internal fun EscanerPanel(
 
         HorizontalDivider()
 
-        // ── Área central: búsqueda vertical / cobro rápido / carrito ──
+        // ── Área central: carrito / empty state ──
         Box(modifier = Modifier.weight(1f)) {
 
             when {
-                buscandoProducto -> {
-                    // ── Resultados de búsqueda vertical ──
-                    if (productosMostrados.isEmpty()) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.SearchOff, null,
-                                    Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                )
-                                Text(
-                                    "Sin resultados para \"$busquedaProducto\"",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(productosMostrados, key = { it.id }) { prod ->
-                                val cantEnCarrito = itemsAnotados.firstOrNull { it.productoId == prod.id }?.cantidad ?: 0
-                                BuscadorProductoRow(
-                                    prod = prod,
-                                    cantEnCarrito = cantEnCarrito,
-                                    onClick = {
-                                        onAgregarSugerencia(ItemAnotado(prod.nombre, prod.ultimoPrecio, prod.id))
-                                        busquedaProducto = ""
-                                    }
-                                )
-                                HorizontalDivider()
-                            }
-                        }
-                    }
-                }
-
                 !tieneItems -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(
@@ -251,7 +171,7 @@ internal fun EscanerPanel(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                             )
                             Text(
-                                "Escaneá o buscá un producto",
+                                "Escaneá un producto o elegilo de arriba",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
@@ -407,61 +327,6 @@ internal fun EscanerPanel(
 }
 
 
-/** Fila de resultado en la búsqueda vertical de productos. */
-@Composable
-private fun BuscadorProductoRow(
-    prod: Producto,
-    cantEnCarrito: Int,
-    onClick: () -> Unit
-) {
-    ListItem(
-        headlineContent = {
-            Text(
-                prod.nombre,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            val partes = buildList {
-                if (prod.presentacion.isNotBlank()) add(prod.presentacion)
-                if (prod.ultimoPrecio > 0) add("\$${prod.ultimoPrecio.toInt()}")
-            }
-            if (partes.isNotEmpty()) {
-                Text(
-                    partes.joinToString("  ·  "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        trailingContent = {
-            if (cantEnCarrito > 0) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        "×$cantEnCarrito",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            } else {
-                Icon(
-                    Icons.Default.Add, null,
-                    Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        },
-        modifier = Modifier.clickable(onClick = onClick)
-    )
-}
 
 @Composable
 private fun PanelClientePicker(

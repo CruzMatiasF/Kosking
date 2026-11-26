@@ -32,7 +32,7 @@ data class CarritoState(
     val itemsAnotados: List<ItemAnotado> = emptyList(),
     val clienteSeleccionado: Cliente? = null,
     val busquedaCliente: String = "",
-    val tipoMovimiento: TipoMovimiento = TipoMovimiento.CARGO
+    val tipoMovimiento: TipoMovimiento = TipoMovimiento.VENTA
 )
 
 internal class EscanerViewModel(private val duenoVm: DuenoViewModel) : ViewModel() {

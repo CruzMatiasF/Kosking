@@ -217,7 +217,8 @@ private fun SelectorCarrito(
 fun PantallaEscaner(
     vm: DuenoViewModel,
     onCerrar: () -> Unit,
-    esEmpleado: Boolean = false
+    esEmpleado: Boolean = false,
+    modoInicial: TipoMovimiento = TipoMovimiento.VENTA
 ) {
     val context = LocalContext.current
     val escanerVm: EscanerViewModel = viewModel(factory = EscanerViewModel.factory(vm))
@@ -248,6 +249,7 @@ fun PantallaEscaner(
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!permiso) launcher.launch(Manifest.permission.CAMERA)
         escanerVm.resetear()
+        if (modoInicial != TipoMovimiento.VENTA) escanerVm.tipoMovimiento = modoInicial
     }
 
     // ── Pantalla confirmar (pantalla completa superpuesta) ──

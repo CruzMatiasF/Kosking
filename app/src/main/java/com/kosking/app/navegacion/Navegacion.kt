@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kosking.app.datos.PreferenciasRepository
 import com.kosking.app.scanner.PantallaEscaner
+import com.kosking.app.scanner.TipoMovimiento
 
 private sealed class DestinoPostLogin {
     object CrearLocal : DestinoPostLogin()
@@ -272,6 +273,7 @@ fun KoskingNavHost(
 
             var tabEmpleado by rememberSaveable { mutableStateOf(0) } // 0=panel, 1=escaner, 2=clientes
             var mostrarProductosEmpleado by rememberSaveable { mutableStateOf(false) }
+            var escanerModoInicialEmpleado by remember { mutableStateOf(TipoMovimiento.VENTA) }
 
             when (tabEmpleado) {
                 1 -> Scaffold(
@@ -311,8 +313,9 @@ fun KoskingNavHost(
                     Box(Modifier.padding(innerPadding)) {
                         PantallaEscaner(
                             vm = duenoVm,
-                            onCerrar = { tabEmpleado = 0 },
-                            esEmpleado = true
+                            onCerrar = { tabEmpleado = 0; escanerModoInicialEmpleado = TipoMovimiento.VENTA },
+                            esEmpleado = true,
+                            modoInicial = escanerModoInicialEmpleado
                         )
                     }
                 }
@@ -381,6 +384,7 @@ fun KoskingNavHost(
                     onAbrirDetalleCliente = { id -> nav.navigate(Rutas.detalleClienteEmpleado(id)) },
                     onAbrirDetalleMovimiento = { id -> nav.navigate(Rutas.detalleMovimiento(id)) },
                     onAbrirProductos = { mostrarProductosEmpleado = true },
+                    onAbrirEscanerCargar = { escanerModoInicialEmpleado = TipoMovimiento.CARGAR_NUEVO; tabEmpleado = 1 },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(

@@ -30,6 +30,7 @@ internal fun CardsResumenDueno(
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
+    onAbrirEscanerCargar: () -> Unit = {},
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true
 ) {
@@ -82,6 +83,7 @@ private fun CardDeudaTotal(
     onAnotar: () -> Unit,
     onVender: () -> Unit = {},
     onAbrirProductos: () -> Unit,
+    onAbrirEscanerCargar: () -> Unit = {},
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
     modifier: Modifier = Modifier
@@ -128,7 +130,7 @@ private fun CardDeudaTotal(
                 ) {
                     AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
                     AtajoBtn(Icons.Default.Edit, "Anotar / Cobrar", onAnotar)
-                    AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
+                    AtajoBtn(Icons.Default.QrCodeScanner, "Escanear", onAbrirEscanerCargar)
                 }
             }
         }
@@ -181,6 +183,7 @@ private fun CardDeudaTotal(
                     AtajoBtn(Icons.Default.ShoppingCart, "Vender", onVender, primary = true)
                     AtajoBtn(Icons.Default.Edit, "Anotar / Cobrar", onAnotar)
                     AtajoBtn(Icons.Default.Storefront, "Productos", onAbrirProductos)
+                    AtajoBtn(Icons.Default.QrCodeScanner, "Escanear", onAbrirEscanerCargar)
                 }
             }
         }

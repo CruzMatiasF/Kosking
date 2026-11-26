@@ -23,6 +23,7 @@ import com.kosking.app.feature.kiosco.tabs.TabClientes
 import com.kosking.app.feature.kiosco.tabs.TabEquipo
 import com.kosking.app.feature.kiosco.tabs.TabProductos
 import com.kosking.app.scanner.PantallaEscaner
+import com.kosking.app.scanner.TipoMovimiento
 import com.kosking.app.perfil.PantallaPerfil
 import com.kosking.app.perfil.PantallaPrivacidad
 import com.kosking.app.perfil.PantallaPoliticaPrivacidad
@@ -87,6 +88,7 @@ fun PantallaHome(
     var vistaDueno by remember { mutableStateOf<NavDueno>(NavDueno.Panel) }
     var tabNav by rememberSaveable { mutableStateOf(TabNav.MI_LOCAL) }
     var vistaExtra by remember { mutableStateOf<VistaExtra>(VistaExtra.Ninguna) }
+    var escanerModoInicial by remember { mutableStateOf(TipoMovimiento.VENTA) }
     LaunchedEffect(abrirEscaner) {
         if (abrirEscaner) {
             tabNav = TabNav.ESCANER
@@ -330,6 +332,7 @@ fun PantallaHome(
                             onAbrirDetalleCliente = { vistaDueno = NavDueno.DetalleCliente(it) },
                             onAbrirDetalleMovimiento = { vistaDueno = NavDueno.DetalleMovimiento(it) },
                             onAbrirProductos = { vistaDueno = NavDueno.Productos },
+                            onAbrirEscanerCargar = { escanerModoInicial = TipoMovimiento.CARGAR_NUEVO; tabNav = TabNav.ESCANER },
                             onAbrirPerfil = { mostrarPerfilSheet = true },
                             onAbrirNotificaciones = { vistaExtra = VistaExtra.Alertas }
                         )
@@ -413,7 +416,8 @@ fun PantallaHome(
                 tabNav == TabNav.ESCANER -> {
                     PantallaEscaner(
                         vm = duenoVm,
-                        onCerrar = { tabNav = TabNav.MI_LOCAL }
+                        onCerrar = { tabNav = TabNav.MI_LOCAL; escanerModoInicial = TipoMovimiento.VENTA },
+                        modoInicial = escanerModoInicial
                     )
                 }
 

@@ -42,6 +42,7 @@ internal fun TabPanelDueno(
     onWhatsAppCliente: (Cliente) -> Unit,
     onRegistrarPago: (Cliente) -> Unit = {},
     onAbrirProductos: () -> Unit = {},
+    onAbrirEscanerCargar: () -> Unit = {},
     esEmpleado: Boolean = false,
     puedeVerDeuda: Boolean = true,
     onAbrirPerfil: () -> Unit = {},
@@ -145,6 +146,7 @@ internal fun TabPanelDueno(
                 onAnotar = onAnotar,
                 onVender = onVender,
                 onAbrirProductos = onAbrirProductos,
+                onAbrirEscanerCargar = onAbrirEscanerCargar,
                 esEmpleado = esEmpleado,
                 puedeVerDeuda = puedeVerDeuda
             )

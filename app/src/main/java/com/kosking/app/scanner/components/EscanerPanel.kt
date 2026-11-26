@@ -256,7 +256,7 @@ internal fun EscanerPanel(
             }
             // Zona total — siempre presente y con ancho fijo
             Box(
-                modifier = Modifier.widthIn(min = 56.dp),
+                modifier = Modifier.width(88.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Text(

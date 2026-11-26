@@ -32,7 +32,7 @@ import coil.request.ImageRequest
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Producto
-import com.kosking.app.scanner.ConfirmarSheet
+import com.kosking.app.scanner.PantallaConfirmar
 import com.kosking.app.scanner.components.MovimientoExitosoScreen
 import kotlinx.coroutines.launch
 
@@ -110,9 +110,9 @@ fun PantallaManual(
         return
     }
 
-    // ── Sheet confirmar ──
+    // ── Pantalla confirmar ──
     if (mostrarConfirmar) {
-        ConfirmarSheet(
+        PantallaConfirmar(
             cliente = if (modoActual == ModoManual.ANOTAR) carrito.clienteSeleccionado else null,
             items = carrito.items,
             tipo = if (modoActual == ModoManual.VENDER) "venta" else "cargo",
@@ -133,7 +133,7 @@ fun PantallaManual(
                         }
                     }
                 } else {
-                    val cliente = carrito.clienteSeleccionado ?: return@ConfirmarSheet
+                    val cliente = carrito.clienteSeleccionado ?: return@PantallaConfirmar
                     val itemsConfirmados = carrito.items
                     onConfirmarAnotacion(cliente.id, itemsConfirmados) {
                         mostrarConfirmar = false
@@ -150,8 +150,9 @@ fun PantallaManual(
                     }
                 }
             },
-            onDismiss = { mostrarConfirmar = false }
+            onCancelar = { mostrarConfirmar = false }
         )
+        return
     }
 
     Dialog(

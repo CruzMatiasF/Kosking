@@ -326,6 +326,19 @@ class DuenoViewModel : ViewModel() {
 
     fun seleccionarCliente(clienteId: String) {
         _detalleClienteId.value = clienteId
+        viewModelScope.launch {
+            try {
+                val movs = movimientosDetalle.drop(1).first()
+                val deudaReal = movs
+                    .filter { !it.anulado }
+                    .sumOf { if (it.tipo == "cargo") it.monto else -it.monto }
+                    .coerceAtLeast(0.0)
+                val cliente = clientes.value.find { it.id == clienteId } ?: return@launch
+                if (kotlin.math.abs(deudaReal - cliente.deudaTotal) > 1.0) {
+                    FiadoRepository.recalcularDeuda(clienteId)
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     fun inicializarDesdeEmpleado(localId: String, nombreEmpleado: String = "") {

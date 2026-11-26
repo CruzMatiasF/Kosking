@@ -38,7 +38,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
 import com.kosking.app.dueno.DuenoViewModel
-import com.kosking.app.feature.kiosco.ActualizarPreciosSheet
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,8 +59,6 @@ fun TabProductos(
 ) {
     var mostrarDialog by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Producto?>(null) }
-    var mostrarActualizarPrecios by remember { mutableStateOf(false) }
-
     LaunchedEffect(mostrarDialogExterno) {
         if (mostrarDialogExterno) { editando = null; mostrarDialog = true }
     }
@@ -92,14 +89,6 @@ fun TabProductos(
 
     LaunchedEffect(Unit) {
         try { CatalogoRepository.migrarSiVacio(context) } catch (_: Exception) {}
-    }
-
-    if (mostrarActualizarPrecios && vm != null) {
-        ActualizarPreciosSheet(
-            productos = productos,
-            vm = vm,
-            onDismiss = { mostrarActualizarPrecios = false }
-        )
     }
 
     if (mostrarDialog) {
@@ -170,16 +159,6 @@ fun TabProductos(
             } // cierre Row interno
             if (!esEmpleado) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (productos.isNotEmpty() && vm != null) {
-                        OutlinedButton(
-                            onClick = { mostrarActualizarPrecios = true },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Icon(Icons.Default.PriceChange, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Precios")
-                        }
-                    }
                     if (onAbrirEscanerCargar != null) {
                         OutlinedButton(
                             onClick = onAbrirEscanerCargar,

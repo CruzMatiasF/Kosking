@@ -273,8 +273,10 @@ fun PantallaEscaner(
     // ── Snackbar: éxito venta ──
     LaunchedEffect(escanerVm.ventaExitosa) {
         val ex = escanerVm.ventaExitosa ?: return@LaunchedEffect
+        val pendientes = escanerVm.carritos.count { it.itemsAnotados.isNotEmpty() }
+        val sufijo = if (pendientes > 0) " · Quedan $pendientes cliente${if (pendientes > 1) "s" else ""}" else ""
         snackbarHostState.showSnackbar(
-            message = "Venta registrada — $${"%.0f".format(ex.second)}",
+            message = "Venta registrada — $${"%.0f".format(ex.second)}$sufijo",
             duration = SnackbarDuration.Short
         )
         escanerVm.ventaExitosa = null
@@ -284,8 +286,10 @@ fun PantallaEscaner(
     LaunchedEffect(escanerVm.anotacionExitosa) {
         val ex = escanerVm.anotacionExitosa ?: return@LaunchedEffect
         val (cliente, items, tipo) = ex
+        val pendientes = escanerVm.carritos.count { it.itemsAnotados.isNotEmpty() }
         val result = snackbarHostState.showSnackbar(
-            message = "Anotado para ${cliente.nombre}",
+            message = "Anotado para ${cliente.nombre}" +
+                if (pendientes > 0) " · Quedan $pendientes cliente${if (pendientes > 1) "s" else ""}" else "",
             actionLabel = if (cliente.telefono.isNotBlank()) "Avisar WA" else null,
             duration = SnackbarDuration.Long
         )
@@ -377,7 +381,7 @@ fun PantallaEscaner(
             }
 
             // Panel inferior
-            Surface(modifier = Modifier.fillMaxWidth().weight(0.60f), color = MaterialTheme.colorScheme.surface) {
+            Surface(modifier = Modifier.fillMaxWidth().weight(1f), color = MaterialTheme.colorScheme.surface) {
                 val onCambiarCantidad: (com.kosking.app.modelo.ItemAnotado, Int) -> Unit = { item, nueva ->
                     escanerVm.itemsAnotados = if (nueva <= 0)
                         escanerVm.itemsAnotados - item

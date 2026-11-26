@@ -207,17 +207,20 @@ internal fun EscanerPanel(
             }
         }
 
-        // ── Barra inferior fija: [picker cliente] [Continuar] [$total] ──
+        // ── Barra inferior fija: [cliente] [Continuar] [total] — tercios iguales ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Zona cliente — solo activa en modo Anotar
-            Box(modifier = Modifier.weight(1f)) {
+            // Tercio izquierdo — picker cliente (solo en modo Anotar)
+            Box(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                contentAlignment = Alignment.CenterStart
+            ) {
                 if (tipoMovimiento == com.kosking.app.scanner.TipoMovimiento.CARGO) {
                     PanelClientePicker(
                         clienteSeleccionado = clienteSeleccionado,
@@ -228,35 +231,41 @@ internal fun EscanerPanel(
                     )
                 }
             }
-            Button(
-                onClick = {
-                    when (tipoMovimiento) {
-                        com.kosking.app.scanner.TipoMovimiento.CARGO -> {
-                            val alerta = clienteSeleccionado != null &&
-                                (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
-                            if (alerta) mostrarAlertaCliente = true else onAnotar()
-                        }
-                        com.kosking.app.scanner.TipoMovimiento.VENTA -> onCobrar()
-                        com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> onCargarNuevo()
-                    }
-                },
-                enabled = !cargandoAnotacion && when (tipoMovimiento) {
-                    com.kosking.app.scanner.TipoMovimiento.CARGO -> tieneCliente
-                    com.kosking.app.scanner.TipoMovimiento.VENTA -> tieneItems
-                    com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> true
-                },
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                modifier = Modifier.height(42.dp)
+            // Tercio central — botón Continuar
+            Box(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                contentAlignment = Alignment.Center
             ) {
-                if (cargandoAnotacion) {
-                    CircularProgressIndicator(Modifier.size(14.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                } else {
-                    Text("Continuar", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = {
+                        when (tipoMovimiento) {
+                            com.kosking.app.scanner.TipoMovimiento.CARGO -> {
+                                val alerta = clienteSeleccionado != null &&
+                                    (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
+                                if (alerta) mostrarAlertaCliente = true else onAnotar()
+                            }
+                            com.kosking.app.scanner.TipoMovimiento.VENTA -> onCobrar()
+                            com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> onCargarNuevo()
+                        }
+                    },
+                    enabled = !cargandoAnotacion && when (tipoMovimiento) {
+                        com.kosking.app.scanner.TipoMovimiento.CARGO -> tieneCliente
+                        com.kosking.app.scanner.TipoMovimiento.VENTA -> tieneItems
+                        com.kosking.app.scanner.TipoMovimiento.CARGAR_NUEVO -> true
+                    },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                    modifier = Modifier.fillMaxWidth().height(42.dp)
+                ) {
+                    if (cargandoAnotacion) {
+                        CircularProgressIndicator(Modifier.size(14.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                    } else {
+                        Text("Continuar", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
                 }
             }
-            // Zona total — siempre presente y con ancho fijo
+            // Tercio derecho — total
             Box(
-                modifier = Modifier.width(88.dp),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Text(

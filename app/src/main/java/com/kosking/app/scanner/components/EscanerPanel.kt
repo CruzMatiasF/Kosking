@@ -33,12 +33,44 @@ internal fun EscanerPanel(
     onAgregarSugerencia: (ItemAnotado) -> Unit,
     onCambiarCantidad: (ItemAnotado, Int) -> Unit,
     onCobrar: () -> Unit,
+    onAnotar: () -> Unit,
+    onCargarNuevo: () -> Unit,
     onClienteSelected: (Cliente) -> Unit,
     onBusquedaChange: (String) -> Unit,
     onLimpiarCliente: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+    var mostrarAlertaCliente by remember { mutableStateOf(false) }
+
+    if (mostrarAlertaCliente && clienteSeleccionado != null) {
+        val cliente = clienteSeleccionado
+        AlertDialog(
+            onDismissRequest = { mostrarAlertaCliente = false },
+            title = { Text(if (!cliente.habilitado) "Cliente bloqueado" else "Atención: ${cliente.nombre}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        if (!cliente.habilitado) "${cliente.nombre} está bloqueado por el dueño."
+                        else "El dueño pidió que lo avises antes de anotar.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (cliente.notaInterna.isNotBlank()) {
+                        Text("\"${cliente.notaInterna}\"", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mostrarAlertaCliente = false; onAnotar() }) {
+                    Text("Anotar igual", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarAlertaCliente = false }) { Text("Cancelar") }
+            }
+        )
+    }
 
     val categorias = remember(productos) {
         productos.map { it.categoria.ifBlank { "Otros" } }.distinct().sorted()
@@ -201,6 +233,27 @@ internal fun EscanerPanel(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             if (tieneItems) {
+                Button(
+                    onClick = {
+                        val alerta = clienteSeleccionado != null &&
+                            (!clienteSeleccionado.habilitado || clienteSeleccionado.alertaEmpleado)
+                        if (alerta) mostrarAlertaCliente = true else onAnotar()
+                    },
+                    enabled = !cargandoAnotacion && tieneCliente,
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    if (cargandoAnotacion) {
+                        CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                    } else {
+                        Text(
+                            if (tieneCliente) "Anotar a ${clienteSeleccionado!!.nombre.split(" ").first()}"
+                            else "Anotar en cuenta (elegí cliente)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                }
                 OutlinedButton(
                     onClick = { onCobrar() },
                     modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -214,6 +267,14 @@ internal fun EscanerPanel(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+            }
+            OutlinedButton(
+                onClick = onCargarNuevo,
+                modifier = Modifier.fillMaxWidth().height(44.dp)
+            ) {
+                Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Cargar nuevo producto", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

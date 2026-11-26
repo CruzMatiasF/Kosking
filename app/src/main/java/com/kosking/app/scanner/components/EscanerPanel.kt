@@ -88,7 +88,9 @@ internal fun EscanerPanel(
                    else productos.filter { (it.categoria.ifBlank { "Otros" }) == cat }
                        .sortedByDescending { it.vecesUsado }
         if (busquedaCategoria.isBlank()) base
-        else base.filter { it.nombre.contains(busquedaCategoria, ignoreCase = true) }
+        else base.filter { prod ->
+            prod.nombre.split(" ").any { it.startsWith(busquedaCategoria, ignoreCase = true) }
+        }
     }
 
     val total = itemsAnotados.sumOf { it.precio * it.cantidad }

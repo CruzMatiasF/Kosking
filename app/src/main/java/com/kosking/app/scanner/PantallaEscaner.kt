@@ -222,21 +222,24 @@ fun PantallaEscaner(
         escanerVm.resetear()
     }
 
-    // ── Sheet confirmar ──
+    // ── Pantalla confirmar (pantalla completa superpuesta) ──
     val clienteConfirmar = escanerVm.clienteSeleccionado
     val esVenta = escanerVm.tipoMovimiento == TipoMovimiento.VENTA
     if (escanerVm.mostrarConfirmar && (esVenta || clienteConfirmar != null)) {
-        ConfirmarSheet(
-            cliente = clienteConfirmar,
-            items = escanerVm.itemsAnotados,
-            tipo = if (esVenta) "venta" else "cargo",
-            cargando = cargandoVm,
-            onConfirmar = {
-                if (esVenta) escanerVm.registrarVenta()
-                else escanerVm.confirmarAnotacion(clienteConfirmar!!)
-            },
-            onDismiss = { escanerVm.mostrarConfirmar = false }
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            PantallaConfirmar(
+                cliente = clienteConfirmar,
+                items = escanerVm.itemsAnotados,
+                tipo = if (esVenta) "venta" else "cargo",
+                cargando = cargandoVm,
+                onConfirmar = {
+                    if (esVenta) escanerVm.registrarVenta()
+                    else escanerVm.confirmarAnotacion(clienteConfirmar!!)
+                },
+                onCancelar = { escanerVm.mostrarConfirmar = false }
+            )
+        }
+        return
     }
 
     // ── Snackbar: éxito venta ──

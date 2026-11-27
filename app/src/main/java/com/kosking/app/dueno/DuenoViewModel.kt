@@ -396,7 +396,7 @@ class DuenoViewModel : ViewModel() {
             _cargando.value = true
             _error.value = null
             try {
-                val uid = auth.currentUser?.uid ?: run { onError(); return@launch }
+                val uid = auth.currentUser?.uid ?: run { android.util.Log.e("KOSKING", "agregarMovimientos: auth null"); onError(); return@launch }
                 val grupoId = java.util.UUID.randomUUID().toString()
                 val movs = items.map { (producto, monto, cantidad) ->
                     Movimiento(
@@ -416,6 +416,7 @@ class DuenoViewModel : ViewModel() {
                 FiadoRepository.upsertProductosBatch(_localId.value, items, productos.value)
                 onExito()
             } catch (e: Exception) {
+                android.util.Log.e("KOSKING", "agregarMovimientos falló: ${e.javaClass.simpleName} — ${e.message}")
                 CrashLogger.log(e, "agregarMovimientos dueno")
                 _error.value = "No se pudo guardar"
                 onError()

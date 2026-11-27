@@ -139,44 +139,30 @@ fun PantallaHistorialVentas(
 
         val pagerState = rememberPagerState(pageCount = { actividadPorDia.size })
         val scope = rememberCoroutineScope()
+        val (diaMs, _) = actividadPorDia[pagerState.currentPage]
 
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            val (diaMs, _) = actividadPorDia[pagerState.currentPage]
-            Row(
+            // ── Fecha del día seleccionado ──
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                IconButton(
-                    onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                    enabled = pagerState.currentPage < actividadPorDia.lastIndex
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Día anterior", Modifier.size(20.dp))
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        fmtDiaLong.format(Date(diaMs)).replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        "${pagerState.currentPage + 1} / ${actividadPorDia.size}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(
-                    onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                    enabled = pagerState.currentPage > 0
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, "Día siguiente", Modifier.size(20.dp))
-                }
+                Text(
+                    fmtDiaLong.format(Date(diaMs)).replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "${pagerState.currentPage + 1} / ${actividadPorDia.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             HorizontalDivider()
 
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { pageIndex ->
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { pageIndex ->
                 val (_, entradasDia) = actividadPorDia[pageIndex]
                 val totalVentasDia = entradasDia.filterIsInstance<EntradaActividad.EntradaVenta>().sumOf { it.venta.total }
                 val cantVentas = entradasDia.count { it is EntradaActividad.EntradaVenta }
@@ -293,6 +279,35 @@ fun PantallaHistorialVentas(
                         }
                         HorizontalDivider(thickness = 0.5.dp)
                     }
+                }
+            }
+
+            // ── Navegación de días (abajo) ──
+            HorizontalDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(
+                    onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
+                    enabled = pagerState.currentPage < actividadPorDia.lastIndex
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Día anterior")
+                }
+                Text(
+                    "Cambiar día",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(
+                    onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
+                    enabled = pagerState.currentPage > 0
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, "Día siguiente")
                 }
             }
         }

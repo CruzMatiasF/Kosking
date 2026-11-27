@@ -591,7 +591,7 @@ class DuenoViewModel : ViewModel() {
         return usuario.localId
     }
 
-    fun guardarProducto(nombre: String, precio: Double, productoId: String?, categoria: String = "", imagenUri: Uri? = null, codigoBarras: String = "", presentacion: String = "", esPorPeso: Boolean = false, onExito: () -> Unit = {}) {
+    fun guardarProducto(nombre: String, precio: Double, productoId: String?, categoria: String = "", imagenUri: Uri? = null, codigoBarras: String = "", presentacion: String = "", unidadVenta: String = "", onExito: () -> Unit = {}) {
         viewModelScope.launch {
             _cargando.value = true
             _error.value = null
@@ -603,9 +603,9 @@ class DuenoViewModel : ViewModel() {
                     catch (e: Exception) { CrashLogger.log(e, "subirImagenProducto"); "" }
                 } else ""
                 if (productoId != null) {
-                    FiadoRepository.editarProducto(productoId, nombre, precio, categoria, imagenUrl, codigoBarras, presentacion, esPorPeso)
+                    FiadoRepository.editarProducto(productoId, nombre, precio, categoria, imagenUrl, codigoBarras, presentacion, unidadVenta)
                 } else {
-                    FiadoRepository.upsertProducto(localId, nombre, precio, categoria, imagenUrl, targetId, codigoBarras, presentacion, esPorPeso)
+                    FiadoRepository.upsertProducto(localId, nombre, precio, categoria, imagenUrl, targetId, codigoBarras, presentacion, unidadVenta)
                     try { FiadoRepository.upsertProductoGlobal(nombre) }
                     catch (e: Exception) { CrashLogger.log(e, "upsertProductoGlobal") }
                 }
@@ -619,18 +619,18 @@ class DuenoViewModel : ViewModel() {
         }
     }
 
-    fun guardarCategoria(nombre: String, esPorPeso: Boolean, oldNombre: String?) {
+    fun guardarCategoria(nombre: String, unidadVenta: String, oldNombre: String?) {
         viewModelScope.launch {
             try {
                 val local = localData.value ?: return@launch
                 val lista = local.categorias.toMutableList()
                 if (oldNombre != null) {
                     val idx = lista.indexOfFirst { it.nombre == oldNombre }
-                    if (idx >= 0) lista[idx] = CategoriaLocal(nombre, esPorPeso)
-                    else lista.add(CategoriaLocal(nombre, esPorPeso))
+                    if (idx >= 0) lista[idx] = CategoriaLocal(nombre, unidadVenta)
+                    else lista.add(CategoriaLocal(nombre, unidadVenta))
                 } else {
                     if (lista.none { it.nombre.equals(nombre, ignoreCase = true) })
-                        lista.add(CategoriaLocal(nombre, esPorPeso))
+                        lista.add(CategoriaLocal(nombre, unidadVenta))
                 }
                 FiadoRepository.actualizarLocal(local.copy(categorias = lista))
             } catch (e: Exception) {
@@ -657,7 +657,7 @@ class DuenoViewModel : ViewModel() {
             try {
                 cambios.forEach { (productoId, nuevoPrecio) ->
                     val prod = productos.value.find { it.id == productoId } ?: return@forEach
-                    FiadoRepository.editarProducto(productoId, prod.nombre, nuevoPrecio, prod.categoria, prod.imagenUrl, prod.codigoBarras, prod.presentacion)
+                    FiadoRepository.editarProducto(productoId, prod.nombre, nuevoPrecio, prod.categoria, prod.imagenUrl, prod.codigoBarras, prod.presentacion, prod.unidadVenta)
                 }
                 onExito()
             } catch (e: Exception) {

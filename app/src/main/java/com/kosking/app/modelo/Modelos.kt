@@ -22,7 +22,7 @@ data class HorarioDia(
 @Immutable
 data class CategoriaLocal(
     val nombre: String = "",
-    val esPorPeso: Boolean = false
+    val unidadVenta: String = ""
 )
 
 @Immutable
@@ -92,8 +92,11 @@ data class Producto(
     val imagenUrl: String = "",
     val codigoBarras: String = "",
     val presentacion: String = "",
-    val esPorPeso: Boolean = false
+    val unidadVenta: String = ""
 )
+
+val Producto.esPorPeso: Boolean get() = unidadVenta == "100g" || unidadVenta == "1kg"
+val Producto.divisorPeso: Double get() = if (unidadVenta == "1kg") 1000.0 else 100.0
 
 @Immutable
 data class Venta(

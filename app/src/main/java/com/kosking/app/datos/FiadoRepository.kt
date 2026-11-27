@@ -363,7 +363,7 @@ object FiadoRepository {
         batch.commit().await()
     }
 
-    suspend fun upsertProducto(localId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", productoId: String? = null, codigoBarras: String = "", presentacion: String = "", esPorPeso: Boolean = false) {
+    suspend fun upsertProducto(localId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", productoId: String? = null, codigoBarras: String = "", presentacion: String = "", unidadVenta: String = "") {
         if (nombre.isBlank()) return
         val snap = db.collection("productos")
             .whereEqualTo("localId", localId)
@@ -373,12 +373,12 @@ object FiadoRepository {
         if (snap.isEmpty) {
             val ref = if (productoId != null) db.collection("productos").document(productoId)
                       else db.collection("productos").document()
-            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1, categoria = categoria, imagenUrl = imagenUrl, codigoBarras = codigoBarras, presentacion = presentacion, esPorPeso = esPorPeso)).await()
+            ref.set(Producto(id = ref.id, localId = localId, nombre = nombre, ultimoPrecio = precio, vecesUsado = 1, categoria = categoria, imagenUrl = imagenUrl, codigoBarras = codigoBarras, presentacion = presentacion, unidadVenta = unidadVenta)).await()
         } else {
             val updates = mutableMapOf<String, Any>(
                 "ultimoPrecio" to precio,
                 "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1),
-                "esPorPeso" to esPorPeso
+                "unidadVenta" to unidadVenta
             )
             if (categoria.isNotBlank()) updates["categoria"] = categoria
             if (imagenUrl.isNotBlank()) updates["imagenUrl"] = imagenUrl
@@ -388,8 +388,8 @@ object FiadoRepository {
         }
     }
 
-    suspend fun editarProducto(productoId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", codigoBarras: String = "", presentacion: String = "", esPorPeso: Boolean = false) {
-        val updates = mutableMapOf<String, Any>("nombre" to nombre, "ultimoPrecio" to precio, "categoria" to categoria, "presentacion" to presentacion, "esPorPeso" to esPorPeso)
+    suspend fun editarProducto(productoId: String, nombre: String, precio: Double, categoria: String = "", imagenUrl: String = "", codigoBarras: String = "", presentacion: String = "", unidadVenta: String = "") {
+        val updates = mutableMapOf<String, Any>("nombre" to nombre, "ultimoPrecio" to precio, "categoria" to categoria, "presentacion" to presentacion, "unidadVenta" to unidadVenta)
         if (imagenUrl.isNotBlank()) updates["imagenUrl"] = imagenUrl
         if (codigoBarras.isNotBlank()) updates["codigoBarras"] = codigoBarras
         db.collection("productos").document(productoId).update(updates).await()

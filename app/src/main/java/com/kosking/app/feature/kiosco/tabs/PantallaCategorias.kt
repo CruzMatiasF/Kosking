@@ -24,7 +24,7 @@ import com.kosking.app.modelo.CategoriaLocal
 @Composable
 internal fun PantallaCategorias(
     categorias: List<CategoriaLocal>,
-    onGuardar: (nombre: String, esPorPeso: Boolean, oldNombre: String?) -> Unit,
+    onGuardar: (nombre: String, unidadVenta: String, oldNombre: String?) -> Unit,
     onEliminar: (nombre: String) -> Unit,
     onVolver: () -> Unit
 ) {
@@ -36,8 +36,8 @@ internal fun PantallaCategorias(
     if (mostrarDialog) {
         DialogCategoria(
             categoria = editando,
-            onGuardar = { nombre, esPorPeso ->
-                onGuardar(nombre, esPorPeso, editando?.nombre)
+            onGuardar = { nombre, unidadVenta ->
+                onGuardar(nombre, unidadVenta, editando?.nombre)
                 mostrarDialog = false
                 editando = null
             },
@@ -142,7 +142,11 @@ private fun CategoriaCard(
                 onClick = {},
                 label = {
                     Text(
-                        if (categoria.esPorPeso) "Por peso" else "Unidad",
+                        when (categoria.unidadVenta) {
+                            "100g" -> "Por 100g"
+                            "1kg" -> "Por kg"
+                            else -> "Unidad"
+                        },
                         style = MaterialTheme.typography.labelSmall
                     )
                 },
@@ -155,12 +159,12 @@ private fun CategoriaCard(
 @Composable
 private fun DialogCategoria(
     categoria: CategoriaLocal?,
-    onGuardar: (String, Boolean) -> Unit,
+    onGuardar: (String, String) -> Unit,
     onEliminar: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
     var nombre by remember(categoria) { mutableStateOf(categoria?.nombre ?: "") }
-    var esPorPeso by remember(categoria) { mutableStateOf(categoria?.esPorPeso ?: false) }
+    var unidadVenta by remember(categoria) { mutableStateOf(categoria?.unidadVenta ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -177,14 +181,19 @@ private fun DialogCategoria(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
-                        selected = !esPorPeso,
-                        onClick = { esPorPeso = false },
+                        selected = unidadVenta == "",
+                        onClick = { unidadVenta = "" },
                         label = { Text("Unidad") }
                     )
                     FilterChip(
-                        selected = esPorPeso,
-                        onClick = { esPorPeso = true },
-                        label = { Text("Por peso") }
+                        selected = unidadVenta == "100g",
+                        onClick = { unidadVenta = "100g" },
+                        label = { Text("Por 100g") }
+                    )
+                    FilterChip(
+                        selected = unidadVenta == "1kg",
+                        onClick = { unidadVenta = "1kg" },
+                        label = { Text("Por kg") }
                     )
                 }
                 if (onEliminar != null) {
@@ -201,7 +210,7 @@ private fun DialogCategoria(
         },
         confirmButton = {
             Button(
-                onClick = { if (nombre.isNotBlank()) onGuardar(nombre.trim(), esPorPeso) },
+                onClick = { if (nombre.isNotBlank()) onGuardar(nombre.trim(), unidadVenta) },
                 enabled = nombre.isNotBlank()
             ) { Text("Guardar") }
         },

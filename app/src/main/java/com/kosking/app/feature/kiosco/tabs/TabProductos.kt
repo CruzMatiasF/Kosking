@@ -54,7 +54,7 @@ fun TabProductos(
     esEmpleado: Boolean = false,
     vm: DuenoViewModel? = null,
     onAbrirEscanerCargar: (() -> Unit)? = null,
-    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, esPorPeso: Boolean, onExito: () -> Unit) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, unidadVenta: String, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
 ) {
@@ -69,7 +69,7 @@ fun TabProductos(
     if (mostrarCategorias) {
         PantallaCategorias(
             categorias = categorias,
-            onGuardar = { nombre, esPorPeso, oldNombre -> vm?.guardarCategoria(nombre, esPorPeso, oldNombre) },
+            onGuardar = { nombre, unidadVenta, oldNombre -> vm?.guardarCategoria(nombre, unidadVenta, oldNombre) },
             onEliminar = { vm?.eliminarCategoria(it) },
             onVolver = { mostrarCategorias = false }
         )
@@ -116,8 +116,8 @@ fun TabProductos(
             categorias = categorias,
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
-            onGuardar = { nombre, precio, categoria, imagenUri, presentacion, codigoBarras, esPorPeso ->
-                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion, codigoBarras, esPorPeso) {
+            onGuardar = { nombre, precio, categoria, imagenUri, presentacion, codigoBarras, unidadVenta ->
+                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion, codigoBarras, unidadVenta) {
                     mostrarDialog = false
                     editando = null
                 }
@@ -424,6 +424,13 @@ private fun ProductoCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (prod.presentacion.isNotBlank()) {
+                    Text(
+                        prod.presentacion,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
                     if (prod.ultimoPrecio > 0) "$${"%.0f".format(prod.ultimoPrecio)}" else "Sin precio",
                     style = MaterialTheme.typography.titleMedium,
@@ -457,11 +464,20 @@ private fun ProductoListItem(
     ListItem(
         headlineContent = { Text(prod.nombre, fontWeight = FontWeight.Medium) },
         supportingContent = {
-            Text(
-                "Usado ${prod.vecesUsado} ${if (prod.vecesUsado == 1) "vez" else "veces"}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column {
+                if (prod.presentacion.isNotBlank()) {
+                    Text(
+                        prod.presentacion,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    "Usado ${prod.vecesUsado} ${if (prod.vecesUsado == 1) "vez" else "veces"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         leadingContent = if (prod.imagenUrl.isNotBlank()) ({
             AsyncImage(

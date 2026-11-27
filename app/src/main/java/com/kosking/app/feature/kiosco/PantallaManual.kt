@@ -32,6 +32,8 @@ import coil.request.ImageRequest
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Producto
+import com.kosking.app.modelo.divisorPeso
+import com.kosking.app.modelo.esPorPeso
 import com.kosking.app.scanner.PantallaConfirmar
 import kotlinx.coroutines.launch
 
@@ -138,7 +140,7 @@ fun PantallaManual(
                 TextButton(onClick = {
                     val gramos = gramosTexto.toIntOrNull() ?: 0
                     if (gramos > 0) {
-                        val precioTotal = prod.ultimoPrecio * gramos / 100.0
+                        val precioTotal = prod.ultimoPrecio * gramos / prod.divisorPeso
                         val idx = carrito.items.indexOfFirst { it.productoId == prod.id }
                         updateCarrito {
                             if (idx >= 0)

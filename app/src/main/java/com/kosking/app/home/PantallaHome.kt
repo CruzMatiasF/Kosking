@@ -295,8 +295,8 @@ fun PantallaHome(
                             vm = duenoVm,
                             onBuscarGlobal = { query -> duenoVm.buscarProductosGlobales(query) },
                             onAbrirEscanerCargar = { escanerModoInicial = TipoMovimiento.CARGAR_NUEVO; vistaDueno = NavDueno.Panel; escanerDesdeWidget = false; tabNav = TabNav.ESCANER },
-                            onGuardar = { nombre, precio, _, productoId, uri, presentacion, codigoBarras, onExito ->
-                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, codigoBarras = codigoBarras, presentacion = presentacion, onExito = onExito)
+                            onGuardar = { nombre, precio, _, productoId, uri, presentacion, codigoBarras, esPorPeso, onExito ->
+                                duenoVm.guardarProducto(nombre, precio, productoId, "", uri, codigoBarras = codigoBarras, presentacion = presentacion, esPorPeso = esPorPeso, onExito = onExito)
                             },
                             onEliminar = { duenoVm.eliminarProducto(it) },
                             onVolver = { vistaDueno = NavDueno.Panel }

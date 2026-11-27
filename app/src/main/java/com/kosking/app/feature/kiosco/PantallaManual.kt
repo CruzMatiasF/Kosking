@@ -86,7 +86,16 @@ fun PantallaManual(
         else clientes.filter { it.nombre.contains(carrito.busquedaCliente, ignoreCase = true) }.take(5)
     }
 
+    var productoParaGramos by remember { mutableStateOf<Producto?>(null) }
+    var gramosTexto by remember { mutableStateOf("") }
+
     fun agregar(prod: Producto) {
+        if (prod.esPorPeso) {
+            val existente = carrito.items.firstOrNull { it.productoId == prod.id }
+            gramosTexto = if (existente != null && existente.gramos > 0) "${existente.gramos}" else ""
+            productoParaGramos = prod
+            return
+        }
         val idx = carrito.items.indexOfFirst { it.productoId == prod.id }
         updateCarrito {
             if (idx >= 0)
@@ -104,6 +113,49 @@ fun PantallaManual(
                 duration = SnackbarDuration.Long
             )
         }
+    }
+
+    // Dialog gramos para productos por peso
+    productoParaGramos?.let { prod ->
+        AlertDialog(
+            onDismissRequest = { productoParaGramos = null; gramosTexto = "" },
+            title = { Text(prod.nombre) },
+            text = {
+                OutlinedTextField(
+                    value = gramosTexto,
+                    onValueChange = { gramosTexto = it.filter { c -> c.isDigit() } },
+                    label = { Text("Cantidad") },
+                    suffix = { Text("g") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val gramos = gramosTexto.toIntOrNull() ?: 0
+                    if (gramos > 0) {
+                        val precioTotal = prod.ultimoPrecio * gramos / 100.0
+                        val idx = carrito.items.indexOfFirst { it.productoId == prod.id }
+                        updateCarrito {
+                            if (idx >= 0)
+                                copy(items = items.mapIndexed { i, it ->
+                                    if (i == idx) it.copy(precio = precioTotal, gramos = gramos) else it
+                                })
+                            else
+                                copy(items = items + ItemAnotado(prod.nombre, precioTotal, prod.id, 1, gramos))
+                        }
+                        productoParaGramos = null; gramosTexto = ""
+                    }
+                }) { Text("Listo") }
+            },
+            dismissButton = {
+                TextButton(onClick = { productoParaGramos = null; gramosTexto = "" }) { Text("Cancelar") }
+            }
+        )
     }
 
     // Todo el flujo vive dentro del mismo Dialog para garantizar foco y toques correctos
@@ -511,12 +563,41 @@ fun PantallaManual(
                                                     .weight(1f)
                                                     .padding(end = 8.dp)
                                             )
+                                            val itemIdx = carrito.items.indexOf(item)
+                                            if (item.gramos > 0) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.width(56.dp),
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            updateCarrito {
+                                                                copy(items = items.filterIndexed { j, _ -> j != itemIdx })
+                                                            }
+                                                        },
+                                                        modifier = Modifier.size(20.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.Delete, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.error)
+                                                    }
+                                                    Text(
+                                                        "${item.gramos}g",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        modifier = Modifier
+                                                            .padding(horizontal = 2.dp)
+                                                            .clickable {
+                                                                val prod = productos.find { it.id == item.productoId }
+                                                                if (prod != null) { gramosTexto = "${item.gramos}"; productoParaGramos = prod }
+                                                            }
+                                                    )
+                                                }
+                                            } else {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier.width(36.dp),
                                                 horizontalArrangement = Arrangement.Center
                                             ) {
-                                                val itemIdx = carrito.items.indexOf(item)
                                                 IconButton(
                                                     onClick = {
                                                         updateCarrito {
@@ -559,6 +640,7 @@ fun PantallaManual(
                                                     Icon(Icons.Default.Add, null, Modifier.size(12.dp))
                                                 }
                                             }
+                                            } // end else
                                             Text(
                                                 "$${"%.0f".format(item.precio * item.cantidad)}",
                                                 style = MaterialTheme.typography.bodySmall,

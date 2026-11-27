@@ -52,7 +52,7 @@ internal fun DialogProducto(
     categoriasExistentes: List<String>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
-    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String, esPorPeso: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -77,7 +77,7 @@ internal fun PantallaProducto(
     categoriasExistentes: List<String>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String>,
-    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String, esPorPeso: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -90,6 +90,7 @@ internal fun PantallaProducto(
     var categoria by remember(producto) { mutableStateOf(producto?.categoria ?: "") }
     var presentacion by remember(producto) { mutableStateOf(producto?.presentacion ?: "") }
     var codigoBarras by remember(producto) { mutableStateOf(producto?.codigoBarras ?: "") }
+    var esPorPeso by remember(producto) { mutableStateOf(producto?.esPorPeso ?: false) }
     var busqueda by remember { mutableStateOf(producto?.nombre ?: "") }
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var sugerencias by remember { mutableStateOf(emptyList<ItemCatalogo>()) }
@@ -143,6 +144,7 @@ internal fun PantallaProducto(
         categoria != (producto?.categoria ?: "") ||
         presentacion != (producto?.presentacion ?: "") ||
         codigoBarras != (producto?.codigoBarras ?: "") ||
+        esPorPeso != (producto?.esPorPeso ?: false) ||
         imagenUri != null
 
     var mostrarDialogDescartar by remember { mutableStateOf(false) }
@@ -155,7 +157,7 @@ internal fun PantallaProducto(
             title = { Text("¿Descartar cambios?") },
             text = { Text("Tenés cambios sin guardar.") },
             confirmButton = {
-                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim(), codigoBarras.trim()) }) {
+                Button(onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim(), codigoBarras.trim(), esPorPeso) }) {
                     Text("Guardar")
                 }
             },
@@ -212,7 +214,7 @@ internal fun PantallaProducto(
         bottomBar = {
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Button(
-                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim(), codigoBarras.trim()) },
+                    onClick = { onGuardar(nombre.trim(), precioDouble, categoria, imagenUri, presentacion.trim(), codigoBarras.trim(), esPorPeso) },
                     enabled = puedeGuardar,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -415,6 +417,23 @@ internal fun PantallaProducto(
                         )
                     }
                 }
+            }
+
+            // ── Se vende por peso ─────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Se vende por peso", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        if (esPorPeso) "El precio es por 100g" else "El precio es por unidad",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(checked = esPorPeso, onCheckedChange = { esPorPeso = it })
             }
 
             // ── Categoría ────────────────────────────────────────────────

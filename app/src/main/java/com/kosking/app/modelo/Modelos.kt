@@ -8,7 +8,8 @@ data class ItemAnotado(
     val nombre: String,
     val precio: Double,
     val productoId: String? = null,
-    val cantidad: Int = 1
+    val cantidad: Int = 1,
+    val gramos: Int = 0
 )
 
 @Immutable
@@ -83,7 +84,8 @@ data class Producto(
     val categoria: String = "",
     val imagenUrl: String = "",
     val codigoBarras: String = "",
-    val presentacion: String = ""
+    val presentacion: String = "",
+    val esPorPeso: Boolean = false
 )
 
 @Immutable

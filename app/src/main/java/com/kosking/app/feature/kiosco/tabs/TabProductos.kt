@@ -53,7 +53,7 @@ fun TabProductos(
     esEmpleado: Boolean = false,
     vm: DuenoViewModel? = null,
     onAbrirEscanerCargar: (() -> Unit)? = null,
-    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, onExito: () -> Unit) -> Unit,
+    onGuardar: (nombre: String, precio: Double, categoria: String, productoId: String?, imagenUri: Uri?, presentacion: String, codigoBarras: String, esPorPeso: Boolean, onExito: () -> Unit) -> Unit,
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
 ) {
@@ -99,8 +99,8 @@ fun TabProductos(
             },
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
-            onGuardar = { nombre, precio, categoria, imagenUri, presentacion, codigoBarras ->
-                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion, codigoBarras) {
+            onGuardar = { nombre, precio, categoria, imagenUri, presentacion, codigoBarras, esPorPeso ->
+                onGuardar(nombre, precio, categoria, editando?.id, imagenUri, presentacion, codigoBarras, esPorPeso) {
                     mostrarDialog = false
                     editando = null
                 }

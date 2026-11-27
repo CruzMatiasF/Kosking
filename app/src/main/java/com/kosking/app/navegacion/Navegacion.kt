@@ -373,7 +373,7 @@ fun KoskingNavHost(
                         productos = productosEmpleado,
                         cargando = cargandoEmpleado,
                         esEmpleado = true,
-                        onGuardar = { _, _, _, _, _, _, _, _ -> },
+                        onGuardar = { _, _, _, _, _, _, _, _, _ -> },
                         onEliminar = {},
                         onVolver = { mostrarProductosEmpleado = false }
                     )

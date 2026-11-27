@@ -89,13 +89,13 @@ internal fun LazyListScope.seccionHoy(
                 )
                 HorizontalDivider()
             }
-            TextButton(
-                onClick = onVerTodasVentas,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                val label = if (ventas.size > 3) "Ver todos (${ventas.size})" else "Ver historial"
-                Text(label, style = MaterialTheme.typography.labelMedium)
-            }
+        }
+        TextButton(
+            onClick = onVerTodasVentas,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val label = if (ventas.size > 3) "Ver todos (${ventas.size})" else "Ver historial"
+            Text(label, style = MaterialTheme.typography.labelMedium)
         }
         HorizontalDivider()
     }

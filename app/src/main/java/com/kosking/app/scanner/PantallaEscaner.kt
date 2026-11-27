@@ -239,12 +239,12 @@ fun PantallaEscaner(
     var permiso by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> permiso = granted }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(modoInicial) {
         permiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         if (!permiso) launcher.launch(Manifest.permission.CAMERA)
         escanerVm.resetear()
-        if (modoInicial != TipoMovimiento.VENTA) escanerVm.tipoMovimiento = modoInicial
+        escanerVm.tipoMovimiento = modoInicial
     }
 
     var mostrarDialogoSalir by remember { mutableStateOf(false) }

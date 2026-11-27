@@ -276,8 +276,13 @@ fun PantallaHome(
                     }
                     is NavDueno.HistorialVentas -> {
                         val ventasLocal by duenoVm.ventasLocal.collectAsState()
+                        val movimientosLocal by duenoVm.movimientosLocal.collectAsState()
+                        val clientes by duenoVm.clientes.collectAsState()
+                        val clienteMap = remember(clientes) { clientes.associateBy { it.id } }
                         PantallaHistorialVentas(
                             ventas = ventasLocal,
+                            movimientos = movimientosLocal,
+                            clienteMap = clienteMap,
                             onVolver = { vistaDueno = NavDueno.Panel }
                         )
                     }

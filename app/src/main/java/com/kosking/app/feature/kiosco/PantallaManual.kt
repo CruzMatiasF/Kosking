@@ -33,7 +33,6 @@ import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.ItemAnotado
 import com.kosking.app.modelo.Producto
 import com.kosking.app.scanner.PantallaConfirmar
-import com.kosking.app.scanner.components.MovimientoExitosoScreen
 import kotlinx.coroutines.launch
 
 enum class ModoManual { VENDER, ANOTAR }
@@ -57,15 +56,14 @@ fun PantallaManual(
     cargando: Boolean,
     onConfirmarVenta: (items: List<ItemAnotado>, onExito: () -> Unit, onError: () -> Unit) -> Unit,
     onConfirmarAnotacion: (clienteId: String, items: List<ItemAnotado>, onExito: () -> Unit, onError: () -> Unit) -> Unit,
+    onVentaExitosa: (total: Double) -> Unit = {},
+    onAnotacionExitosa: (clienteNombre: String) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     var modoActual by remember { mutableStateOf(modo) }
     var carritos by remember { mutableStateOf(listOf(CarritoManual(id = 1))) }
     var carritoActivoIdx by remember { mutableStateOf(0) }
     var mostrarConfirmar by remember { mutableStateOf(false) }
-    var exitoItems by remember { mutableStateOf<List<ItemAnotado>>(emptyList()) }
-    var exitoCliente by remember { mutableStateOf<Cliente?>(null) }
-    var mostrarExito by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -117,18 +115,6 @@ fun PantallaManual(
             decorFitsSystemWindows = false
         )
     ) {
-        // ── Pantalla éxito ──────────────────────────────────────────────────
-        if (mostrarExito) {
-            MovimientoExitosoScreen(
-                titulo = if (modoActual == ModoManual.VENDER) "Venta registrada"
-                         else "Anotado para ${exitoCliente?.nombre ?: ""}",
-                items = exitoItems,
-                onInicio = onDismiss,
-                onCerrar = onDismiss
-            )
-            return@Dialog
-        }
-
         // ── Pantalla confirmar ──────────────────────────────────────────────
         if (mostrarConfirmar) {
             PantallaConfirmar(
@@ -141,19 +127,20 @@ fun PantallaManual(
                         val itemsConfirmados = carrito.items
                         onConfirmarVenta(itemsConfirmados, {
                             mostrarConfirmar = false
+                            val total = itemsConfirmados.sumOf { it.precio * it.cantidad }
                             if (carritos.size > 1) {
                                 val idx = carritoActivoIdx
                                 carritos = carritos.filterIndexed { i, _ -> i != idx }
                                 carritoActivoIdx = minOf(idx, carritos.size - 1)
                                 scope.launch {
                                     snackbarHostState.showSnackbar(
-                                        "Venta registrada",
+                                        "Venta registrada — $${"%.0f".format(total)}",
                                         duration = SnackbarDuration.Short
                                     )
                                 }
                             } else {
-                                exitoItems = itemsConfirmados
-                                mostrarExito = true
+                                onVentaExitosa(total)
+                                onDismiss()
                             }
                         }, onErr)
                     } else {
@@ -172,9 +159,8 @@ fun PantallaManual(
                                     )
                                 }
                             } else {
-                                exitoItems = itemsConfirmados
-                                exitoCliente = cliente
-                                mostrarExito = true
+                                onAnotacionExitosa(cliente.nombre)
+                                onDismiss()
                             }
                         }, onErr)
                     }

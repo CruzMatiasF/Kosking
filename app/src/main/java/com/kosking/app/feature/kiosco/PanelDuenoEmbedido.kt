@@ -104,6 +104,13 @@ fun PanelDuenoEmbedido(
         vm.clearError()
     }
 
+    var mensajeExito by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(mensajeExito) {
+        val msg = mensajeExito ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short)
+        mensajeExito = null
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         bottomBar = bottomBar,
@@ -179,6 +186,12 @@ fun PanelDuenoEmbedido(
                     onExito = onExito,
                     onError = onError
                 )
+            },
+            onVentaExitosa = { total ->
+                mensajeExito = "Venta registrada — $${"%.0f".format(total)}"
+            },
+            onAnotacionExitosa = { nombre ->
+                mensajeExito = "Anotado para $nombre"
             },
             onDismiss = { modoManual = null }
         )

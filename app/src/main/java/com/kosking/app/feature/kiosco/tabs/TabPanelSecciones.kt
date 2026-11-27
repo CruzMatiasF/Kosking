@@ -65,7 +65,7 @@ internal fun LazyListScope.seccionHoy(
             }
         } else {
             val fmtHora = remember { SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
-            ventas.take(5).forEach { venta ->
+            ventas.take(3).forEach { venta ->
                 val resumenItems = venta.items.take(3).joinToString(", ")
                     .let { if (venta.items.size > 3) "$it…" else it }
                 ListItem(
@@ -89,13 +89,12 @@ internal fun LazyListScope.seccionHoy(
                 )
                 HorizontalDivider()
             }
-            if (ventas.size > 5) {
-                TextButton(
-                    onClick = onVerTodasVentas,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Ver todas (${ventas.size})", style = MaterialTheme.typography.labelMedium)
-                }
+            TextButton(
+                onClick = onVerTodasVentas,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val label = if (ventas.size > 3) "Ver todos (${ventas.size})" else "Ver historial"
+                Text(label, style = MaterialTheme.typography.labelMedium)
             }
         }
         HorizontalDivider()

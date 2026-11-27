@@ -375,6 +375,7 @@ class DuenoViewModel : ViewModel() {
                 )
                 onExito()
             } catch (e: Exception) {
+                android.util.Log.e("KOSKING", "registrarVenta falló: ${e.javaClass.simpleName} — ${e.message}")
                 CrashLogger.log(e, "registrarVenta")
                 _error.value = "No se pudo registrar la venta"
                 onError()
@@ -412,11 +413,21 @@ class DuenoViewModel : ViewModel() {
                         visitante = visitante
                     )
                 }
-                FiadoRepository.agregarMovimientos(movs)
-                FiadoRepository.upsertProductosBatch(_localId.value, items, productos.value)
+                try {
+                    FiadoRepository.agregarMovimientos(movs)
+                } catch (e: Exception) {
+                    android.util.Log.e("KOSKING", "FALLO en agregarMovimientos (batch movs+cliente): ${e.javaClass.simpleName} — ${e.message}")
+                    throw e
+                }
+                try {
+                    FiadoRepository.upsertProductosBatch(_localId.value, items, productos.value)
+                } catch (e: Exception) {
+                    android.util.Log.e("KOSKING", "FALLO en upsertProductosBatch: ${e.javaClass.simpleName} — ${e.message}")
+                    throw e
+                }
                 onExito()
             } catch (e: Exception) {
-                android.util.Log.e("KOSKING", "agregarMovimientos falló: ${e.javaClass.simpleName} — ${e.message}")
+                android.util.Log.e("KOSKING", "agregarMovimientos falló (outer catch): ${e.javaClass.simpleName} — ${e.message}")
                 CrashLogger.log(e, "agregarMovimientos dueno")
                 _error.value = "No se pudo guardar"
                 onError()

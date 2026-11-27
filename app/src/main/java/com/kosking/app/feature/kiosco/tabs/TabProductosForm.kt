@@ -39,6 +39,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
 import com.kosking.app.datos.ItemCatalogo
+import com.kosking.app.modelo.CategoriaLocal
 import com.kosking.app.modelo.Producto
 import com.kosking.app.scanner.components.CamaraEscaner
 import kotlinx.coroutines.delay
@@ -49,7 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Composable
 internal fun DialogProducto(
     producto: Producto?,
-    categoriasExistentes: List<String>,
+    categorias: List<CategoriaLocal>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String> = { emptyList() },
     onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String, esPorPeso: Boolean) -> Unit,
@@ -61,7 +62,7 @@ internal fun DialogProducto(
     ) {
         PantallaProducto(
             producto = producto,
-            categoriasExistentes = categoriasExistentes,
+            categorias = categorias,
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
             onGuardar = onGuardar,
@@ -74,7 +75,7 @@ internal fun DialogProducto(
 @Composable
 internal fun PantallaProducto(
     producto: Producto?,
-    categoriasExistentes: List<String>,
+    categorias: List<CategoriaLocal>,
     cargando: Boolean,
     onBuscarGlobal: suspend (String) -> List<String>,
     onGuardar: (nombre: String, precio: Double, categoria: String, imagenUri: Uri?, presentacion: String, codigoBarras: String, esPorPeso: Boolean) -> Unit,
@@ -454,15 +455,16 @@ internal fun PantallaProducto(
                         }
                     )
                 }
-                val predeterminadas = listOf("Gaseosas", "Snacks", "Lácteos", "Fiambre", "Cigarrillos", "Panificados", "Almacén", "Limpieza", "Otros")
-                val todasDisponibles = (predeterminadas + categoriasExistentes)
-                    .distinct()
-                    .filter { it != categoria }
+                val disponibles = categorias.filter { it.nombre != categoria }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(todasDisponibles) { cat ->
+                    items(disponibles, key = { it.nombre }) { cat ->
                         SuggestionChip(
-                            onClick = { categoria = cat; nuevaCategoria = ""; mostrarNuevaCategoria = false },
-                            label = { Text(cat, style = MaterialTheme.typography.labelMedium) }
+                            onClick = {
+                                categoria = cat.nombre
+                                esPorPeso = cat.esPorPeso
+                                nuevaCategoria = ""; mostrarNuevaCategoria = false
+                            },
+                            label = { Text(cat.nombre, style = MaterialTheme.typography.labelMedium) }
                         )
                     }
                 }

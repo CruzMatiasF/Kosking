@@ -9,6 +9,7 @@ import com.kosking.app.datos.FiadoRepository
 import com.kosking.app.modelo.Cliente
 import com.kosking.app.modelo.Empleado
 import com.kosking.app.modelo.ItemAnotado
+import com.kosking.app.modelo.CategoriaLocal
 import com.kosking.app.modelo.Local
 import com.kosking.app.modelo.Movimiento
 import com.kosking.app.modelo.Producto
@@ -614,6 +615,39 @@ class DuenoViewModel : ViewModel() {
                 _error.value = "No se pudo guardar el producto"
             } finally {
                 _cargando.value = false
+            }
+        }
+    }
+
+    fun guardarCategoria(nombre: String, esPorPeso: Boolean, oldNombre: String?) {
+        viewModelScope.launch {
+            try {
+                val local = localData.value ?: return@launch
+                val lista = local.categorias.toMutableList()
+                if (oldNombre != null) {
+                    val idx = lista.indexOfFirst { it.nombre == oldNombre }
+                    if (idx >= 0) lista[idx] = CategoriaLocal(nombre, esPorPeso)
+                    else lista.add(CategoriaLocal(nombre, esPorPeso))
+                } else {
+                    if (lista.none { it.nombre.equals(nombre, ignoreCase = true) })
+                        lista.add(CategoriaLocal(nombre, esPorPeso))
+                }
+                FiadoRepository.actualizarLocal(local.copy(categorias = lista))
+            } catch (e: Exception) {
+                CrashLogger.log(e, "guardarCategoria")
+                _error.value = "No se pudo guardar la categoría"
+            }
+        }
+    }
+
+    fun eliminarCategoria(nombre: String) {
+        viewModelScope.launch {
+            try {
+                val local = localData.value ?: return@launch
+                FiadoRepository.actualizarLocal(local.copy(categorias = local.categorias.filter { it.nombre != nombre }))
+            } catch (e: Exception) {
+                CrashLogger.log(e, "eliminarCategoria")
+                _error.value = "No se pudo eliminar la categoría"
             }
         }
     }

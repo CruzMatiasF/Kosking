@@ -20,6 +20,12 @@ data class HorarioDia(
 )
 
 @Immutable
+data class CategoriaLocal(
+    val nombre: String = "",
+    val esPorPeso: Boolean = false
+)
+
+@Immutable
 data class Local(
     val id: String = "",
     val nombre: String = "",
@@ -27,7 +33,8 @@ data class Local(
     val telefono: String = "",
     val tipo: String = "Kiosco",
     val direccion: String = "",
-    val horarios: Map<String, HorarioDia> = emptyMap()
+    val horarios: Map<String, HorarioDia> = emptyMap(),
+    val categorias: List<CategoriaLocal> = emptyList()
 )
 
 @Immutable

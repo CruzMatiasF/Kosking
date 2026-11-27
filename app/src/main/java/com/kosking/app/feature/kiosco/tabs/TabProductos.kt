@@ -38,6 +38,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.kosking.app.datos.CatalogoRepository
 import com.kosking.app.dueno.DuenoViewModel
+import com.kosking.app.modelo.CategoriaLocal
 import com.kosking.app.modelo.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +58,24 @@ fun TabProductos(
     onEliminar: (Producto) -> Unit,
     onVolver: (() -> Unit)? = null
 ) {
+    var categorias by remember { mutableStateOf<List<CategoriaLocal>>(emptyList()) }
+    LaunchedEffect(vm) {
+        vm?.localData?.collect { local ->
+            categorias = local?.categorias ?: emptyList()
+        }
+    }
+    var mostrarCategorias by remember { mutableStateOf(false) }
+
+    if (mostrarCategorias) {
+        PantallaCategorias(
+            categorias = categorias,
+            onGuardar = { nombre, esPorPeso, oldNombre -> vm?.guardarCategoria(nombre, esPorPeso, oldNombre) },
+            onEliminar = { vm?.eliminarCategoria(it) },
+            onVolver = { mostrarCategorias = false }
+        )
+        return
+    }
+
     var mostrarDialog by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Producto?>(null) }
     LaunchedEffect(mostrarDialogExterno) {
@@ -94,9 +113,7 @@ fun TabProductos(
     if (mostrarDialog) {
         DialogProducto(
             producto = editando,
-            categoriasExistentes = remember(productos) {
-                productos.map { it.categoria }.filter { it.isNotBlank() }.distinct().sorted()
-            },
+            categorias = categorias,
             cargando = cargando,
             onBuscarGlobal = onBuscarGlobal,
             onGuardar = { nombre, precio, categoria, imagenUri, presentacion, codigoBarras, esPorPeso ->
@@ -158,34 +175,40 @@ fun TabProductos(
             }
             } // cierre Row interno
             if (!esEmpleado) {
-                var menuNuevo by remember { mutableStateOf(false) }
-                Box {
-                    Button(
-                        onClick = { menuNuevo = true },
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Nuevo producto")
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.ArrowDropDown, null, Modifier.size(18.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    TextButton(onClick = { mostrarCategorias = true }) {
+                        Text("Categorías")
                     }
-                    DropdownMenu(
-                        expanded = menuNuevo,
-                        onDismissRequest = { menuNuevo = false }
-                    ) {
-                        if (onAbrirEscanerCargar != null) {
+                    var menuNuevo by remember { mutableStateOf(false) }
+                    Box {
+                        Button(
+                            onClick = { menuNuevo = true },
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("+ Nuevo")
+                        }
+                        DropdownMenu(
+                            expanded = menuNuevo,
+                            onDismissRequest = { menuNuevo = false }
+                        ) {
+                            if (onAbrirEscanerCargar != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Escanear") },
+                                    leadingIcon = { Icon(Icons.Default.QrCodeScanner, null, Modifier.size(18.dp)) },
+                                    onClick = { menuNuevo = false; onAbrirEscanerCargar() }
+                                )
+                            }
                             DropdownMenuItem(
-                                text = { Text("Escanear") },
-                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, null, Modifier.size(18.dp)) },
-                                onClick = { menuNuevo = false; onAbrirEscanerCargar() }
+                                text = { Text("Cargar manual") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null, Modifier.size(18.dp)) },
+                                onClick = { menuNuevo = false; editando = null; mostrarDialog = true }
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text("Cargar manual") },
-                            leadingIcon = { Icon(Icons.Default.Edit, null, Modifier.size(18.dp)) },
-                            onClick = { menuNuevo = false; editando = null; mostrarDialog = true }
-                        )
                     }
                 }
             }

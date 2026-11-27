@@ -84,6 +84,13 @@ service cloud.firestore {
       allow delete: if isDueno(resource.data.localId);
     }
 
+    match /ventas/{ventaId} {
+      allow read:   if tieneAcceso(resource.data.localId);
+      allow create: if tieneAcceso(request.resource.data.localId);
+      allow update: if isDueno(resource.data.localId);
+      allow delete: if false;
+    }
+
     // Productos globales: solo lectura para usuarios, escritura solo desde admin (consola Firebase)
     match /productos_globales/{productoId} {
       allow read:  if isAuth();

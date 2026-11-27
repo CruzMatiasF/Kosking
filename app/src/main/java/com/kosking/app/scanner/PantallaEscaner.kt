@@ -1,6 +1,7 @@
 package com.kosking.app.scanner
 
 import android.Manifest
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -246,6 +247,34 @@ fun PantallaEscaner(
         if (modoInicial != TipoMovimiento.VENTA) escanerVm.tipoMovimiento = modoInicial
     }
 
+    var mostrarDialogoSalir by remember { mutableStateOf(false) }
+    val hayItemsEnCarrito = escanerVm.carritos.any { it.itemsAnotados.isNotEmpty() }
+
+    fun intentarSalir() {
+        if (hayItemsEnCarrito) mostrarDialogoSalir = true
+        else onCerrar()
+    }
+
+    BackHandler { intentarSalir() }
+
+    if (mostrarDialogoSalir) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoSalir = false },
+            title = { Text("¿Salir del escáner?") },
+            text = { Text("Tenés productos en el carrito que no fueron confirmados. Si salís, se van a perder.") },
+            confirmButton = {
+                TextButton(onClick = { mostrarDialogoSalir = false; onCerrar() }) {
+                    Text("Salir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoSalir = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     // ── Pantalla confirmar (pantalla completa superpuesta) ──
     val clienteConfirmar = escanerVm.clienteSeleccionado
     val esVenta = escanerVm.tipoMovimiento == TipoMovimiento.VENTA
@@ -363,7 +392,7 @@ fun PantallaEscaner(
                             Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)))
                         )
                 )
-                IconButton(onClick = onCerrar, modifier = Modifier.padding(4.dp)) {
+                IconButton(onClick = { intentarSalir() }, modifier = Modifier.padding(4.dp)) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                 }
                 Row(

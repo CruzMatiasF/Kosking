@@ -347,10 +347,13 @@ object FiadoRepository {
             val precioUnit = if (cantidad > 0) precio / cantidad else precio
             val existente = productosEnMemoria.firstOrNull { it.nombre.equals(nombre, ignoreCase = true) }
             if (existente != null) {
-                batch.update(
+                batch.set(
                     db.collection("productos").document(existente.id),
-                    "ultimoPrecio", precioUnit,
-                    "vecesUsado", com.google.firebase.firestore.FieldValue.increment(1)
+                    mapOf(
+                        "ultimoPrecio" to precioUnit,
+                        "vecesUsado" to com.google.firebase.firestore.FieldValue.increment(1)
+                    ),
+                    com.google.firebase.firestore.SetOptions.merge()
                 )
             } else {
                 val ref = db.collection("productos").document()

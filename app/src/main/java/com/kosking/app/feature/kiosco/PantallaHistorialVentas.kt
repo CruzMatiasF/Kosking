@@ -101,6 +101,7 @@ fun PantallaHistorialVentas(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TopAppBar(
                 title = { Text("Historial de actividad", fontWeight = FontWeight.Bold) },
